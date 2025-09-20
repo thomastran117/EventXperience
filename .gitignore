@@ -14,11 +14,11 @@
 # ASP.NET Core / .NET backend
 ########################################
 # Build artifacts
-bin/
-obj/
-[Bb]uild/
-[Ll]og/
-[Ll]ogs/
+backend/bin/
+backend/obj/
+backend/[Bb]uild/
+backend/[Ll]og/
+backend/[Ll]ogs/
 
 # User-specific files
 .vs/

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\thoma\\Documents\\eventapp\\backend\\backend.csproj": {}
+    "C:\\Users\\thoma\\Documents\\Event\\backend\\backend.csproj": {}
   },
   "projects": {
-    "C:\\Users\\thoma\\Documents\\eventapp\\backend\\backend.csproj": {
+    "C:\\Users\\thoma\\Documents\\Event\\backend\\backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\thoma\\Documents\\eventapp\\backend\\backend.csproj",
+        "projectUniqueName": "C:\\Users\\thoma\\Documents\\Event\\backend\\backend.csproj",
         "projectName": "backend",
-        "projectPath": "C:\\Users\\thoma\\Documents\\eventapp\\backend\\backend.csproj",
+        "projectPath": "C:\\Users\\thoma\\Documents\\Event\\backend\\backend.csproj",
         "packagesPath": "C:\\Users\\thoma\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\thoma\\Documents\\eventapp\\backend\\obj\\",
+        "outputPath": "C:\\Users\\thoma\\Documents\\Event\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\thoma\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -44,6 +44,10 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "AspNetCore.HealthChecks.Redis": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
             "DotNetEnv": {
               "target": "Package",
               "version": "[3.1.1, )"
@@ -62,9 +66,25 @@
               "target": "Package",
               "version": "[9.0.5, )"
             },
+            "Microsoft.Extensions.Caching.StackExchangeRedis": {
+              "target": "Package",
+              "version": "[9.0.9, )"
+            },
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
               "version": "[9.0.4, )"
+            },
+            "Serilog.AspNetCore": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "Serilog.Sinks.Console": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.9.17, )"
             }
           },
           "imports": [

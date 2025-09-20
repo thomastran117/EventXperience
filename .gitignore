@@ -1,0 +1,75 @@
+########################################
+# Global ignores
+########################################
+*.DS_Store
+*.swp
+*.swo
+*.tmp
+*.log
+*.env
+.env.*
+!.env.example   # keep a sample env if you want
+
+########################################
+# ASP.NET Core / .NET backend
+########################################
+# Build artifacts
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+
+# User-specific files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Dotnet tooling
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Rider / VS Code
+.idea/
+*.iml
+.vscode/
+
+# Coverage
+*.coverage
+*.coveragexml
+coverage/
+
+########################################
+# Node / Vue (Vite) frontend
+########################################
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# Vite & dist
+dist/
+dist-ssr/
+.vite/
+
+# Local dev env
+.cache/
+*.local
+
+# Logs
+*.log
+logs/
+
+########################################
+# Misc
+########################################
+# OS files
+Thumbs.db
+ehthumbs.db
+Icon?

@@ -1,3 +1,4 @@
+using backend.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -21,7 +22,7 @@ public static class AuthExtensions
                     ValidIssuer = config["Jwt:Issuer"],
                     ValidAudience = config["Jwt:Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(config["Jwt:SecretKey"]!))
+                        Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey))
                 };
             });
 

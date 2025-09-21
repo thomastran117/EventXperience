@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using backend.Resources;
+using backend.Config;
+using backend.Utilities;
 
 namespace backend.Extensions;
 
@@ -10,16 +9,33 @@ public static class DatabaseExtensions
 {
     public static IServiceCollection AddAppDatabase(this IServiceCollection services, IConfiguration config)
     {
-        var connectionString = config.GetValue<string>("DB_CONNECTION_STRING");
-        if (string.IsNullOrEmpty(connectionString))
-            throw new Exception("DB_CONNECTION_STRING environment variable is not set.");
-
         services.AddDbContext<AppDatabaseContext>(options =>
         {
-            options.UseNpgsql(connectionString)
-                   .EnableSensitiveDataLogging(false)
-                   .LogTo(Console.WriteLine, LogLevel.Warning);
+            options.UseNpgsql(EnvManager.DbConnectionString);
         });
+
+        using (var scope = services.BuildServiceProvider().CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDatabaseContext>();
+
+            try
+            {
+                if (db.Database.CanConnect())
+                {
+                    Logger.Info("Database connection successful.");
+                }
+                else
+                {
+                    Logger.Error("Database connection failed.");
+                    Environment.Exit(1);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Database connection error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }
 
         return services;
     }

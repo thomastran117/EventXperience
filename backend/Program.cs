@@ -3,6 +3,7 @@ using backend.Interfaces;
 using backend.Services;
 using backend.Extensions;
 using backend.Configs;
+using backend.Utilities;
 
 Env.Load();
 
@@ -34,6 +35,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 var addresses = app.Urls.Any() ? string.Join(", ", app.Urls) : "no specific URLs";
-Serilog.Log.Information("✅ Server built successfully. Listening on: {Addresses}", addresses);
+Logger.Info("Server built successfully. Listening on: ...");
 
 app.Run();

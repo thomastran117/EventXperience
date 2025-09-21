@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using backend.Resources;
+using backend.Config;
+using backend.Utilities;
 
 namespace backend.Extensions;
 
@@ -9,15 +11,27 @@ public static class RedisExtensions
 {
     public static IServiceCollection AddAppRedis(this IServiceCollection services, IConfiguration config)
     {
-        var redisConn =
-            Environment.GetEnvironmentVariable("REDIS_CONNECTION")
-            ?? config["Redis:ConnectionString"]
-            ?? "localhost:6379";
-
         services.AddSingleton<IConnectionMultiplexer>(_ =>
-            ConnectionMultiplexer.Connect(redisConn));
+            ConnectionMultiplexer.Connect(EnvManager.RedisConnection));
 
         services.AddScoped<RedisResource>();
+
+        using (var scope = services.BuildServiceProvider().CreateScope())
+        {
+            try
+            {
+                var mux = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
+                var db = mux.GetDatabase();
+
+                var latency = db.Ping();
+                Logger.Info($"Redis connection successful (ping: {latency.TotalMilliseconds} ms).");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Redis connection error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }
 
         return services;
     }

@@ -13,7 +13,7 @@ namespace backend.Services
             _context = context;
         }
         
-        public Task<Club?> CreateClub(string name, int userId, string description, string clubtype, string? phone = null, string? email = null)
+        public Task<Club?> CreateClub(string name, int userId, string description, string clubtype, IFormFile clubimage, string? phone = null, string? email = null)
         {
             throw new NotImplementedException();
         }
@@ -23,7 +23,7 @@ namespace backend.Services
             throw new NotImplementedException();
         }
 
-        public Task<List<Club>> GetAllClubs(string query)
+        public Task<List<Club>> GetAllClubs(string? query = null)
         {
             throw new NotImplementedException();
         }
@@ -33,7 +33,7 @@ namespace backend.Services
             throw new NotImplementedException();
         }
 
-        public Task<Club?> UpdateClub(int clubId, int userId, string name, string description, string clubtype, string? phone = null, string? email = null)
+        public Task<Club?> UpdateClub(int clubId, int userId, string name, string description, string clubtype, IFormFile clubimage, string? phone = null, string? email = null)
         {
             throw new NotImplementedException();
         }

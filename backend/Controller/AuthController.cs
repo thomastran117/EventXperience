@@ -11,13 +11,11 @@ public class UserController : ControllerBase
 {
     private readonly ITokenService _tokenService;
     private readonly IAuthService _authService;
-    private readonly ILogger<UserController> _logger;
 
-    public UserController(ITokenService tokenService, IAuthService authService, ILogger<UserController> logger)
+    public UserController(ITokenService tokenService, IAuthService authService)
     {
         _tokenService = tokenService;
         _authService = authService;
-        _logger = logger;
     }
 
     [HttpPost("login")]
@@ -33,7 +31,7 @@ public class UserController : ControllerBase
         }
         catch (Exception ex)
         {
-            return ErrorUtility.HandleError(ex, _logger);
+            return ErrorUtility.HandleError(ex);
         }
     }
 
@@ -50,7 +48,7 @@ public class UserController : ControllerBase
         }
         catch (Exception ex)
         {
-            return ErrorUtility.HandleError(ex, _logger);
+            return ErrorUtility.HandleError(ex);
         }
     }
 }

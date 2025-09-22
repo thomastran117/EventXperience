@@ -45,7 +45,7 @@ public class ClubController : ControllerBase
         }
         catch (Exception ex)
         {
-            return ErrorUtility.HandleError(ex, _logger);
+            return ErrorUtility.HandleError(ex);
         }
     }
 
@@ -76,7 +76,7 @@ public class ClubController : ControllerBase
         }
         catch (Exception ex)
         {
-            return ErrorUtility.HandleError(ex, _logger);
+            return ErrorUtility.HandleError(ex);
         }
     }
 
@@ -107,7 +107,7 @@ public class ClubController : ControllerBase
         }
         catch (Exception ex)
         {
-            return ErrorUtility.HandleError(ex, _logger);
+            return ErrorUtility.HandleError(ex);
         }
     }
 
@@ -136,7 +136,7 @@ public class ClubController : ControllerBase
         }
         catch (Exception ex)
         {
-            return ErrorUtility.HandleError(ex, _logger);
+            return ErrorUtility.HandleError(ex);
         }
     }
 
@@ -165,7 +165,7 @@ public class ClubController : ControllerBase
         }
         catch (Exception ex)
         {
-            return ErrorUtility.HandleError(ex, _logger);
+            return ErrorUtility.HandleError(ex);
         }
     }
 }

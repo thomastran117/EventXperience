@@ -7,7 +7,7 @@ namespace backend.Utilities;
 
 public static class ErrorUtility
 {
-    public static IActionResult HandleError(Exception ex, ILogger logger)
+    public static IActionResult HandleError(Exception ex)
     {
         return ex switch
         {
@@ -15,7 +15,7 @@ public static class ErrorUtility
             NotFoundException notFoundException => HandleNotFoundException(notFoundException),
             UnauthorizedException unauthorizedException => HandleUnauthorizedException(unauthorizedException),
             ForbiddenException forbiddenException => HandleForbiddenException(forbiddenException),
-            _ => HandleGenericException(ex, logger)
+            _ => HandleGenericException(ex)
         };
     }
 
@@ -62,9 +62,9 @@ public static class ErrorUtility
         };
     }
 
-    private static IActionResult HandleGenericException(Exception ex, ILogger logger)
+    private static IActionResult HandleGenericException(Exception ex)
     {
-        logger.LogError(ex, "Unexpected error occurred");
+        Logger.Error(ex, "Unexpected error occurred");
 
         var response = new MessageResponse(
             "An unexpected error occurred.",

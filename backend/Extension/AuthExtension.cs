@@ -19,8 +19,8 @@ public static class AuthExtensions
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = config["Jwt:Issuer"],
-                    ValidAudience = config["Jwt:Audience"],
+                    ValidIssuer = EnvManager.JwtIssuer,
+                    ValidAudience = EnvManager.JwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey))
                 };

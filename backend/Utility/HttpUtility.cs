@@ -23,6 +23,7 @@ public static class HttpUtility
     public static int GetUserId(this ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+        Logger.Debug("here");
         if (userIdClaim == null)
         {
             throw new UnauthorizedException();

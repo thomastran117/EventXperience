@@ -4,6 +4,8 @@ using System.Text;
 using backend.Models;
 using backend.Interfaces;
 using Microsoft.IdentityModel.Tokens;
+using backend.Config;
+using backend.Utilities;
 
 namespace backend.Services;
 
@@ -19,8 +21,7 @@ public class TokenService : ITokenService
     public string GenerateJwtToken(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!);
-
+        var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey!);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]
@@ -31,8 +32,8 @@ public class TokenService : ITokenService
             }),
             Expires = DateTime.UtcNow.AddHours(2),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-            Issuer = _configuration["Jwt:Issuer"],
-            Audience = _configuration["Jwt:Audience"]
+            Issuer = EnvManager.JwtIssuer,
+            Audience = EnvManager.JwtAudience
         };
 
         var token = tokenHandler.CreateToken(tokenDescriptor);

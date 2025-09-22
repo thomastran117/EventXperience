@@ -5,6 +5,7 @@ using backend.Extensions;
 using backend.Configs;
 using backend.Utilities;
 using Serilog;
+using Microsoft.Extensions.FileProviders;
 
 Env.Load();
 
@@ -57,8 +58,50 @@ app.UseCors("AllowReact");
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "www")),
+    RequestPath = "/public"
+});
 
 app.MapControllers();
+
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode == StatusCodes.Status404NotFound &&
+        !context.Response.HasStarted)
+    {
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "Resource not found",
+            code = 404,
+            path = context.Request.Path
+        });
+    }
+});
+
+app.MapGet("/api", () =>
+{
+    return Results.Json(new
+    {
+        status = "Healthy",
+        timestamp = DateTime.UtcNow
+    });
+});
+
+app.MapGet("/health", () =>
+{
+    return Results.Json(new
+    {
+        status = "Healthy",
+        timestamp = DateTime.UtcNow
+    });
+});
 
 var addresses = app.Urls.Any() ? string.Join(", ", app.Urls) : "no specific URLs";
 Logger.Info("Server built successfully. Listening on: ...");

@@ -6,18 +6,15 @@ using Microsoft.AspNetCore.Mvc;
 namespace backend.Controllers;
 
 [ApiController]
-[Route("auth")]
-public class UserController : ControllerBase
+[Route("clubs")]
+public class ClubController : ControllerBase
 {
-    private readonly ITokenService _tokenService;
-    private readonly IAuthService _authService;
+    private readonly IClubService _clubService;
     private readonly ILogger<UserController> _logger;
 
-    public UserController(ITokenService tokenService, IAuthService authService, ILogger<UserController> logger)
+    public ClubController(IClubService clubService)
     {
-        _tokenService = tokenService;
-        _authService = authService;
-        _logger = logger;
+        _clubService = clubService;
     }
 
     [HttpPost("login")]

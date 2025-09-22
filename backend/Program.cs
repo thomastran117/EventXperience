@@ -21,7 +21,10 @@ builder.Host.UseMinimalSerilog();
 
 builder.Configuration.AddEnvironmentVariables();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Conventions.Insert(0, new RoutePrefixConvention("api"));
+});
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

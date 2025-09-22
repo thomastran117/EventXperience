@@ -5,3 +5,4 @@ obj/
 [Ll]og/
 [Ll]ogs/
 artifacts/
+.env

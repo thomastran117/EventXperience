@@ -47,13 +47,13 @@ namespace backend.Config
         }
 
         public static string JwtIssuer =>
-            GetRequired("Jwt:Issuer");
+            GetRequired("JwtIssuer");
 
         public static string JwtAudience =>
-            GetRequired("Jwt:Audience");
+            GetRequired("JwtAudience");
 
         public static string JwtSecretKey =>
-            GetRequired("Jwt:SecretKey");
+            GetRequired("JwtSecretKey");
 
         private static string? Get(string key) =>
             Environment.GetEnvironmentVariable(key);

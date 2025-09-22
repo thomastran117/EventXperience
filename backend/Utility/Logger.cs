@@ -6,8 +6,8 @@ namespace backend.Utilities
     public enum LogLevel
     {
         Debug = 0,
-        Info  = 1,
-        Warn  = 2,
+        Info = 1,
+        Warn = 2,
         Error = 3
     }
 
@@ -27,8 +27,8 @@ namespace backend.Utilities
     public static class Logger
     {
         private static readonly object _consoleLock = new();
-        private static readonly object _fileLock    = new();
-        private static LoggerOptions _options       = new();
+        private static readonly object _fileLock = new();
+        private static LoggerOptions _options = new();
         private static string _logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
 
         static Logger()
@@ -51,16 +51,16 @@ namespace backend.Utilities
                 Directory.CreateDirectory(_logDirectory);
         }
 
-        public static void Debug(string message)                 => Write(LogLevel.Debug, message, null);
-        public static void Info(string message)                  => Write(LogLevel.Info,  message, null);
-        public static void Warn(string message)                  => Write(LogLevel.Warn,  message, null);
-        public static void Error(string message)                 => Write(LogLevel.Error, message, null);
+        public static void Debug(string message) => Write(LogLevel.Debug, message, null);
+        public static void Info(string message) => Write(LogLevel.Info, message, null);
+        public static void Warn(string message) => Write(LogLevel.Warn, message, null);
+        public static void Error(string message) => Write(LogLevel.Error, message, null);
 
-        public static void Warn(Exception ex, string? message=null)  => Write(LogLevel.Warn,  message, ex);
-        public static void Error(Exception ex, string? message=null) => Write(LogLevel.Error, message, ex);
+        public static void Warn(Exception ex, string? message = null) => Write(LogLevel.Warn, message, ex);
+        public static void Error(Exception ex, string? message = null) => Write(LogLevel.Error, message, ex);
 
-        public static void Log(LogLevel level, string message)       => Write(level, message, null);
-        public static void Log(LogLevel level, Exception ex, string? message=null) => Write(level, message, ex);
+        public static void Log(LogLevel level, string message) => Write(level, message, null);
+        public static void Log(LogLevel level, Exception ex, string? message = null) => Write(level, message, ex);
 
         private static void Write(LogLevel level, string? message, Exception? ex)
         {
@@ -114,10 +114,10 @@ namespace backend.Utilities
         private static ConsoleColor LevelColor(LogLevel level) => level switch
         {
             LogLevel.Debug => ConsoleColor.Gray,
-            LogLevel.Info  => ConsoleColor.Cyan,
-            LogLevel.Warn  => ConsoleColor.Yellow,
+            LogLevel.Info => ConsoleColor.Cyan,
+            LogLevel.Warn => ConsoleColor.Yellow,
             LogLevel.Error => ConsoleColor.Red,
-            _              => ConsoleColor.White
+            _ => ConsoleColor.White
         };
 
         private static string GetLogFilePath(DateTime now)

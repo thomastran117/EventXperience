@@ -11,11 +11,11 @@ public static class ErrorUtility
     {
         return ex switch
         {
-            ConflictException conflictException      => HandleConflictException(conflictException),
-            NotFoundException notFoundException      => HandleNotFoundException(notFoundException),
+            ConflictException conflictException => HandleConflictException(conflictException),
+            NotFoundException notFoundException => HandleNotFoundException(notFoundException),
             UnauthorizedException unauthorizedException => HandleUnauthorizedException(unauthorizedException),
-            ForbiddenException forbiddenException    => HandleForbiddenException(forbiddenException),
-            _                                        => HandleGenericException(ex, logger)
+            ForbiddenException forbiddenException => HandleForbiddenException(forbiddenException),
+            _ => HandleGenericException(ex, logger)
         };
     }
 

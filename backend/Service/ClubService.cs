@@ -12,7 +12,7 @@ namespace backend.Services
         {
             _context = context;
         }
-        
+
         public Task<Club?> CreateClub(string name, int userId, string description, string clubtype, IFormFile clubimage, string? phone = null, string? email = null)
         {
             throw new NotImplementedException();

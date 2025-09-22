@@ -31,8 +31,8 @@ public class HttpLoggingMiddleware
             >= 200 and < 300 => ConsoleColor.Green,
             >= 300 and < 400 => ConsoleColor.Cyan,
             >= 400 and < 500 => ConsoleColor.Yellow,
-            >= 500           => ConsoleColor.Red,
-            _                 => ConsoleColor.Gray
+            >= 500 => ConsoleColor.Red,
+            _ => ConsoleColor.Gray
         };
 
         var logMessage =

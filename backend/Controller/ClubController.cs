@@ -102,7 +102,8 @@ public class ClubController : ControllerBase
                     statusCode: StatusCodes.Status500InternalServerError
                 );
 
-                return StatusCode(StatusCodes.Status500InternalServerError, response);            }
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+            }
         }
         catch (Exception ex)
         {

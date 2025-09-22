@@ -14,7 +14,7 @@ public class EventClubCreateRequest
     [StringLength(30, ErrorMessage = "Location cannot exceed 30 characters.")]
     public required string Location { get; set; }
     public required string EventImage { get; set; }
-    public string? Intesnity { get; set; } 
+    public string? Intesnity { get; set; }
     public required DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
 }
@@ -31,7 +31,7 @@ public class EventClubUpdateRequest
     [StringLength(30, ErrorMessage = "Location cannot exceed 30 characters.")]
     public required string Location { get; set; }
     public required string EventImage { get; set; }
-    public string? Intesnity { get; set; } 
+    public string? Intesnity { get; set; }
     public required DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
 }

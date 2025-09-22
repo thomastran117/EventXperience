@@ -12,7 +12,7 @@ namespace backend.Services
         {
             _context = context;
         }
-        
+
         public Task<EventClub?> CreateEvent(string name, string description, string location, string eventImage, DateTime startTime, int clubId, string? intensity = null, DateTime? endTime = null)
         {
             throw new NotImplementedException();

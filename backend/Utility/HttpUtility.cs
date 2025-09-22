@@ -1,7 +1,10 @@
+using backend.Exceptions;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace backend.Utilities;
-public static class ValidationHelper
+
+public static class HttpUtility
 {
     public static IActionResult? ValidatePositiveId(int id)
     {
@@ -15,5 +18,16 @@ public static class ValidationHelper
         }
 
         return null;
+    }
+    
+    public static int GetUserId(this ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+        {
+            throw new UnauthorizedException();
+        }
+
+        return int.Parse(userIdClaim.Value);
     }
 }

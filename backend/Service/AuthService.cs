@@ -17,16 +17,16 @@ public class AuthService : IAuthService
         _context = context;
     }
 
-    public async Task<User?> SignUpAsync(string username, string password, string userType)
+    public async Task<User?> SignUpAsync(string email, string password, string userType)
     {
-        if (await _context.Users.AnyAsync(u => u.Username == username))
-            throw new ConflictException("user", username);
+        if (await _context.Users.AnyAsync(u => u.Email == email))
+            throw new ConflictException("user", email);
 
         var hashedPassword = HashPassword(password);
 
         var user = new User
         {
-            Username = username,
+            Email = email,
             Password = hashedPassword,
             Usertype = userType
         };
@@ -37,11 +37,11 @@ public class AuthService : IAuthService
         return user;
     }
 
-    public async Task<User?> LoginAsync(string username, string password)
+    public async Task<User?> LoginAsync(string email, string password)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-        if (user == null) throw new NotFoundException("user", username);
+        if (user == null) throw new NotFoundException("user", email);
         if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException();
 
         return user;

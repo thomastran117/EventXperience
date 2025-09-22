@@ -27,7 +27,7 @@ public class UserController : ControllerBase
     {
         try
         {
-            var user = await _authService.LoginAsync(request.Username, request.Password);
+            var user = await _authService.LoginAsync(request.Email, request.Password);
 
             var token = _tokenService.GenerateJwtToken(user!);
 
@@ -44,7 +44,7 @@ public class UserController : ControllerBase
     {
         try
         {
-            var user = await _authService.SignUpAsync(request.Username, request.Password, request.Usertype);
+            var user = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
             return StatusCode(StatusCodes.Status201Created, new
             {
                 message = "Registration successful. Please login."

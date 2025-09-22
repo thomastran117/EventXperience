@@ -4,16 +4,16 @@ namespace backend.DTOs;
 
 public class AuthResponse
 {
-    public AuthResponse(int id, string username, string userType, string token)
+    public AuthResponse(int id, string email, string userType, string token)
     {
         Id = id;
-        Username = username;
+        Email = email;
         Usertype = userType;
         Token = token;
     }
 
     public int Id { get; set; }
-    public string Username { get; set; }
+    public string Email { get; set; }
     public string Usertype { get; set; }
     public string Token { get; set; }
 }
@@ -21,8 +21,8 @@ public class AuthResponse
 public class LoginRequest
 {
     [Required]
-    [StringLength(30, ErrorMessage = "Username cannot exceed 30 characters.")]
-    public required string Username { get; set; }
+    [EmailAddress]
+    public required string Email { get; set; }
 
     [Required]
     [StringLength(30, MinimumLength = 4, ErrorMessage = "Password must be between 4 and 30 characters.")]
@@ -32,8 +32,8 @@ public class LoginRequest
 public class SignUpRequest
 {
     [Required]
-    [StringLength(30, ErrorMessage = "Username cannot exceed 30 characters.")]
-    public required string Username { get; set; }
+    [EmailAddress]
+    public required string Email { get; set; }
 
     [Required]
     [StringLength(30, MinimumLength = 4, ErrorMessage = "Password must be between 4 and 30 characters.")]

@@ -43,7 +43,6 @@ public class UserService : IUserService
         existingUser.Name = updatedUser.Name;
         existingUser.Email = updatedUser.Email;
         existingUser.Address = updatedUser.Address;
-        existingUser.Faculty = updatedUser.Faculty;
 
         await _context.SaveChangesAsync();
         return true;

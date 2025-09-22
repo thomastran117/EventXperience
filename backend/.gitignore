@@ -6,3 +6,5 @@ obj/
 [Ll]ogs/
 artifacts/
 .env
+www/
+wwwroot/

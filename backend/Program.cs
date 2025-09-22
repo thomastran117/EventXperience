@@ -29,7 +29,10 @@ builder.Services.AddControllers(options =>
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IClubService, ClubService>();
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddAppDatabase(builder.Configuration);
 builder.Services.AddAppRedis(builder.Configuration);
 builder.Services.AddJwtAuth(builder.Configuration);

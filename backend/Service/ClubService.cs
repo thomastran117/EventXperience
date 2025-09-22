@@ -1,41 +1,132 @@
-using backend.Models;
+using backend.Exceptions;
 using backend.Interfaces;
+using backend.Models;
 using backend.Resources;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
 {
     public class ClubService : IClubService
     {
         private readonly AppDatabaseContext _context;
+        private readonly IFileUploadService _fileUploadService;
 
-        public ClubService(AppDatabaseContext context)
+        public ClubService(AppDatabaseContext context, IFileUploadService fileUploadService)
         {
             _context = context;
+            _fileUploadService = fileUploadService;
         }
 
-        public Task<Club?> CreateClub(string name, int userId, string description, string clubtype, IFormFile clubimage, string? phone = null, string? email = null)
+        public async Task<Club?> CreateClub(
+            string name,
+            int userId,
+            string description,
+            string clubtype,
+            IFormFile clubimage,
+            string? phone = null,
+            string? email = null)
         {
-            throw new NotImplementedException();
+            var imageUrl = await _fileUploadService.UploadImageAsync(clubimage, "clubs");
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            var club = new Club
+            {
+                Name = name,
+                Description = description,
+                Clubtype = clubtype,
+                ClubImage = imageUrl,
+                Phone = phone,
+                Email = email,
+                UserId = userId,
+                User = user
+            };
+
+            _context.Clubs.Add(club);
+            await _context.SaveChangesAsync();
+            return club;
         }
 
-        public Task<bool> DeleteClub(int clubId, int userId)
+        public async Task<bool> DeleteClub(int clubId, int userId)
         {
-            throw new NotImplementedException();
+            var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Id == clubId);
+            if (club == null)
+                throw new NotFoundException("club", clubId.ToString());
+
+            if (club.UserId != userId)
+                throw new ForbiddenException("club", clubId.ToString());
+
+            _ = await _fileUploadService.DeleteImageAsync(club.ClubImage);
+
+            _context.Clubs.Remove(club);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public Task<List<Club>> GetAllClubs(string? query = null)
+        public async Task<List<Club>> GetAllClubs(string? query = null)
         {
-            throw new NotImplementedException();
+            IQueryable<Club> q = _context.Clubs.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var like = $"%{query.Trim()}%";
+                q = q.Where(c =>
+                    EF.Functions.ILike(c.Name, like) ||
+                    EF.Functions.ILike(c.Description, like) ||
+                    EF.Functions.ILike(c.Clubtype, like));
+            }
+
+            return await q
+                .OrderBy(c => c.Id)
+                .ToListAsync();
         }
 
-        public Task<Club?> GetClub(int clubId)
+        public async Task<Club?> GetClub(int clubId)
         {
-            throw new NotImplementedException();
+            var club = await _context.Clubs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == clubId);
+
+            if (club == null)
+                throw new NotFoundException("club", clubId.ToString());
+
+            return club;
         }
 
-        public Task<Club?> UpdateClub(int clubId, int userId, string name, string description, string clubtype, IFormFile clubimage, string? phone = null, string? email = null)
+        public async Task<Club?> UpdateClub(
+            int clubId,
+            int userId,
+            string name,
+            string description,
+            string clubtype,
+            IFormFile clubimage,
+            string? phone = null,
+            string? email = null)
         {
-            throw new NotImplementedException();
+            var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Id == clubId);
+            if (club == null)
+                throw new NotFoundException("club", clubId.ToString());
+
+            if (club.UserId != userId)
+                throw new ForbiddenException("club", clubId.ToString());
+
+            string? oldImageUrl = club.ClubImage;
+            var newImageUrl = await _fileUploadService.UploadImageAsync(clubimage, "clubs");
+
+            club.Name = name;
+            club.Description = description;
+            club.Clubtype = clubtype;
+            club.ClubImage = newImageUrl;
+            club.Phone = phone;
+            club.Email = email;
+
+            await _context.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(oldImageUrl) && !oldImageUrl.Equals(newImageUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                _ = await _fileUploadService.DeleteImageAsync(oldImageUrl);
+            }
+
+            return club;
         }
     }
 }

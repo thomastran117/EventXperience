@@ -4,6 +4,7 @@ using backend.Services;
 using backend.Extensions;
 using backend.Configs;
 using backend.Utilities;
+using Serilog;
 
 Env.Load();
 
@@ -39,6 +40,17 @@ builder.Services.AddJwtAuth(builder.Configuration);
 builder.Services.AddReactCors("AllowReact");
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    opts.EnrichDiagnosticContext = (ctx, http) =>
+    {
+        ctx.Set("RequestHost", http.Request.Host.Value);
+        ctx.Set("RequestScheme", http.Request.Scheme);
+        ctx.Set("UserAgent", http.Request.Headers.UserAgent.ToString());
+    };
+});
 
 app.UseHttpsRedirection();
 app.UseCors("AllowReact");

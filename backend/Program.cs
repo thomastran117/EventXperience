@@ -7,6 +7,14 @@ using backend.Utilities;
 
 Env.Load();
 
+Logger.Configure(o =>
+{
+    o.EnableFileLogging = true;
+    o.MinFileLevel = backend.Utilities.LogLevel.Warn;
+    o.LogDirectory = Path.GetFullPath(
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "logs"));
+});
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseMinimalSerilog();

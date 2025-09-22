@@ -9,4 +9,6 @@ public class User
     public string? Name { get; set; }
     public string? Username { get; set; }
     public string? Address { get; set; }
+
+    public ICollection<Club> Clubs { get; set; } = new List<Club>();
 }

@@ -9,5 +9,6 @@ public class Club
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public double? Rating { get; set; }
+    public int UserId { get; set; }
     public required User User { get; set; }
 }

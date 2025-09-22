@@ -1,0 +1,63 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace backend.DTOs;
+
+public class ClubCreateRequest
+{
+    [Required]
+    [StringLength(30, ErrorMessage = "Name cannot exceed 30 characters.")]
+    public required string Name { get; set; }
+    [Required]
+    [StringLength(30, ErrorMessage = "Name cannot exceed 30 characters.")]
+    public required string Description { get; set; }
+    [Required]
+    [RegularExpression("^(sport|game|music|other)$",
+    ErrorMessage = "Clubtype must be 'sport', 'game', 'music' or 'other'.")]
+    public required string Clubtype { get; set; }
+    [Phone]
+    public string? Phone { get; set; }
+    [EmailAddress]
+    public string? Email { get; set; }
+}
+
+public class ClubUpdateRequest
+{
+    [StringLength(30, ErrorMessage = "Name cannot exceed 30 characters.")]
+    public required string Name { get; set; }
+    [StringLength(30, ErrorMessage = "Name cannot exceed 30 characters.")]
+    public required string Description { get; set; }
+    [RegularExpression("^(sport|game|music|other)$",
+    ErrorMessage = "Clubtype must be 'sport', 'game', 'music' or 'other'.")]
+    public required string Clubtype { get; set; }
+    [Phone]
+    public string? Phone { get; set; }
+    [EmailAddress]
+    public string? Email { get; set; }
+}
+
+public class ClubResponse
+{
+    public ClubResponse(int id, string name, string description, string clubtype)
+    {
+        Id = id;
+        Name = name;
+        Description = description;
+        Clubtype = clubtype;
+    }
+
+    [Required]
+    public int Id { get; set; }
+
+    [Required]
+    public string Name { get; set; } = string.Empty;
+
+    [Required]
+    public string Description { get; set; } = string.Empty;
+
+    [Required]
+    public string Clubtype { get; set; } = string.Empty;
+
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public double? Rating { get; set; }
+}

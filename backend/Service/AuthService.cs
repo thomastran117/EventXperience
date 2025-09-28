@@ -47,6 +47,15 @@ public class AuthService : IAuthService
         return user;
     }
 
+    public async Task<User?> GetUserByIdAsync(int id)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+        if (user == null) throw new NotFoundException("user", "5");
+
+        return user;
+    }
+
     private string HashPassword(string password)
     {
         using var sha256 = SHA256.Create();

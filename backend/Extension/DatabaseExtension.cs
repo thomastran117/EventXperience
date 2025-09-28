@@ -7,7 +7,7 @@ namespace backend.Extensions;
 
 public static class DatabaseExtensions
 {
-    public static IServiceCollection AddAppDatabase(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddAppDatabase(this IServiceCollection services)
     {
         services.AddDbContext<AppDatabaseContext>(options =>
         {

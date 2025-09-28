@@ -55,6 +55,16 @@ namespace backend.Config
         public static string JwtSecretKey =>
             GetRequired("JwtSecretKey");
 
+        public static string JwtIssuerRefresh =>
+            GetRequired("JwtIssuerRefresh");
+
+        public static string JwtAudienceRefresh =>
+            GetRequired("JwtAudienceRefresh");
+
+        public static string JwtSecretKeyRefresh =>
+            GetRequired("JwtSecretKeyRefresh");
+
+
         private static string? Get(string key) =>
             Environment.GetEnvironmentVariable(key);
 

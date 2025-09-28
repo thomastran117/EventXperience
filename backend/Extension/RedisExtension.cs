@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using backend.Resources;
 using backend.Config;
@@ -9,7 +7,7 @@ namespace backend.Extensions;
 
 public static class RedisExtensions
 {
-    public static IServiceCollection AddAppRedis(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddAppRedis(this IServiceCollection services)
     {
         services.AddSingleton<IConnectionMultiplexer>(_ =>
             ConnectionMultiplexer.Connect(EnvManager.RedisConnection));

@@ -8,7 +8,7 @@ namespace backend.Extensions;
 
 public static class AuthExtensions
 {
-    public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddJwtAuth(this IServiceCollection services)
     {
         services.AddAuthentication("Bearer")
             .AddJwtBearer("Bearer", options =>

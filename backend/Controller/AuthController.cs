@@ -2,17 +2,18 @@ using backend.Interfaces;
 using backend.DTOs;
 using backend.Utilities;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace backend.Controllers;
 
 [ApiController]
 [Route("auth")]
-public class UserController : ControllerBase
+public class AuthController : ControllerBase
 {
     private readonly ITokenService _tokenService;
     private readonly IAuthService _authService;
 
-    public UserController(ITokenService tokenService, IAuthService authService)
+    public AuthController(ITokenService tokenService, IAuthService authService)
     {
         _tokenService = tokenService;
         _authService = authService;
@@ -25,9 +26,15 @@ public class UserController : ControllerBase
         {
             var user = await _authService.LoginAsync(request.Email, request.Password);
 
-            var token = _tokenService.GenerateJwtToken(user!);
+            if (user == null)
+                return Unauthorized(new { message = "Invalid email or password." });
 
-            return Ok(new AuthResponse(user!.Id, user!.Email, user!.Usertype, token));
+            var accessToken = _tokenService.GenerateJwtToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken(user);
+
+            SetRefreshTokenCookie(refreshToken);
+
+            return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, accessToken));
         }
         catch (Exception ex)
         {
@@ -50,5 +57,51 @@ public class UserController : ControllerBase
         {
             return ErrorUtility.HandleError(ex);
         }
+    }
+
+    [HttpPost("refresh")]
+    public IActionResult Refresh()
+    {
+        try
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(refreshToken))
+                return Unauthorized(new { message = "Missing refresh token." });
+
+            var principal = _tokenService.ValidateRefreshToken(refreshToken);
+            if (principal == null)
+                return Unauthorized(new { message = "Invalid or expired refresh token." });
+
+            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "Invalid refresh token payload." });
+
+            var user = _authService.GetUserByIdAsync(int.Parse(userId)).Result;
+
+            var rotated = _tokenService.RotateRefreshToken(user, refreshToken);
+            if (rotated == null)
+                return Unauthorized(new { message = "Refresh token rotation failed." });
+
+            SetRefreshTokenCookie(rotated.Value.refreshToken);
+
+            return Ok(new { accessToken = rotated.Value.accessToken });
+        }
+        catch (Exception ex)
+        {
+            return ErrorUtility.HandleError(ex);
+        }
+    }
+
+    private void SetRefreshTokenCookie(string refreshToken)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTime.UtcNow.AddDays(7)
+        };
+
+        Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
 }

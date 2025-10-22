@@ -1,8 +1,8 @@
-namespace backend.Exceptions;
-
-public class UnauthorizedException : Exception
+namespace backend.Exceptions
 {
-    public UnauthorizedException()
-        : base($"Invalid credientials are provided")
-    { }
+    public class UnauthorizedException : AppException
+    {
+        public UnauthorizedException(string message)
+            : base(message, StatusCodes.Status401Unauthorized) { }
+    }
 }

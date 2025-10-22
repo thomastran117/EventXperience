@@ -1,7 +1,8 @@
-namespace backend.Exceptions;
-public class ConflictException : Exception
+namespace backend.Exceptions
 {
-    public ConflictException(string name, string id)
-        : base($"The provided identifier: {id}, already exist within {name}")
-    { }
+    public class ConflictException : AppException
+    {
+        public ConflictException(string message)
+            : base(message, StatusCodes.Status409Conflict) { }
+    }
 }

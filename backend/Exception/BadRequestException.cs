@@ -1,7 +1,8 @@
-namespace backend.Exceptions;
-public class BadRequestException : Exception
+namespace backend.Exceptions
 {
-    public BadRequestException(string name, string id)
-        : base($"Invalid inputs. Please correct them.")
-    { }
+    public class BadRequestException : AppException
+    {
+        public BadRequestException(string message)
+            : base(message, StatusCodes.Status400BadRequest) { }
+    }
 }

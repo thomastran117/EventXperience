@@ -1,7 +1,8 @@
-namespace backend.Exceptions;
-public class ForbiddenException : Exception
+namespace backend.Exceptions
 {
-    public ForbiddenException(string name, string id)
-        : base($"You are not alloewd to edit the {name} with id of {id}")
-    { }
+    public class ForbiddenException : AppException
+    {
+        public ForbiddenException(string message)
+            : base(message, StatusCodes.Status403Forbidden) { }
+    }
 }

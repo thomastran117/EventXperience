@@ -1,8 +1,8 @@
-namespace backend.Exceptions;
-
-public class NotFoundException : Exception
+namespace backend.Exceptions
 {
-    public NotFoundException(string name, string id)
-        : base($"The provided identifier: {id}, does not exist within {name}")
-    { }
+    public class NotFoundException : AppException
+    {
+        public NotFoundException(string message)
+            : base(message, StatusCodes.Status404NotFound) { }
+    }
 }

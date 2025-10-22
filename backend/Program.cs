@@ -55,6 +55,7 @@ app.UseSerilogRequestLogging(opts =>
 
 app.UseHttpsRedirection();
 app.UseCors("AllowReact");
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

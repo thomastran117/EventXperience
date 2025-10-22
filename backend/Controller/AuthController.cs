@@ -3,6 +3,7 @@ using backend.DTOs;
 using backend.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using backend.Exceptions;
 
 namespace backend.Controllers
 {
@@ -22,74 +23,53 @@ namespace backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            try
-            {
-                var user = await _authService.LoginAsync(request.Email, request.Password);
+            var user = await _authService.LoginAsync(request.Email, request.Password);
 
-                if (user == null)
-                    return Unauthorized(new { message = "Invalid email or password." });
+            if (user == null)
+                throw new UnauthorizedException("Invalid username or password");
 
-                var accessToken = _tokenService.GenerateJwtToken(user);
-                var refreshToken = _tokenService.GenerateRefreshToken(user);
+            var accessToken = _tokenService.GenerateJwtToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken(user);
 
-                SetRefreshTokenCookie(refreshToken);
+            SetRefreshTokenCookie(refreshToken);
 
-                return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, accessToken));
-            }
-            catch (Exception ex)
-            {
-                return ErrorUtility.HandleError(ex);
-            }
+            return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, accessToken));
         }
 
         [HttpPost("signup")]
         public async Task<IActionResult> SignUp([FromBody] SignUpRequest request)
         {
-            try
+            var user = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
+            return StatusCode(StatusCodes.Status201Created, new
             {
-                var user = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
-                return StatusCode(StatusCodes.Status201Created, new
-                {
-                    message = "Registration successful. Please login."
-                });
-            }
-            catch (Exception ex)
-            {
-                return ErrorUtility.HandleError(ex);
-            }
+                message = "Registration successful. Please login."
+            });
         }
 
         [HttpPost("refresh")]
         public IActionResult Refresh()
         {
-            try
-            {
-                var refreshToken = Request.Cookies["refreshToken"];
-                if (string.IsNullOrEmpty(refreshToken))
-                    return Unauthorized(new { message = "Missing refresh token." });
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(refreshToken))
+                throw new UnauthorizedException("Missing refresh token");
 
-                var principal = _tokenService.ValidateRefreshToken(refreshToken);
-                if (principal == null)
-                    return Unauthorized(new { message = "Invalid or expired refresh token." });
+            var principal = _tokenService.ValidateRefreshToken(refreshToken);
+            if (principal == null)
+                throw new UnauthorizedException("Invalid or expired refresh token");
 
-                var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized(new { message = "Invalid refresh token payload." });
+            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                throw new UnauthorizedException("Invalid or expired refresh token");
 
-                var user = _authService.GetUserByIdAsync(int.Parse(userId)).Result;
+            var user = _authService.GetUserByIdAsync(int.Parse(userId)).Result;
 
-                var rotated = _tokenService.RotateRefreshToken(user, refreshToken);
-                if (rotated == null)
-                    return Unauthorized(new { message = "Refresh token rotation failed." });
+            var rotated = _tokenService.RotateRefreshToken(user, refreshToken);
+            if (rotated == null)
+                throw new UnauthorizedException("Invalid or expired refresh token");
 
-                SetRefreshTokenCookie(rotated.Value.refreshToken);
+            SetRefreshTokenCookie(rotated.Value.refreshToken);
 
-                return Ok(new { accessToken = rotated.Value.accessToken });
-            }
-            catch (Exception ex)
-            {
-                return ErrorUtility.HandleError(ex);
-            }
+            return Ok(new { accessToken = rotated.Value.accessToken });
         }
 
         private void SetRefreshTokenCookie(string refreshToken)

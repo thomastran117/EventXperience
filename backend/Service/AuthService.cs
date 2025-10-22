@@ -20,7 +20,7 @@ namespace backend.Services
         public async Task<User?> SignUpAsync(string email, string password, string userType)
         {
             if (await _context.Users.AnyAsync(u => u.Email == email))
-                throw new ConflictException("user", email);
+                throw new ConflictException($"An account is already registered with the email: {email}");
 
             var hashedPassword = HashPassword(password);
 
@@ -41,8 +41,8 @@ namespace backend.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-            if (user == null) throw new NotFoundException("user", email);
-            if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException();
+            if (user == null) throw new UnauthorizedException("Invalid email or password");
+            if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException("Invalid email or password");
 
             return user;
         }
@@ -51,7 +51,7 @@ namespace backend.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
-            if (user == null) throw new NotFoundException("user", "5");
+            if (user == null) throw new NotFoundException($"User with the id {id} is not found");
 
             return user;
         }

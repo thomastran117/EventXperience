@@ -15,5 +15,5 @@ namespace backend.Config
             });
             return services;
         }
-    }    
+    }
 }

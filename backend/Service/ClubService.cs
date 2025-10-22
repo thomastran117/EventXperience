@@ -50,10 +50,10 @@ namespace backend.Services
         {
             var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Id == clubId);
             if (club == null)
-                throw new NotFoundException("club", clubId.ToString());
+                throw new NotFoundException($"Club with the id {clubId} is not found");
 
             if (club.UserId != userId)
-                throw new ForbiddenException("club", clubId.ToString());
+                throw new ForbiddenException($"You are not allowed to delete club with id of {clubId}");
 
             _ = await _fileUploadService.DeleteImageAsync(club.ClubImage);
 
@@ -87,7 +87,7 @@ namespace backend.Services
                 .FirstOrDefaultAsync(c => c.Id == clubId);
 
             if (club == null)
-                throw new NotFoundException("club", clubId.ToString());
+                throw new NotFoundException($"Club with the id {clubId} is not found");
 
             return club;
         }
@@ -104,10 +104,10 @@ namespace backend.Services
         {
             var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Id == clubId);
             if (club == null)
-                throw new NotFoundException("club", clubId.ToString());
+                throw new NotFoundException($"Club with the id {clubId} is not found");
 
             if (club.UserId != userId)
-                throw new ForbiddenException("club", clubId.ToString());
+                throw new ForbiddenException($"You are not allowed to update club with id of {clubId}");
 
             string? oldImageUrl = club.ClubImage;
             var newImageUrl = await _fileUploadService.UploadImageAsync(clubimage, "clubs");

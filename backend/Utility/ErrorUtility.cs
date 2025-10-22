@@ -11,7 +11,6 @@ namespace backend.Utilities
             if (ex is AppException appEx)
                 return HandleAppException(appEx);
 
-            // Generic fallback
             Logger.Error(ex, "Unexpected error occurred");
             var response = new MessageResponse(
                 "An unexpected error occurred.",

@@ -23,10 +23,9 @@ namespace backend.Utilities
         public static int GetUserId(this ClaimsPrincipal user)
         {
             var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-            Logger.Debug("here");
             if (userIdClaim == null)
             {
-                throw new UnauthorizedException();
+                throw new UnauthorizedException("Invalid tkoen");
             }
 
             return int.Parse(userIdClaim.Value);

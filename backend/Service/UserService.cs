@@ -25,7 +25,7 @@ namespace backend.Services
             var user = await _context.Users.FindAsync(id);
             if (user == null)
             {
-                throw new NotFoundException("User", id.ToString());
+                throw new NotFoundException($"User with the id {id} is not found");
             }
             return user;
         }
@@ -35,7 +35,7 @@ namespace backend.Services
             var existingUser = await _context.Users.FindAsync(id);
             if (existingUser == null)
             {
-                throw new NotFoundException("User", id.ToString());
+                throw new NotFoundException($"User with the id {id} is not found");
             }
 
             existingUser.Username = updatedUser.Username;
@@ -54,8 +54,7 @@ namespace backend.Services
             var user = await _context.Users.FindAsync(id);
             if (user == null)
             {
-                throw new NotFoundException("User", id.ToString());
-
+                throw new NotFoundException($"User with the id {id} is not found");
             }
 
             _context.Users.Remove(user);

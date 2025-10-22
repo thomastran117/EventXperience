@@ -27,6 +27,10 @@ namespace backend.DTOs
         [Required]
         [StringLength(30, MinimumLength = 4, ErrorMessage = "Password must be between 4 and 30 characters.")]
         public required string Password { get; set; }
+        public bool RememberMe { get; set; } = false;
+
+        [Required]
+        public required string Captcha { get; set; }
     }
 
     public class SignUpRequest
@@ -43,5 +47,8 @@ namespace backend.DTOs
         [RegularExpression("^(participant|organizer|volunteer)$",
         ErrorMessage = "Usertype must be 'participant', 'organizer' or 'volunteer'.")]
         public required string Usertype { get; set; }
+
+        [Required]
+        public required string Captcha { get; set; }
     }
 }

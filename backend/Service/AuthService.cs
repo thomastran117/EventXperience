@@ -79,5 +79,20 @@ namespace backend.Services
 
             return token;
         }
+
+        public Task<UserToken?> GoogleAsync(string token)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task<UserToken?> MicrosoftAsync(string email, string password)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task<bool> HandleLogoutAsync(string refreshToken)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

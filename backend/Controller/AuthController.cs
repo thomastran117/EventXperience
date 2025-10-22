@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using backend.DTOs;
 using backend.Exceptions;
 using backend.Interfaces;
+using backend.Utilities;
 
 namespace backend.Controllers
 {
@@ -10,12 +11,10 @@ namespace backend.Controllers
     [Route("auth")]
     public class AuthController : ControllerBase
     {
-        private readonly ITokenService _tokenService;
         private readonly IAuthService _authService;
 
-        public AuthController(ITokenService tokenService, IAuthService authService)
+        public AuthController(IAuthService authService)
         {
-            _tokenService = tokenService;
             _authService = authService;
         }
 
@@ -28,7 +27,7 @@ namespace backend.Controllers
             var user = userToken.user;
             var token = userToken.token;
 
-            SetRefreshTokenCookie(token.RefreshToken);
+            HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
             return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
         }
@@ -58,22 +57,34 @@ namespace backend.Controllers
             var user = userToken.user;
             var token = userToken.token;
 
-            SetRefreshTokenCookie(token.RefreshToken);
+            HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
             return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
         }
 
-        private void SetRefreshTokenCookie(string refreshToken)
+        [HttpPost("google")]
+        public async Task<IActionResult> Google()
         {
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(7)
-            };
-
-            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+            throw new Exceptions.NotImplementedException("Not implemented yet");
         }
+
+        [HttpPost("microsoft")]
+        public async Task<IActionResult> Microsoft()
+        {
+            throw new Exceptions.NotImplementedException("Not implemented yet");
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            throw new Exceptions.NotImplementedException("Not implemented yet");
+        } 
+
+
+        [HttpGet("verify")]
+        public async Task<IActionResult> Verify()
+        {
+            throw new Exceptions.NotImplementedException("Not implemented yet");
+        }               
     }
 }

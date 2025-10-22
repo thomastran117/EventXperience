@@ -155,5 +155,10 @@ namespace backend.Services
                 return null;
             }
         }
+
+        public bool LogoutToken(string refreshToken)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

@@ -26,8 +26,13 @@ namespace backend.Services
             string? phone = null,
             string? email = null)
         {
-            var imageUrl = await _fileUploadService.UploadImageAsync(clubimage, "clubs");
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var imageUrl = await _fileUploadService
+                .UploadImageAsync(clubimage, "clubs")
+                ?? throw new InternalServerException("Internal server error occured when uploading the image");
+                
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId) 
+                ?? throw new NotFoundException($"The user with the ID {userId} is not found");;
 
             var club = new Club
             {
@@ -48,9 +53,9 @@ namespace backend.Services
 
         public async Task<bool> DeleteClub(int clubId, int userId)
         {
-            var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Id == clubId);
-            if (club == null)
-                throw new NotFoundException($"Club with the id {clubId} is not found");
+            var club = await _context.Clubs
+                .FirstOrDefaultAsync(c => c.Id == clubId)
+                ?? throw new NotFoundException($"Club with the id {clubId} is not found");
 
             if (club.UserId != userId)
                 throw new ForbiddenException($"You are not allowed to delete club with id of {clubId}");
@@ -59,6 +64,7 @@ namespace backend.Services
 
             _context.Clubs.Remove(club);
             await _context.SaveChangesAsync();
+
             return true;
         }
 
@@ -84,11 +90,8 @@ namespace backend.Services
         {
             var club = await _context.Clubs
                 .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == clubId);
-
-            if (club == null)
-                throw new NotFoundException($"Club with the id {clubId} is not found");
-
+                .FirstOrDefaultAsync(c => c.Id == clubId) 
+                ?? throw new NotFoundException($"Club with the id {clubId} is not found");
             return club;
         }
 

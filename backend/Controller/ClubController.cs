@@ -1,6 +1,7 @@
 using backend.Interfaces;
 using backend.DTOs;
 using backend.Utilities;
+using backend.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 
@@ -21,7 +22,7 @@ namespace backend.Controllers
         public async Task<IActionResult> CreateClub([FromForm] ClubCreateRequest request)
         {
             var userId = User.GetUserId();
-            var club = await _clubService.CreateClub(request.Name, userId, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
+            var club = await _clubService.CreateClub(request.Name, userId, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email) ?? throw new InternalServerException("An internal server occured");
             var response = new ClubResponse(
                 club.Id,
                 club.Name,

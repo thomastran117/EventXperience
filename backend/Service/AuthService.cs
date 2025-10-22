@@ -39,9 +39,10 @@ namespace backend.Services
 
         public async Task<User?> LoginAsync(string email, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-            if (user == null) throw new UnauthorizedException("Invalid email or password");
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email)
+                ?? throw new UnauthorizedException("Invalid email or password");
+                
             if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException("Invalid email or password");
 
             return user;
@@ -49,10 +50,10 @@ namespace backend.Services
 
         public async Task<User?> GetUserByIdAsync(int id)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
-
-            if (user == null) throw new NotFoundException($"User with the id {id} is not found");
-
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == id)
+                ?? throw new NotFoundException($"User with the id {id} is not found");
+                
             return user;
         }
 

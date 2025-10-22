@@ -23,11 +23,9 @@ namespace backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _authService.LoginAsync(request.Email, request.Password);
-
-            if (user == null)
-                throw new UnauthorizedException("Invalid username or password");
-
+            var user = await _authService.LoginAsync(request.Email, request.Password)
+                ?? throw new UnauthorizedException("Invalid username or password");
+                
             var accessToken = _tokenService.GenerateJwtToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken(user);
 
@@ -39,7 +37,9 @@ namespace backend.Controllers
         [HttpPost("signup")]
         public async Task<IActionResult> SignUp([FromBody] SignUpRequest request)
         {
-            var user = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
+            var user = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype)
+                ?? throw new InternalServerException("An internal server error occured when signing up");
+
             return StatusCode(StatusCodes.Status201Created, new
             {
                 message = "Registration successful. Please login."
@@ -61,7 +61,9 @@ namespace backend.Controllers
             if (string.IsNullOrEmpty(userId))
                 throw new UnauthorizedException("Invalid or expired refresh token");
 
-            var user = _authService.GetUserByIdAsync(int.Parse(userId)).Result;
+            var user = _authService
+                .GetUserByIdAsync(int.Parse(userId)).Result
+                ?? throw new NotFoundException($"User with the id {userId} can not be found");
 
             var rotated = _tokenService.RotateRefreshToken(user, refreshToken);
             if (rotated == null)

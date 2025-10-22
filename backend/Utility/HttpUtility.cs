@@ -1,23 +1,18 @@
-using backend.Exceptions;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-
 namespace backend.Utilities
 {
     public static class HttpUtility
     {
-        public static IActionResult? ValidatePositiveId(int id)
+        public static void SetRefreshTokenCookie(HttpResponse response, string refreshToken)
         {
-            if (id <= 0)
+            var cookieOptions = new CookieOptions
             {
-                return new BadRequestObjectResult(new
-                {
-                    message = "ID must be a positive integer",
-                    errorCode = "INVALID_ID"
-                });
-            }
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
 
-            return null;
+            response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
     }
 }

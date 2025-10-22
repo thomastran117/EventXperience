@@ -46,7 +46,7 @@ namespace backend.Controllers
         public async Task<IActionResult> UpdateClub([FromForm] ClubUpdateRequest request, int id)
         {
             var userPayload = User.GetUserPayload();
-            HttpUtility.ValidatePositiveId(id);
+            ValidateUtility.ValidatePositiveId(id);
             var club = await _clubService.UpdateClub(id, userPayload.Id, request.Name, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
             var response = new ClubResponse(
                 club.Id,
@@ -69,7 +69,7 @@ namespace backend.Controllers
         public async Task<IActionResult> DeleteClub(int id)
         {
             var userPayload = User.GetUserPayload();
-            HttpUtility.ValidatePositiveId(id);
+            ValidateUtility.ValidatePositiveId(id);
             var result = await _clubService.DeleteClub(userPayload.Id, id);
 
             if (result)
@@ -91,7 +91,7 @@ namespace backend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetClub(int id)
         {
-            HttpUtility.ValidatePositiveId(id);
+            ValidateUtility.ValidatePositiveId(id);
             var club = await _clubService.GetClub(id);
 
             var response = new ClubResponse(

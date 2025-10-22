@@ -1,6 +1,22 @@
 namespace backend.Middlewares;
 using System.Diagnostics;
 
+using Serilog;
+using Serilog.Events;
+
+public static class SerilogExtensions
+{
+    public static IHostBuilder UseMinimalSerilog(this IHostBuilder host)
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}")
+            .CreateLogger();
+
+        return host.UseSerilog();
+    }
+}
 public class HttpLoggingMiddleware
 {
     private readonly RequestDelegate _next;

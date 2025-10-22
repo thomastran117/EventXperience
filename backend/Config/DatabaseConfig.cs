@@ -1,13 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using backend.Resources;
-using backend.Config;
 using backend.Utilities;
 
-namespace backend.Extensions;
+namespace backend.Config;
 
-public static class DatabaseExtensions
+public static class DatabaseConfig
 {
-    public static IServiceCollection AddAppDatabase(this IServiceCollection services)
+    public static IServiceCollection AddAppDatabase(this IServiceCollection services, IConfiguration config)
     {
         services.AddDbContext<AppDatabaseContext>(options =>
         {

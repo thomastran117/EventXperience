@@ -13,8 +13,6 @@ namespace backend.Controllers;
 public class ClubController : ControllerBase
 {
     private readonly IClubService _clubService;
-    private readonly ILogger<UserController> _logger;
-
     public ClubController(IClubService clubService)
     {
         _clubService = clubService;

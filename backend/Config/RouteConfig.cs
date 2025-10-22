@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
-namespace backend.Extensions;
+namespace backend.Config;
 public class RoutePrefixConvention : IApplicationModelConvention
 {
     private readonly AttributeRouteModel _routePrefix;

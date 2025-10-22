@@ -1,14 +1,13 @@
 using backend.Config;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-namespace backend.Extensions;
+namespace backend.Middlewares;
 
-public static class AuthExtensions
+public static class AuthMiddleware
 {
-    public static IServiceCollection AddJwtAuth(this IServiceCollection services)
+    public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration config)
     {
         services.AddAuthentication("Bearer")
             .AddJwtBearer("Bearer", options =>

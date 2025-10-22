@@ -1,4 +1,4 @@
-namespace backend.Configs;
+namespace backend.Config;
 
 public static class CorsExtensions
 {

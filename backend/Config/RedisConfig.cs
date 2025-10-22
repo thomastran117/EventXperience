@@ -1,13 +1,12 @@
 using StackExchange.Redis;
 using backend.Resources;
-using backend.Config;
 using backend.Utilities;
 
-namespace backend.Extensions;
+namespace backend.Config;
 
-public static class RedisExtensions
+public static class RedisConfig
 {
-    public static IServiceCollection AddAppRedis(this IServiceCollection services)
+    public static IServiceCollection AddAppRedis(this IServiceCollection services, IConfiguration config)
     {
         services.AddSingleton<IConnectionMultiplexer>(_ =>
             ConnectionMultiplexer.Connect(EnvManager.RedisConnection));

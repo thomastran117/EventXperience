@@ -1,9 +1,9 @@
 using DotNetEnv;
 using backend.Interfaces;
 using backend.Services;
-using backend.Extensions;
-using backend.Configs;
+using backend.Config;
 using backend.Utilities;
+using backend.Middlewares;
 using Serilog;
 using Microsoft.Extensions.FileProviders;
 

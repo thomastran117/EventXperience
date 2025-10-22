@@ -5,16 +5,19 @@ using backend.Interfaces;
 using backend.Resources;
 using Microsoft.EntityFrameworkCore;
 using backend.Exceptions;
+using backend.Common;
 
 namespace backend.Services
 {
     public class AuthService : IAuthService
     {
         private readonly AppDatabaseContext _context;
+        private readonly ITokenService _tokenService;
 
-        public AuthService(AppDatabaseContext context)
+        public AuthService(AppDatabaseContext context, ITokenService tokenService)
         {
             _context = context;
+            _tokenService = tokenService;
         }
 
         public async Task<User?> SignUpAsync(string email, string password, string userType)
@@ -37,24 +40,20 @@ namespace backend.Services
             return user;
         }
 
-        public async Task<User?> LoginAsync(string email, string password)
+        public async Task<UserToken?> LoginAsync(string email, string password)
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email)
                 ?? throw new UnauthorizedException("Invalid email or password");
-                
+
             if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException("Invalid email or password");
 
-            return user;
-        }
+            var token = _tokenService.GenerateTokens(user)
+                ?? throw new InternalServerException("Internal server error: Unable to generate tokens");
 
-        public async Task<User?> GetUserByIdAsync(int id)
-        {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == id)
-                ?? throw new NotFoundException($"User with the id {id} is not found");
-                
-            return user;
+            var userToken = new UserToken(token, user);
+            
+            return userToken;
         }
 
         private string HashPassword(string password)
@@ -69,6 +68,14 @@ namespace backend.Services
         {
             var hashOfInput = HashPassword(password);
             return hashOfInput == hashedPassword;
+        }
+
+        public async Task<UserToken?> HandleTokensAsync(string refreshToken)
+        {
+            var token = _tokenService.RotateTokens(refreshToken)
+                ?? throw new InternalServerException("Internal server error: Unable to generate tokens");
+            
+            return token; 
         }
     }
 }

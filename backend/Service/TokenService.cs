@@ -2,9 +2,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using backend.Models;
+using backend.Common;
 using backend.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 using backend.Config;
+using backend.Exceptions;
 
 namespace backend.Services
 {
@@ -13,8 +15,47 @@ namespace backend.Services
         private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
         public TokenService() { }
+        public UserToken RotateTokens(string oldRefreshToken)
+        {
+            var principal = ValidateRefreshToken(oldRefreshToken)
+                ?? throw new UnauthorizedException("Invalid or expired refresh token");
 
-        public string GenerateJwtToken(User user)
+            var user = CreateUserFromClaims(principal);
+
+            var newAccess = GenerateJwtToken(user);
+            var newRefresh = GenerateRefreshToken(user);
+
+            var token = new Token(newAccess, newRefresh);
+            
+            return new UserToken(token, user);
+        }
+        public Token GenerateTokens(User user)
+        {
+            var newAccess = GenerateJwtToken(user);
+            var newRefresh = GenerateRefreshToken(user);
+
+            var token = new Token(newAccess, newRefresh);
+
+            return token;
+        }
+        private static User CreateUserFromClaims(ClaimsPrincipal principal)
+        {
+            var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var email = principal.FindFirstValue(ClaimTypes.Name);
+            var role = principal.FindFirstValue(ClaimTypes.Role);
+
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
+                throw new UnauthorizedException("Invalid refresh token claims");
+
+            return new User
+            {
+                Id = int.Parse(id),
+                Email = email,
+                Usertype = role
+            };
+        }
+        
+        private string GenerateJwtToken(User user)
         {
             var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey!);
 
@@ -23,8 +64,9 @@ namespace backend.Services
                 Subject = new ClaimsIdentity(
                 [
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.Role, user.Usertype)
+                    new Claim(ClaimTypes.Name, user.Email),
+                    new Claim(ClaimTypes.Role, user.Usertype),
+                    new Claim("token_type", "access")
                 ]),
                 Expires = DateTime.UtcNow.AddHours(2),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
@@ -35,8 +77,29 @@ namespace backend.Services
             var token = _tokenHandler.CreateToken(tokenDescriptor);
             return _tokenHandler.WriteToken(token);
         }
+        private string GenerateRefreshToken(User user)
+        {
+            var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKeyRefresh);
 
-        public ClaimsPrincipal? ValidateToken(string token)
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.Email),
+                    new Claim(ClaimTypes.Role, user.Usertype),
+                    new Claim("token_type", "refresh")
+                ]),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = EnvManager.JwtIssuer,
+                Audience = EnvManager.JwtAudience
+            };
+
+            var token = _tokenHandler.CreateToken(tokenDescriptor);
+            return _tokenHandler.WriteToken(token);
+        }
+        private ClaimsPrincipal? ValidateAccessToken(string token)
         {
             var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey);
 
@@ -61,28 +124,7 @@ namespace backend.Services
             }
         }
 
-        public string GenerateRefreshToken(User user)
-        {
-            var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKeyRefresh);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim("token_type", "refresh")
-            }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Issuer = EnvManager.JwtIssuer,
-                Audience = EnvManager.JwtAudience
-            };
-
-            var token = _tokenHandler.CreateToken(tokenDescriptor);
-            return _tokenHandler.WriteToken(token);
-        }
-
-        public ClaimsPrincipal? ValidateRefreshToken(string refreshToken)
+        private ClaimsPrincipal? ValidateRefreshToken(string refreshToken)
         {
             var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKeyRefresh);
 
@@ -110,25 +152,6 @@ namespace backend.Services
             {
                 return null;
             }
-        }
-
-        public (string accessToken, string refreshToken)? RotateRefreshToken(User user, string oldRefreshToken)
-        {
-            var principal = ValidateRefreshToken(oldRefreshToken);
-            if (principal == null) return null;
-
-            var newAccess = GenerateJwtToken(user);
-            var newRefresh = GenerateRefreshToken(user);
-
-            return (newAccess, newRefresh);
-        }
-
-        public string? GetAccessTokenFromRefresh(User user, string refreshToken)
-        {
-            var principal = ValidateRefreshToken(refreshToken);
-            if (principal == null) return null;
-
-            return GenerateJwtToken(user);
         }
     }
 }

@@ -23,15 +23,15 @@ namespace backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _authService.LoginAsync(request.Email, request.Password)
+            var userToken = await _authService.LoginAsync(request.Email, request.Password)
                 ?? throw new UnauthorizedException("Invalid username or password");
-                
-            var accessToken = _tokenService.GenerateJwtToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken(user);
 
-            SetRefreshTokenCookie(refreshToken);
+            var user = userToken.user;
+            var token = userToken.token;
 
-            return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, accessToken));
+            SetRefreshTokenCookie(token.RefreshToken);
+
+            return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
         }
 
         [HttpPost("signup")]
@@ -47,31 +47,21 @@ namespace backend.Controllers
         }
 
         [HttpPost("refresh")]
-        public IActionResult Refresh()
+        public async Task<IActionResult> Refresh()
         {
             var refreshToken = Request.Cookies["refreshToken"];
             if (string.IsNullOrEmpty(refreshToken))
                 throw new UnauthorizedException("Missing refresh token");
 
-            var principal = _tokenService.ValidateRefreshToken(refreshToken);
-            if (principal == null)
-                throw new UnauthorizedException("Invalid or expired refresh token");
+            var userToken = await _authService.HandleTokensAsync(refreshToken)
+                ?? throw new UnauthorizedException("Invalid or expired refresh token");
 
-            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-                throw new UnauthorizedException("Invalid or expired refresh token");
+            var user = userToken.user;
+            var token = userToken.token;
 
-            var user = _authService
-                .GetUserByIdAsync(int.Parse(userId)).Result
-                ?? throw new NotFoundException($"User with the id {userId} can not be found");
+            SetRefreshTokenCookie(token.RefreshToken);
 
-            var rotated = _tokenService.RotateRefreshToken(user, refreshToken);
-            if (rotated == null)
-                throw new UnauthorizedException("Invalid or expired refresh token");
-
-            SetRefreshTokenCookie(rotated.Value.refreshToken);
-
-            return Ok(new { accessToken = rotated.Value.accessToken });
+            return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
         }
 
         private void SetRefreshTokenCookie(string refreshToken)

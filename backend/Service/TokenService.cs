@@ -1,12 +1,14 @@
+using System.Text;
+
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using backend.Models;
+
 using backend.Common;
-using backend.Interfaces;
-using Microsoft.IdentityModel.Tokens;
 using backend.Config;
 using backend.Exceptions;
+using backend.Interfaces;
+using backend.Models;
 
 namespace backend.Services
 {
@@ -26,7 +28,7 @@ namespace backend.Services
             var newRefresh = GenerateRefreshToken(user);
 
             var token = new Token(newAccess, newRefresh);
-            
+
             return new UserToken(token, user);
         }
         public Token GenerateTokens(User user)
@@ -54,7 +56,7 @@ namespace backend.Services
                 Usertype = role
             };
         }
-        
+
         private string GenerateJwtToken(User user)
         {
             var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey!);

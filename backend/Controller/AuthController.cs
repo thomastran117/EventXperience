@@ -1,9 +1,8 @@
-using backend.Interfaces;
-using backend.DTOs;
-using backend.Utilities;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+
+using backend.DTOs;
 using backend.Exceptions;
+using backend.Interfaces;
 
 namespace backend.Controllers
 {

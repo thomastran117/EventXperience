@@ -1,4 +1,5 @@
 using StackExchange.Redis;
+
 using backend.Resources;
 using backend.Utilities;
 

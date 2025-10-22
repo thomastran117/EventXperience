@@ -1,10 +1,11 @@
-using backend.Interfaces;
-using backend.DTOs;
-using backend.Utilities;
-using backend.Exceptions;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+using backend.DTOs;
+using backend.Exceptions;
+using backend.Interfaces;
 using backend.Middlewares;
+using backend.Utilities;
 
 namespace backend.Controllers
 {

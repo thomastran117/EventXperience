@@ -1,11 +1,13 @@
-using System.Security.Cryptography;
 using System.Text;
-using backend.Models;
-using backend.Interfaces;
-using backend.Resources;
+
 using Microsoft.EntityFrameworkCore;
-using backend.Exceptions;
+using System.Security.Cryptography;
+
 using backend.Common;
+using backend.Exceptions;
+using backend.Interfaces;
+using backend.Models;
+using backend.Resources;
 
 namespace backend.Services
 {
@@ -52,7 +54,7 @@ namespace backend.Services
                 ?? throw new InternalServerException("Internal server error: Unable to generate tokens");
 
             var userToken = new UserToken(token, user);
-            
+
             return userToken;
         }
 
@@ -74,8 +76,8 @@ namespace backend.Services
         {
             var token = _tokenService.RotateTokens(refreshToken)
                 ?? throw new InternalServerException("Internal server error: Unable to generate tokens");
-            
-            return token; 
+
+            return token;
         }
     }
 }

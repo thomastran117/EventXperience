@@ -1,10 +1,11 @@
-using backend.Config;
-
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
+
+using Microsoft.IdentityModel.Tokens;
+
 using backend.Exceptions;
 using backend.Common;
+using backend.Config;
 
 namespace backend.Middlewares
 {

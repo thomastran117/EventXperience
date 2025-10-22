@@ -1,13 +1,12 @@
-using DotNetEnv;
-using backend.Interfaces;
-using backend.Services;
-using backend.Config;
-using backend.Utilities;
-using backend.Middlewares;
 using Serilog;
+
 using Microsoft.Extensions.FileProviders;
 
-Env.Load();
+using backend.Config;
+using backend.Interfaces;
+using backend.Middlewares;
+using backend.Services;
+using backend.Utilities;
 
 Logger.Configure(o =>
 {

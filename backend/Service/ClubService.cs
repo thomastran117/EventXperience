@@ -1,8 +1,9 @@
+using Microsoft.EntityFrameworkCore;
+
 using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
 using backend.Resources;
-using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
 {
@@ -29,10 +30,10 @@ namespace backend.Services
             var imageUrl = await _fileUploadService
                 .UploadImageAsync(clubimage, "clubs")
                 ?? throw new InternalServerException("Internal server error occured when uploading the image");
-                
+
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId) 
-                ?? throw new NotFoundException($"The user with the ID {userId} is not found");;
+                .FirstOrDefaultAsync(u => u.Id == userId)
+                ?? throw new NotFoundException($"The user with the ID {userId} is not found"); ;
 
             var club = new Club
             {
@@ -90,7 +91,7 @@ namespace backend.Services
         {
             var club = await _context.Clubs
                 .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == clubId) 
+                .FirstOrDefaultAsync(c => c.Id == clubId)
                 ?? throw new NotFoundException($"Club with the id {clubId} is not found");
             return club;
         }

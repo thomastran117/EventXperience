@@ -1,6 +1,8 @@
-using backend.Models;
+using backend.Exceptions;
 using backend.Interfaces;
+using backend.Models;
 using backend.Resources;
+
 
 namespace backend.Services
 {
@@ -15,27 +17,27 @@ namespace backend.Services
 
         public Task<EventClub?> CreateEvent(string name, string description, string location, string eventImage, DateTime startTime, int clubId, string? intensity = null, DateTime? endTime = null)
         {
-            throw new NotImplementedException();
+            throw new Exceptions.NotImplementedException("Not implemented");
         }
 
         public Task<bool> DeleteEvent(int eventId)
         {
-            throw new NotImplementedException();
+            throw new Exceptions.NotImplementedException("Not implemented");
         }
 
         public Task<List<EventClub>> GetAllEvents(string? query = null)
         {
-            throw new NotImplementedException();
+            throw new Exceptions.NotImplementedException("Not implemented");
         }
 
         public Task<EventClub?> GetEvent(int eventId)
         {
-            throw new NotImplementedException();
+            throw new Exceptions.NotImplementedException("Not implemented");
         }
 
         public Task<EventClub?> UpdateEvent(int eventId, string name, string description, string location, string eventImage, DateTime startTime, int clubId, string? intensity = null, DateTime? endTime = null)
         {
-            throw new NotImplementedException();
+            throw new Exceptions.NotImplementedException("Not implemented");
         }
     }
 }

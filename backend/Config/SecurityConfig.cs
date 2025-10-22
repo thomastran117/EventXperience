@@ -1,18 +1,19 @@
-namespace backend.Config;
-
-public static class CorsExtensions
+namespace backend.Config
 {
-    public static IServiceCollection AddReactCors(this IServiceCollection services, string policyName = "AllowReact")
+    public static class SecurityCOnfig
     {
-        services.AddCors(options =>
+        public static IServiceCollection AddReactCors(this IServiceCollection services, string policyName = "AllowReact")
         {
-            options.AddPolicy(policyName, policy =>
+            services.AddCors(options =>
             {
-                policy.WithOrigins("http://localhost:3030")
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
+                options.AddPolicy(policyName, policy =>
+                {
+                    policy.WithOrigins("http://localhost:3030")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
             });
-        });
-        return services;
-    }
+            return services;
+        }
+    }    
 }

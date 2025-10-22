@@ -2,40 +2,41 @@ using Microsoft.EntityFrameworkCore;
 using backend.Resources;
 using backend.Utilities;
 
-namespace backend.Config;
-
-public static class DatabaseConfig
+namespace backend.Config
 {
-    public static IServiceCollection AddAppDatabase(this IServiceCollection services, IConfiguration config)
+    public static class DatabaseConfig
     {
-        services.AddDbContext<AppDatabaseContext>(options =>
+        public static IServiceCollection AddAppDatabase(this IServiceCollection services, IConfiguration config)
         {
-            options.UseNpgsql(EnvManager.DbConnectionString);
-        });
-
-        using (var scope = services.BuildServiceProvider().CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AppDatabaseContext>();
-
-            try
+            services.AddDbContext<AppDatabaseContext>(options =>
             {
-                if (db.Database.CanConnect())
+                options.UseNpgsql(EnvManager.DbConnectionString);
+            });
+
+            using (var scope = services.BuildServiceProvider().CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDatabaseContext>();
+
+                try
                 {
-                    Logger.Info("Database connection successful.");
+                    if (db.Database.CanConnect())
+                    {
+                        Logger.Info("Database connection successful.");
+                    }
+                    else
+                    {
+                        Logger.Error("Database connection failed.");
+                        Environment.Exit(1);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Logger.Error("Database connection failed.");
+                    Logger.Error($"Database connection error: {ex.Message}");
                     Environment.Exit(1);
                 }
             }
-            catch (Exception ex)
-            {
-                Logger.Error($"Database connection error: {ex.Message}");
-                Environment.Exit(1);
-            }
-        }
 
-        return services;
+            return services;
+        }
     }
 }

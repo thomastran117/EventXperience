@@ -2,34 +2,35 @@ using StackExchange.Redis;
 using backend.Resources;
 using backend.Utilities;
 
-namespace backend.Config;
-
-public static class RedisConfig
+namespace backend.Config
 {
-    public static IServiceCollection AddAppRedis(this IServiceCollection services, IConfiguration config)
+    public static class RedisConfig
     {
-        services.AddSingleton<IConnectionMultiplexer>(_ =>
-            ConnectionMultiplexer.Connect(EnvManager.RedisConnection));
-
-        services.AddScoped<RedisResource>();
-
-        using (var scope = services.BuildServiceProvider().CreateScope())
+        public static IServiceCollection AddAppRedis(this IServiceCollection services, IConfiguration config)
         {
-            try
-            {
-                var mux = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
-                var db = mux.GetDatabase();
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+                ConnectionMultiplexer.Connect(EnvManager.RedisConnection));
 
-                var latency = db.Ping();
-                Logger.Info($"Redis connection successful (ping: {latency.TotalMilliseconds} ms).");
-            }
-            catch (Exception ex)
+            services.AddScoped<RedisResource>();
+
+            using (var scope = services.BuildServiceProvider().CreateScope())
             {
-                Logger.Error($"Redis connection error: {ex.Message}");
-                Environment.Exit(1);
+                try
+                {
+                    var mux = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
+                    var db = mux.GetDatabase();
+
+                    var latency = db.Ping();
+                    Logger.Info($"Redis connection successful (ping: {latency.TotalMilliseconds} ms).");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Redis connection error: {ex.Message}");
+                    Environment.Exit(1);
+                }
             }
+
+            return services;
         }
-
-        return services;
     }
 }

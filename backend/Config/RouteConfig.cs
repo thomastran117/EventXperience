@@ -1,22 +1,24 @@
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
-namespace backend.Config;
-public class RoutePrefixConvention : IApplicationModelConvention
+namespace backend.Config
 {
-    private readonly AttributeRouteModel _routePrefix;
-
-    public RoutePrefixConvention(string prefix)
+    public class RoutePrefixConvention : IApplicationModelConvention
     {
-        _routePrefix = new AttributeRouteModel(new Microsoft.AspNetCore.Mvc.RouteAttribute(prefix));
-    }
+        private readonly AttributeRouteModel _routePrefix;
 
-    public void Apply(ApplicationModel application)
-    {
-        foreach (var controller in application.Controllers)
+        public RoutePrefixConvention(string prefix)
         {
-            foreach (var selector in controller.Selectors.Where(s => s.AttributeRouteModel != null))
+            _routePrefix = new AttributeRouteModel(new Microsoft.AspNetCore.Mvc.RouteAttribute(prefix));
+        }
+
+        public void Apply(ApplicationModel application)
+        {
+            foreach (var controller in application.Controllers)
             {
-                selector.AttributeRouteModel = AttributeRouteModel.CombineAttributeRouteModel(_routePrefix, selector.AttributeRouteModel);
+                foreach (var selector in controller.Selectors.Where(s => s.AttributeRouteModel != null))
+                {
+                    selector.AttributeRouteModel = AttributeRouteModel.CombineAttributeRouteModel(_routePrefix, selector.AttributeRouteModel);
+                }
             }
         }
     }

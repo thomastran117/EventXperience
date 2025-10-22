@@ -3,167 +3,166 @@ using backend.DTOs;
 using backend.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
-using backend.Exceptions;
 
-namespace backend.Controllers;
-
-[ApiController]
-[Route("clubs")]
-public class ClubController : ControllerBase
+namespace backend.Controllers
 {
-    private readonly IClubService _clubService;
-    public ClubController(IClubService clubService)
+    [ApiController]
+    [Route("clubs")]
+    public class ClubController : ControllerBase
     {
-        _clubService = clubService;
-    }
-
-    [Authorize]
-    [HttpPost("")]
-    public async Task<IActionResult> CreateClub([FromForm] ClubCreateRequest request)
-    {
-        try
+        private readonly IClubService _clubService;
+        public ClubController(IClubService clubService)
         {
-            var userId = User.GetUserId();
-            var club = await _clubService.CreateClub(request.Name, userId, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
-            var response = new ClubResponse(
-                club.Id,
-                club.Name,
-                club.Description,
-                club.Clubtype,
-                club.ClubImage
-            )
+            _clubService = clubService;
+        }
+
+        [Authorize]
+        [HttpPost("")]
+        public async Task<IActionResult> CreateClub([FromForm] ClubCreateRequest request)
+        {
+            try
             {
-                Phone = club.Phone,
-                Email = club.Email,
-                Rating = club.Rating
-            };
+                var userId = User.GetUserId();
+                var club = await _clubService.CreateClub(request.Name, userId, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
+                var response = new ClubResponse(
+                    club.Id,
+                    club.Name,
+                    club.Description,
+                    club.Clubtype,
+                    club.ClubImage
+                )
+                {
+                    Phone = club.Phone,
+                    Email = club.Email,
+                    Rating = club.Rating
+                };
 
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return ErrorUtility.HandleError(ex);
-        }
-    }
-
-    [Authorize]
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateClub([FromForm] ClubUpdateRequest request, int id)
-    {
-        try
-        {
-            var userId = User.GetUserId();
-            HttpUtility.ValidatePositiveId(id);
-            var club = await _clubService.UpdateClub(id, userId, request.Name, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
-            var response = new ClubResponse(
-                club.Id,
-                club.Name,
-                club.Description,
-                club.Clubtype,
-                club.ClubImage
-            )
-            {
-                Phone = club.Phone,
-                Email = club.Email,
-                Rating = club.Rating
-            };
-
-            return Ok(response);
-
-        }
-        catch (Exception ex)
-        {
-            return ErrorUtility.HandleError(ex);
-        }
-    }
-
-    [Authorize]
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteClub(int id)
-    {
-        try
-        {
-            var userId = User.GetUserId();
-            HttpUtility.ValidatePositiveId(id);
-            var result = await _clubService.DeleteClub(userId, id);
-
-            if (result)
-            {
-                return Ok(new MessageResponse("Club deleted successfully.", true, StatusCodes.Status200OK));
+                return Ok(response);
             }
-            else
+            catch (Exception ex)
             {
-                var response = new MessageResponse(
-                    "An unexpected error occurred.",
-                    success: false,
-                    statusCode: StatusCodes.Status500InternalServerError
-                );
-
-                return StatusCode(StatusCodes.Status500InternalServerError, response);
+                return ErrorUtility.HandleError(ex);
             }
         }
-        catch (Exception ex)
-        {
-            return ErrorUtility.HandleError(ex);
-        }
-    }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetClub(int id)
-    {
-        try
+        [Authorize]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateClub([FromForm] ClubUpdateRequest request, int id)
         {
-            HttpUtility.ValidatePositiveId(id);
-            var club = await _clubService.GetClub(id);
-
-            var response = new ClubResponse(
-                club.Id,
-                club.Name,
-                club.Description,
-                club.Clubtype,
-                club.ClubImage
-            )
+            try
             {
-                Phone = club.Phone,
-                Email = club.Email,
-                Rating = club.Rating
-            };
+                var userId = User.GetUserId();
+                HttpUtility.ValidatePositiveId(id);
+                var club = await _clubService.UpdateClub(id, userId, request.Name, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
+                var response = new ClubResponse(
+                    club.Id,
+                    club.Name,
+                    club.Description,
+                    club.Clubtype,
+                    club.ClubImage
+                )
+                {
+                    Phone = club.Phone,
+                    Email = club.Email,
+                    Rating = club.Rating
+                };
 
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return ErrorUtility.HandleError(ex);
-        }
-    }
+                return Ok(response);
 
-
-    [HttpGet("")]
-    public async Task<IActionResult> GetClubs([FromQuery] string? search)
-    {
-        try
-        {
-            var clubs = await _clubService.GetAllClubs(search);
-
-            var responses = clubs.Select(club => new ClubResponse(
-                club.Id,
-                club.Name,
-                club.Description,
-                club.Clubtype,
-                club.ClubImage
-            )
+            }
+            catch (Exception ex)
             {
-                Phone = club.Phone,
-                Email = club.Email,
-                Rating = club.Rating
-            });
-
-            return Ok(responses);
+                return ErrorUtility.HandleError(ex);
+            }
         }
-        catch (Exception ex)
+
+        [Authorize]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteClub(int id)
         {
-            return ErrorUtility.HandleError(ex);
+            try
+            {
+                var userId = User.GetUserId();
+                HttpUtility.ValidatePositiveId(id);
+                var result = await _clubService.DeleteClub(userId, id);
+
+                if (result)
+                {
+                    return Ok(new MessageResponse("Club deleted successfully.", true, StatusCodes.Status200OK));
+                }
+                else
+                {
+                    var response = new MessageResponse(
+                        "An unexpected error occurred.",
+                        success: false,
+                        statusCode: StatusCodes.Status500InternalServerError
+                    );
+
+                    return StatusCode(StatusCodes.Status500InternalServerError, response);
+                }
+            }
+            catch (Exception ex)
+            {
+                return ErrorUtility.HandleError(ex);
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetClub(int id)
+        {
+            try
+            {
+                HttpUtility.ValidatePositiveId(id);
+                var club = await _clubService.GetClub(id);
+
+                var response = new ClubResponse(
+                    club.Id,
+                    club.Name,
+                    club.Description,
+                    club.Clubtype,
+                    club.ClubImage
+                )
+                {
+                    Phone = club.Phone,
+                    Email = club.Email,
+                    Rating = club.Rating
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return ErrorUtility.HandleError(ex);
+            }
+        }
+
+
+        [HttpGet("")]
+        public async Task<IActionResult> GetClubs([FromQuery] string? search)
+        {
+            try
+            {
+                var clubs = await _clubService.GetAllClubs(search);
+
+                var responses = clubs.Select(club => new ClubResponse(
+                    club.Id,
+                    club.Name,
+                    club.Description,
+                    club.Clubtype,
+                    club.ClubImage
+                )
+                {
+                    Phone = club.Phone,
+                    Email = club.Email,
+                    Rating = club.Rating
+                });
+
+                return Ok(responses);
+            }
+            catch (Exception ex)
+            {
+                return ErrorUtility.HandleError(ex);
+            }
         }
     }
 }

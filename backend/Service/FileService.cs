@@ -1,66 +1,68 @@
 using backend.Interfaces;
 
-namespace backend.Services;
-public class FileUploadService : IFileUploadService
+namespace backend.Services
 {
-    private readonly IWebHostEnvironment _env;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public FileUploadService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
+    public class FileUploadService : IFileUploadService
     {
-        _env = env;
-        _httpContextAccessor = httpContextAccessor;
-    }
+        private readonly IWebHostEnvironment _env;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public async Task<string> UploadImageAsync(IFormFile image, string folder)
-    {
-        if (image == null || image.Length == 0)
-            throw new ArgumentException("Image is null or empty");
-
-        var safeFolder = Path.GetFileName(folder);
-
-        var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", safeFolder);
-        if (!Directory.Exists(uploadsFolder))
-            Directory.CreateDirectory(uploadsFolder);
-
-        var uniqueName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
-        var path = Path.Combine(uploadsFolder, uniqueName);
-
-        using (var stream = new FileStream(path, FileMode.Create))
+        public FileUploadService(IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
         {
-            await image.CopyToAsync(stream);
+            _env = env;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        var request = _httpContextAccessor.HttpContext!.Request;
-        var fileUrl = $"{request.Scheme}://{request.Host}/uploads/{safeFolder}/{uniqueName}";
-        return fileUrl;
-    }
-
-    public async Task<bool> DeleteImageAsync(string imageUrl)
-    {
-        if (string.IsNullOrWhiteSpace(imageUrl))
-            return false;
-
-        try
+        public async Task<string> UploadImageAsync(IFormFile image, string folder)
         {
-            var uploadsRoot = _env.WebRootPath;
+            if (image == null || image.Length == 0)
+                throw new ArgumentException("Image is null or empty");
 
-            var uri = new Uri(imageUrl);
-            var relativePath = uri.AbsolutePath.TrimStart('/');
-            var fullPath = Path.Combine(uploadsRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            var safeFolder = Path.GetFileName(folder);
 
-            if (File.Exists(fullPath))
+            var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", safeFolder);
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+            var path = Path.Combine(uploadsFolder, uniqueName);
+
+            using (var stream = new FileStream(path, FileMode.Create))
             {
-                File.Delete(fullPath);
-                return true;
+                await image.CopyToAsync(stream);
             }
+
+            var request = _httpContextAccessor.HttpContext!.Request;
+            var fileUrl = $"{request.Scheme}://{request.Host}/uploads/{safeFolder}/{uniqueName}";
+            return fileUrl;
         }
-        catch
+
+        public async Task<bool> DeleteImageAsync(string imageUrl)
         {
+            if (string.IsNullOrWhiteSpace(imageUrl))
+                return false;
 
+            try
+            {
+                var uploadsRoot = _env.WebRootPath;
+
+                var uri = new Uri(imageUrl);
+                var relativePath = uri.AbsolutePath.TrimStart('/');
+                var fullPath = Path.Combine(uploadsRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+                if (File.Exists(fullPath))
+                {
+                    File.Delete(fullPath);
+                    return true;
+                }
+            }
+            catch
+            {
+
+            }
+
+            return false;
         }
 
-        return false;
     }
-
 }

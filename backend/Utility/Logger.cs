@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace backend.Utilities
 {
     public enum LogLevel

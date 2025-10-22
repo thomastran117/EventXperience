@@ -2,33 +2,34 @@ using backend.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace backend.Utilities;
-
-public static class HttpUtility
+namespace backend.Utilities
 {
-    public static IActionResult? ValidatePositiveId(int id)
+    public static class HttpUtility
     {
-        if (id <= 0)
+        public static IActionResult? ValidatePositiveId(int id)
         {
-            return new BadRequestObjectResult(new
+            if (id <= 0)
             {
-                message = "ID must be a positive integer",
-                errorCode = "INVALID_ID"
-            });
+                return new BadRequestObjectResult(new
+                {
+                    message = "ID must be a positive integer",
+                    errorCode = "INVALID_ID"
+                });
+            }
+
+            return null;
         }
 
-        return null;
-    }
-
-    public static int GetUserId(this ClaimsPrincipal user)
-    {
-        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-        Logger.Debug("here");
-        if (userIdClaim == null)
+        public static int GetUserId(this ClaimsPrincipal user)
         {
-            throw new UnauthorizedException();
-        }
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+            Logger.Debug("here");
+            if (userIdClaim == null)
+            {
+                throw new UnauthorizedException();
+            }
 
-        return int.Parse(userIdClaim.Value);
+            return int.Parse(userIdClaim.Value);
+        }
     }
 }

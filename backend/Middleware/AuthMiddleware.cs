@@ -3,29 +3,30 @@ using backend.Config;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-namespace backend.Middlewares;
-
-public static class AuthMiddleware
+namespace backend.Middlewares
 {
-    public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration config)
+    public static class AuthMiddleware
     {
-        services.AddAuthentication("Bearer")
-            .AddJwtBearer("Bearer", options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
+        public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration config)
+        {
+            services.AddAuthentication("Bearer")
+                .AddJwtBearer("Bearer", options =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = EnvManager.JwtIssuer,
-                    ValidAudience = EnvManager.JwtAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey))
-                };
-            });
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = EnvManager.JwtIssuer,
+                        ValidAudience = EnvManager.JwtAudience,
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey))
+                    };
+                });
 
-        services.AddAuthorization();
-        return services;
+            services.AddAuthorization();
+            return services;
+        }
     }
 }

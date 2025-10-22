@@ -1,7 +1,9 @@
-namespace backend.Interfaces;
-public interface IFileUploadService
+namespace backend.Interfaces
 {
-    Task<string> UploadImageAsync(IFormFile image, string folder);
-    Task<bool> DeleteImageAsync(string imageUrl);
+    public interface IFileUploadService
+    {
+        Task<string> UploadImageAsync(IFormFile image, string folder);
+        Task<bool> DeleteImageAsync(string imageUrl);
 
+    }
 }

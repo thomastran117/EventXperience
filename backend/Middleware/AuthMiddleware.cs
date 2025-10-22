@@ -2,6 +2,9 @@ using backend.Config;
 
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
+using backend.Exceptions;
+using backend.Common;
 
 namespace backend.Middlewares
 {
@@ -27,6 +30,22 @@ namespace backend.Middlewares
 
             services.AddAuthorization();
             return services;
+        }
+    }
+    public static class ClaimsPrincipalExtensions
+    {
+        public static UserPayload GetUserPayload(this ClaimsPrincipal user)
+        {
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var emailClaim = user.FindFirst(ClaimTypes.Name)?.Value;
+            var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrEmpty(idClaim) || string.IsNullOrEmpty(emailClaim) || string.IsNullOrEmpty(roleClaim))
+            {
+                throw new UnauthorizedException("Invalid token payload");
+            }
+
+            return new UserPayload(int.Parse(idClaim), emailClaim, roleClaim);
         }
     }
 }

@@ -4,6 +4,7 @@ using backend.Utilities;
 using backend.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using backend.Middlewares;
 
 namespace backend.Controllers
 {
@@ -21,8 +22,8 @@ namespace backend.Controllers
         [HttpPost("")]
         public async Task<IActionResult> CreateClub([FromForm] ClubCreateRequest request)
         {
-            var userId = User.GetUserId();
-            var club = await _clubService.CreateClub(request.Name, userId, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email) ?? throw new InternalServerException("An internal server occured");
+            var userPayload = User.GetUserPayload();
+            var club = await _clubService.CreateClub(request.Name, userPayload.Id, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email) ?? throw new InternalServerException("An internal server occured");
             var response = new ClubResponse(
                 club.Id,
                 club.Name,
@@ -43,9 +44,9 @@ namespace backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateClub([FromForm] ClubUpdateRequest request, int id)
         {
-            var userId = User.GetUserId();
+            var userPayload = User.GetUserPayload();
             HttpUtility.ValidatePositiveId(id);
-            var club = await _clubService.UpdateClub(id, userId, request.Name, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
+            var club = await _clubService.UpdateClub(id, userPayload.Id, request.Name, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
             var response = new ClubResponse(
                 club.Id,
                 club.Name,
@@ -66,9 +67,9 @@ namespace backend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteClub(int id)
         {
-            var userId = User.GetUserId();
+            var userPayload = User.GetUserPayload();
             HttpUtility.ValidatePositiveId(id);
-            var result = await _clubService.DeleteClub(userId, id);
+            var result = await _clubService.DeleteClub(userPayload.Id, id);
 
             if (result)
             {

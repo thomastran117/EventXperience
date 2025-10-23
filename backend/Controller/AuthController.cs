@@ -30,7 +30,20 @@ namespace backend.Controllers
 
             HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
-            return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
+            AuthResponse response = new(
+                user.Id,
+                user.Email,
+                user.Usertype,
+                token.AccessToken
+            );
+
+            return StatusCode(
+                200,
+                new ApiResponse<AuthResponse>(
+                    $"Login successful",
+                    response
+                )
+            );
         }
 
         [HttpPost("signup")]
@@ -38,17 +51,17 @@ namespace backend.Controllers
         {
             _ = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
 
-            return StatusCode(StatusCodes.Status201Created, new
-            {
-                message = "Registration successful. Please login."
-            });
+            return StatusCode(
+                200,
+                new MessageResponse($"Signup successful.")
+            );
         }
 
         [HttpGet("verify")]
         public async Task<IActionResult> Verify([FromQuery] string token)
         {
             throw new Exceptions.NotImplementedException("Not implemented yet");
-        } 
+        }
 
         [HttpPost("google")]
         public async Task<IActionResult> Google([FromBody] GoogleRequest request)
@@ -107,6 +120,6 @@ namespace backend.Controllers
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, [FromQuery] string token)
         {
             throw new Exceptions.NotImplementedException("Not implemented yet");
-        }             
+        }
     }
-} 
+}

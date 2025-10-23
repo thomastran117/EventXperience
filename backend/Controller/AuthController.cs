@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 
+using backend.Common;
 using backend.DTOs;
 using backend.Exceptions;
 using backend.Interfaces;
+using backend.Models;
 using backend.Utilities;
 
 namespace backend.Controllers
@@ -21,11 +23,10 @@ namespace backend.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var userToken = await _authService.LoginAsync(request.Email, request.Password)
-                ?? throw new UnauthorizedException("Invalid username or password");
+            UserToken userToken = await _authService.LoginAsync(request.Email, request.Password);
 
-            var user = userToken.user;
-            var token = userToken.token;
+            User user = userToken.user;
+            Token token = userToken.token;
 
             HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
@@ -35,8 +36,7 @@ namespace backend.Controllers
         [HttpPost("signup")]
         public async Task<IActionResult> SignUp([FromBody] SignUpRequest request)
         {
-            var user = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype)
-                ?? throw new InternalServerException("An internal server error occured when signing up");
+            _ = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
 
             return StatusCode(StatusCodes.Status201Created, new
             {
@@ -44,47 +44,69 @@ namespace backend.Controllers
             });
         }
 
+        [HttpGet("verify")]
+        public async Task<IActionResult> Verify([FromQuery] string token)
+        {
+            throw new Exceptions.NotImplementedException("Not implemented yet");
+        } 
+
+        [HttpPost("google")]
+        public async Task<IActionResult> Google([FromBody] GoogleRequest request)
+        {
+            throw new Exceptions.NotImplementedException("Not implemented yet");
+        }
+
+        [HttpPost("microsoft")]
+        public async Task<IActionResult> Microsoft([FromBody] MicrosoftRequest request)
+        {
+            throw new Exceptions.NotImplementedException("Not implemented yet");
+        }
+
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh()
         {
-            var refreshToken = Request.Cookies["refreshToken"];
+            string? refreshToken = Request.Cookies["refreshToken"];
             if (string.IsNullOrEmpty(refreshToken))
                 throw new UnauthorizedException("Missing refresh token");
 
-            var userToken = await _authService.HandleTokensAsync(refreshToken)
-                ?? throw new UnauthorizedException("Invalid or expired refresh token");
+            UserToken userToken = await _authService.HandleTokensAsync(refreshToken);
 
-            var user = userToken.user;
-            var token = userToken.token;
+            User user = userToken.user;
+            Token token = userToken.token;
 
             HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
             return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
         }
 
-        [HttpPost("google")]
-        public async Task<IActionResult> Google()
-        {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
-        }
-
-        [HttpPost("microsoft")]
-        public async Task<IActionResult> Microsoft()
-        {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
-        }
-
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
-        } 
+            string? refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(refreshToken))
+                return StatusCode(
+                    200,
+                    new MessageResponse($"The user is already logged out.")
+                );
 
+            await _authService.HandleLogoutAsync(refreshToken);
 
-        [HttpGet("verify")]
-        public async Task<IActionResult> Verify()
+            return StatusCode(
+                200,
+                new MessageResponse($"The user's logout is successful")
+            );
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
             throw new Exceptions.NotImplementedException("Not implemented yet");
-        }               
+        }
+
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, [FromQuery] string token)
+        {
+            throw new Exceptions.NotImplementedException("Not implemented yet");
+        }             
     }
-}
+} 

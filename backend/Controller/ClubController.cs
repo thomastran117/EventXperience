@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using backend.Common;
 using backend.DTOs;
-using backend.Exceptions;
 using backend.Interfaces;
 using backend.Middlewares;
+using backend.Models;
 using backend.Utilities;
 
 namespace backend.Controllers
@@ -23,9 +24,19 @@ namespace backend.Controllers
         [HttpPost("")]
         public async Task<IActionResult> CreateClub([FromForm] ClubCreateRequest request)
         {
-            var userPayload = User.GetUserPayload();
-            var club = await _clubService.CreateClub(request.Name, userPayload.Id, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email) ?? throw new InternalServerException("An internal server occured");
-            var response = new ClubResponse(
+            UserPayload userPayload = User.GetUserPayload();
+
+            Club club = await _clubService.CreateClub(
+                userId: userPayload.Id,
+                name: request.Name,
+                description: request.Description,
+                clubtype: request.Clubtype,
+                clubimage: request.ClubImage,
+                phone: request.Phone,
+                email: request.Email
+            );
+
+            ClubResponse response = new(
                 club.Id,
                 club.Name,
                 club.Description,
@@ -38,17 +49,34 @@ namespace backend.Controllers
                 Rating = club.Rating
             };
 
-            return Ok(response);
+            return StatusCode(
+                201,
+                new ApiResponse<ClubResponse>(
+                    $"The club with ID {club.Id} has been created successfully.",
+                    response
+                )
+            );
         }
 
         [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateClub([FromForm] ClubUpdateRequest request, int id)
         {
-            var userPayload = User.GetUserPayload();
+            UserPayload userPayload = User.GetUserPayload();
             ValidateUtility.ValidatePositiveId(id);
-            var club = await _clubService.UpdateClub(id, userPayload.Id, request.Name, request.Description, request.Clubtype, request.ClubImage, request.Phone, request.Email);
-            var response = new ClubResponse(
+
+            Club club = await _clubService.UpdateClub(
+                clubId: id,
+                userId: userPayload.Id,
+                name: request.Name,
+                description: request.Description,
+                clubtype: request.Clubtype,
+                clubimage: request.ClubImage,
+                phone: request.Phone,
+                email: request.Email
+            );
+
+            ClubResponse response = new(
                 club.Id,
                 club.Name,
                 club.Description,
@@ -61,40 +89,37 @@ namespace backend.Controllers
                 Rating = club.Rating
             };
 
-            return Ok(response);
+            return StatusCode(
+                200,
+                new ApiResponse<ClubResponse>(
+                    $"The club with ID {id} has been updated successfully.",
+                    response
+                )
+            );
         }
 
         [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteClub(int id)
         {
-            var userPayload = User.GetUserPayload();
+            UserPayload userPayload = User.GetUserPayload();
             ValidateUtility.ValidatePositiveId(id);
-            var result = await _clubService.DeleteClub(userPayload.Id, id);
+            await _clubService.DeleteClub(userPayload.Id, id);
 
-            if (result)
-            {
-                return Ok(new MessageResponse("Club deleted successfully.", true, StatusCodes.Status200OK));
-            }
-            else
-            {
-                var response = new MessageResponse(
-                    "An unexpected error occurred.",
-                    success: false,
-                    statusCode: StatusCodes.Status500InternalServerError
-                );
-
-                return StatusCode(StatusCodes.Status500InternalServerError, response);
-            }
+            return StatusCode(
+                200,
+                new MessageResponse($"The club with ID {id} has been deleted successfully.")
+            );
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetClub(int id)
         {
             ValidateUtility.ValidatePositiveId(id);
-            var club = await _clubService.GetClub(id);
+            Club club = await _clubService
+                .GetClub(id);
 
-            var response = new ClubResponse(
+            ClubResponse response = new(
                 club.Id,
                 club.Name,
                 club.Description,
@@ -107,16 +132,22 @@ namespace backend.Controllers
                 Rating = club.Rating
             };
 
-            return Ok(response);
+            return StatusCode(
+                200,
+                new ApiResponse<ClubResponse>(
+                    $"The club with ID {id} has been fetched successfully.",
+                    response
+                )
+            );
         }
 
 
         [HttpGet("")]
         public async Task<IActionResult> GetClubs([FromQuery] string? search)
         {
-            var clubs = await _clubService.GetAllClubs(search);
+            List<Club> clubs = await _clubService.GetAllClubs(search);
 
-            var responses = clubs.Select(club => new ClubResponse(
+            IEnumerable<ClubResponse> responses = clubs.Select(club => new ClubResponse(
                 club.Id,
                 club.Name,
                 club.Description,
@@ -129,7 +160,14 @@ namespace backend.Controllers
                 Rating = club.Rating
             });
 
-            return Ok(responses);
+
+            return StatusCode(
+                200,
+                new ApiResponse<IEnumerable<ClubResponse>>(
+                    $"The club has been fetched successfully.",
+                    responses
+                )
+            );
         }
     }
 }

@@ -18,7 +18,7 @@ namespace backend.Services
             _fileUploadService = fileUploadService;
         }
 
-        public async Task<Club?> CreateClub(
+        public async Task<Club> CreateClub(
             string name,
             int userId,
             string description,
@@ -33,7 +33,7 @@ namespace backend.Services
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId)
-                ?? throw new NotFoundException($"The user with the ID {userId} is not found"); ;
+                ?? throw new NotFoundException($"The user with the ID {userId} is not found");
 
             var club = new Club
             {
@@ -52,7 +52,7 @@ namespace backend.Services
             return club;
         }
 
-        public async Task<bool> DeleteClub(int clubId, int userId)
+        public async Task DeleteClub(int clubId, int userId)
         {
             var club = await _context.Clubs
                 .FirstOrDefaultAsync(c => c.Id == clubId)
@@ -61,12 +61,12 @@ namespace backend.Services
             if (club.UserId != userId)
                 throw new ForbiddenException($"You are not allowed to delete club with id of {clubId}");
 
-            _ = await _fileUploadService.DeleteImageAsync(club.ClubImage);
+            _ = _fileUploadService.DeleteImageAsync(club.ClubImage);
 
             _context.Clubs.Remove(club);
             await _context.SaveChangesAsync();
 
-            return true;
+            return;
         }
 
         public async Task<List<Club>> GetAllClubs(string? query = null)
@@ -87,16 +87,17 @@ namespace backend.Services
                 .ToListAsync();
         }
 
-        public async Task<Club?> GetClub(int clubId)
+        public async Task<Club> GetClub(int clubId)
         {
             var club = await _context.Clubs
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == clubId)
                 ?? throw new NotFoundException($"Club with the id {clubId} is not found");
+
             return club;
         }
 
-        public async Task<Club?> UpdateClub(
+        public async Task<Club> UpdateClub(
             int clubId,
             int userId,
             string name,
@@ -106,10 +107,10 @@ namespace backend.Services
             string? phone = null,
             string? email = null)
         {
-            var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Id == clubId);
-            if (club == null)
-                throw new NotFoundException($"Club with the id {clubId} is not found");
-
+            var club = await _context.Clubs
+                .FirstOrDefaultAsync(c => c.Id == clubId)
+                ?? throw new NotFoundException($"Club with the id {clubId} is not found");
+                
             if (club.UserId != userId)
                 throw new ForbiddenException($"You are not allowed to update club with id of {clubId}");
 
@@ -127,7 +128,7 @@ namespace backend.Services
 
             if (!string.IsNullOrWhiteSpace(oldImageUrl) && !oldImageUrl.Equals(newImageUrl, StringComparison.OrdinalIgnoreCase))
             {
-                _ = await _fileUploadService.DeleteImageAsync(oldImageUrl);
+                _ = _fileUploadService.DeleteImageAsync(oldImageUrl);
             }
 
             return club;

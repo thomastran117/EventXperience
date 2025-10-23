@@ -2,14 +2,21 @@ namespace backend.DTOs
 {
     public class MessageResponse
     {
-        public MessageResponse(string message, bool success = true, int? statusCode = null)
+        public MessageResponse(string message)
         {
             Message = message;
-            Success = success;
-            StatusCode = statusCode;
         }
         public string Message { get; set; } = string.Empty;
-        public bool Success { get; set; }
-        public int? StatusCode { get; set; }
+    }
+    public class ApiResponse<T>
+    {
+        public string Message { get; set; } = string.Empty;
+        public T? Data { get; set; }
+
+        public ApiResponse(string message, T data)
+        {
+            Message = message;
+            Data = data;
+        }
     }
 }

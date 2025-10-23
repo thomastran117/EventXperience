@@ -51,4 +51,30 @@ namespace backend.DTOs
         [Required]
         public required string Captcha { get; set; }
     }
+
+    public class MicrosoftRequest
+    {
+        [Required]
+        public required string Token { get; set; }
+    }
+
+    public class GoogleRequest
+    {
+        [Required]
+        public required string Token { get; set; }
+    }
+
+    public class ForgotPasswordRequest
+    {
+        [Required]
+        [EmailAddress]
+        public required string Email { get; set; }
+    }
+
+    public class ChangePasswordRequest
+    {
+        [Required]
+        [StringLength(30, MinimumLength = 4, ErrorMessage = "Password must be between 4 and 30 characters.")]
+        public required string Password { get; set; }
+    }
 }

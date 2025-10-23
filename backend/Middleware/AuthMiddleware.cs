@@ -37,9 +37,9 @@ namespace backend.Middlewares
     {
         public static UserPayload GetUserPayload(this ClaimsPrincipal user)
         {
-            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var emailClaim = user.FindFirst(ClaimTypes.Name)?.Value;
-            var roleClaim = user.FindFirst(ClaimTypes.Role)?.Value;
+            string? idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string? emailClaim = user.FindFirst(ClaimTypes.Name)?.Value;
+            string? roleClaim = user.FindFirst(ClaimTypes.Role)?.Value;
 
             if (string.IsNullOrEmpty(idClaim) || string.IsNullOrEmpty(emailClaim) || string.IsNullOrEmpty(roleClaim))
             {

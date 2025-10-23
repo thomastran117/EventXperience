@@ -1,4 +1,5 @@
 using backend.Interfaces;
+using backend.Utilities;
 
 namespace backend.Services
 {
@@ -37,15 +38,14 @@ namespace backend.Services
             return fileUrl;
         }
 
-        public async Task<bool> DeleteImageAsync(string imageUrl)
+        public Task DeleteImageAsync(string? imageUrl)
         {
             if (string.IsNullOrWhiteSpace(imageUrl))
-                return false;
+                return Task.CompletedTask;
 
             try
             {
                 var uploadsRoot = _env.WebRootPath;
-
                 var uri = new Uri(imageUrl);
                 var relativePath = uri.AbsolutePath.TrimStart('/');
                 var fullPath = Path.Combine(uploadsRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -53,16 +53,14 @@ namespace backend.Services
                 if (File.Exists(fullPath))
                 {
                     File.Delete(fullPath);
-                    return true;
                 }
             }
-            catch
+            catch (Exception)
             {
-
+                Logger.Warn($"Failed to delete image: {imageUrl}");
             }
 
-            return false;
+            return Task.CompletedTask;
         }
-
     }
 }

@@ -11,11 +11,8 @@ namespace backend.Utilities
             if (ex is AppException appEx)
                 return HandleAppException(appEx);
 
-            Logger.Error(ex, "Unexpected error occurred");
-            var response = new MessageResponse(
-                "An unexpected error occurred.",
-                success: false,
-                statusCode: StatusCodes.Status500InternalServerError
+            MessageResponse response = new MessageResponse(
+                "An unexpected error occurred."
             );
 
             return new ObjectResult(response)
@@ -26,11 +23,7 @@ namespace backend.Utilities
 
         private static IActionResult HandleAppException(AppException ex)
         {
-            var response = new MessageResponse(
-                ex.Message,
-                success: false,
-                statusCode: ex.StatusCode
-            );
+            var response = new MessageResponse(ex.Message);
 
             return new ObjectResult(response)
             {

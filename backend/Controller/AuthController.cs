@@ -6,6 +6,7 @@ using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
 using backend.Utilities;
+using backend.Test;
 
 namespace backend.Controllers
 {
@@ -120,6 +121,16 @@ namespace backend.Controllers
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, [FromQuery] string token)
         {
             throw new Exceptions.NotImplementedException("Not implemented yet");
+        }
+
+        [HttpGet("test")]
+        public async Task<IActionResult> Thing(){
+            EmailService tester = new();
+            await tester.SendTestEmailAsync();
+            return StatusCode(
+                200,
+                new MessageResponse("Worked")
+            );
         }
     }
 }

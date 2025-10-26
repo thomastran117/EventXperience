@@ -110,7 +110,7 @@ namespace backend.Services
             var club = await _context.Clubs
                 .FirstOrDefaultAsync(c => c.Id == clubId)
                 ?? throw new NotFoundException($"Club with the id {clubId} is not found");
-                
+
             if (club.UserId != userId)
                 throw new ForbiddenException($"You are not allowed to update club with id of {clubId}");
 

@@ -11,6 +11,8 @@ namespace backend.Middlewares
 {
     public static class AuthMiddleware
     {
+        private const string ISSUER = "EventXperience";
+        private const string AUDIENCE = "EventXperienceConsumers";
         public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration config)
         {
             services.AddAuthentication("Bearer")
@@ -22,10 +24,10 @@ namespace backend.Middlewares
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ValidIssuer = EnvManager.JwtIssuer,
-                        ValidAudience = EnvManager.JwtAudience,
+                        ValidIssuer = ISSUER,
+                        ValidAudience = AUDIENCE,
                         IssuerSigningKey = new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey))
+                            Encoding.UTF8.GetBytes(EnvManager.JwtSecretKeyAccess))
                     };
                 });
 

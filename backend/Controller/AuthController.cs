@@ -6,7 +6,6 @@ using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
 using backend.Utilities;
-using backend.Test;
 
 namespace backend.Controllers
 {
@@ -124,9 +123,8 @@ namespace backend.Controllers
         }
 
         [HttpGet("test")]
-        public async Task<IActionResult> Thing(){
-            EmailService tester = new();
-            await tester.SendTestEmailAsync();
+        public async Task<IActionResult> Thing()
+        {
             return StatusCode(
                 200,
                 new MessageResponse("Worked")

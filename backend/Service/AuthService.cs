@@ -16,13 +16,33 @@ namespace backend.Services
         private readonly AppDatabaseContext _context;
         private readonly ITokenService _tokenService;
 
-        public AuthService(AppDatabaseContext context, ITokenService tokenService)
+        private readonly IEmailService _emailService;
+
+        public AuthService(AppDatabaseContext context, ITokenService tokenService, IEmailService emailService)
         {
             _context = context;
             _tokenService = tokenService;
+            _emailService = emailService;
         }
 
-        public async Task<User> SignUpAsync(string email, string password, string userType)
+        public async Task<UserToken> LoginAsync(string email, string password)
+        {
+            User user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email)
+                ?? throw new UnauthorizedException("Invalid email or password");
+
+            if (user.Password == null) throw new UnauthorizedException("Invalid email or password.");
+
+            if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException("Invalid email or password");
+
+            Token token = await _tokenService.GenerateTokens(user);
+
+            UserToken userToken = new(token, user);
+
+            return userToken;
+        }
+
+        public async Task<bool> SignUpAsync(string email, string password, string userType)
         {
             if (await _context.Users.AnyAsync(u => u.Email == email))
                 throw new ConflictException($"An account is already registered with the email: {email}");
@@ -36,27 +56,45 @@ namespace backend.Services
                 Usertype = userType
             };
 
+            var token = await _tokenService.GenerateVerificationToken(user);
+            await _emailService.SendVerificationEmailAsync(email, token);
+
+            return true;
+        }
+
+        public async Task<UserToken> VerifyAsync(string token)
+        {
+            var user = await _tokenService.VerifyVerificationToken(token);
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return user;
-        }
+            Token authToken = await _tokenService.GenerateTokens(user);
 
-        public async Task<UserToken> LoginAsync(string email, string password)
-        {
-            User user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == email)
-                ?? throw new UnauthorizedException("Invalid email or password");
-
-            if (user.Password == null) throw new UnauthorizedException("Invalid email or password.");
-
-            if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException("Invalid email or password");
-
-            Token token = _tokenService.GenerateTokens(user);
-
-            UserToken userToken = new(token, user);
+            UserToken userToken = new(authToken, user);
 
             return userToken;
+        }
+
+        public async Task<UserToken> HandleTokensAsync(string refreshToken)
+        {
+            UserToken token = await _tokenService.RotateTokens(refreshToken);
+            return token;
+        }
+
+        public Task<UserToken> GoogleAsync(string token)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task<UserToken> MicrosoftAsync(string email, string password)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task HandleLogoutAsync(string refreshToken)
+        {
+            throw new System.NotImplementedException();
         }
 
         private string HashPassword(string password)
@@ -71,27 +109,6 @@ namespace backend.Services
         {
             string hashOfInput = HashPassword(password);
             return hashOfInput == hashedPassword;
-        }
-
-        public async Task<UserToken> HandleTokensAsync(string refreshToken)
-        {
-            UserToken token = _tokenService.RotateTokens(refreshToken);
-            return token;
-        }
-
-        public Task<UserToken?> GoogleAsync(string token)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Task<UserToken?> MicrosoftAsync(string email, string password)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public Task HandleLogoutAsync(string refreshToken)
-        {
-            throw new System.NotImplementedException();
         }
     }
 }

@@ -15,95 +15,174 @@ namespace backend.Services
     public class TokenService : ITokenService
     {
         private readonly JwtSecurityTokenHandler _tokenHandler = new();
+        private readonly string JWT_ACCESS_SECRET;
+        private readonly string JWT_REFRESH_SECRET;
+        private readonly string JWT_VERIFY_SECRET;
+        private readonly TimeSpan JWT_ACCESS_LIFETIME = TimeSpan.FromMinutes(15);
+        private readonly TimeSpan JWT_REFESH_LIFETIME = TimeSpan.FromMinutes(60);
+        private readonly TimeSpan JWT_VERIFY_LIFETIME = TimeSpan.FromMinutes(30);
+        private const string ISSUER = "EventXperience";
+        private const string AUDIENCE = "EventXperienceConsumers";
+        private readonly ICacheService _cacheService;
 
-        public TokenService() { }
-        public UserToken RotateTokens(string oldRefreshToken)
+        public TokenService(ICacheService cacheService)
         {
-            var principal = ValidateRefreshToken(oldRefreshToken)
-                ?? throw new UnauthorizedException("Invalid or expired refresh token");
+            JWT_ACCESS_SECRET = EnvManager.JwtSecretKeyAccess;
+            JWT_REFRESH_SECRET = EnvManager.JwtSecretKeyRefresh;
+            JWT_VERIFY_SECRET = EnvManager.JwtSecretKeyVerify;
+            _cacheService = cacheService;
+        }
+        public async Task<UserToken> RotateTokens(string oldRefreshToken)
+        {
+            var user = await ValidateRefreshToken(oldRefreshToken);
 
-            var user = CreateUserFromClaims(principal);
-
-            var newAccess = GenerateJwtToken(user);
-            var newRefresh = GenerateRefreshToken(user);
+            var newAccess = GenerateAccessJwtToken(user);
+            var newRefresh = await GenerateRefreshToken(user);
 
             var token = new Token(newAccess, newRefresh);
 
             return new UserToken(token, user);
         }
-        public Token GenerateTokens(User user)
+        public async Task<Token> GenerateTokens(User user)
         {
-            var newAccess = GenerateJwtToken(user);
-            var newRefresh = GenerateRefreshToken(user);
+            var newAccess = GenerateAccessJwtToken(user);
+            var newRefresh = await GenerateRefreshToken(user);
 
             var token = new Token(newAccess, newRefresh);
 
             return token;
         }
-        private static User CreateUserFromClaims(ClaimsPrincipal principal)
+
+        private string GenerateAccessJwtToken(User user)
         {
-            var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-            var email = principal.FindFirstValue(ClaimTypes.Name);
-            var role = principal.FindFirstValue(ClaimTypes.Role);
-
-            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
-                throw new UnauthorizedException("Invalid refresh token claims");
-
-            return new User
-            {
-                Id = int.Parse(id),
-                Email = email,
-                Usertype = role
-            };
+            return GenerateJwt(user, "access");
         }
 
-        private string GenerateJwtToken(User user)
+        private async Task<string> GenerateRefreshToken(User user)
         {
-            var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey!);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(
-                [
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Email),
-                    new Claim(ClaimTypes.Role, user.Usertype),
-                    new Claim("token_type", "access")
-                ]),
-                Expires = DateTime.UtcNow.AddHours(2),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Issuer = EnvManager.JwtIssuer,
-                Audience = EnvManager.JwtAudience
-            };
-
-            var token = _tokenHandler.CreateToken(tokenDescriptor);
-            return _tokenHandler.WriteToken(token);
-        }
-        private string GenerateRefreshToken(User user)
-        {
-            var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKeyRefresh);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(
-                [
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Email),
-                    new Claim(ClaimTypes.Role, user.Usertype),
-                    new Claim("token_type", "refresh")
-                ]),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Issuer = EnvManager.JwtIssuer,
-                Audience = EnvManager.JwtAudience
-            };
-
-            var token = _tokenHandler.CreateToken(tokenDescriptor);
-            return _tokenHandler.WriteToken(token);
+            var token = GenerateJwt(user, "refresh");
+            await _cacheService.SetValueAsync($"refresh:{user.Id}", token, JWT_VERIFY_LIFETIME);
+            return token;
         }
         private ClaimsPrincipal? ValidateAccessToken(string token)
         {
-            var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKey);
+            return ValidateJwt(token, "access");
+        }
+
+        private async Task<User> ValidateRefreshToken(string refreshToken)
+        {
+            var principal = ValidateJwt(refreshToken, "refresh")
+                ?? throw new UnauthorizedException("Invalid or expired verify token");
+
+            var user = CreateUserFromClaims(principal);
+
+            var cachedToken = await _cacheService.GetValueAsync($"refresh:{user.Id}");
+            if (string.IsNullOrEmpty(cachedToken) || cachedToken != refreshToken)
+                throw new UnauthorizedException("Refresh token invalid or already used.");
+
+            await _cacheService.DeleteKeyAsync($"refresh:{user.Id}");
+
+            return user;
+        }
+
+        public async Task<bool> LogoutToken(string refreshToken)
+        {
+            var principal = ValidateJwt(refreshToken, "refresh")
+                ?? throw new UnauthorizedException("Invalid or expired verify token");
+
+            var user = CreateUserFromClaims(principal);
+
+            var cachedToken = await _cacheService.GetValueAsync($"refresh:{user.Id}");
+            if (string.IsNullOrEmpty(cachedToken) || cachedToken != refreshToken)
+                throw new UnauthorizedException("Refresh token invalid or already used.");
+
+            await _cacheService.DeleteKeyAsync($"refresh:{user.Id}");
+
+            return true;
+        }
+
+        public async Task<string> GenerateVerificationToken(User user)
+        {
+            var token = GenerateJwt(user, "verify");
+            await _cacheService.SetValueAsync($"verify:{user.Id}", token, JWT_VERIFY_LIFETIME);
+            return token;
+        }
+
+        public async Task<User> VerifyVerificationToken(string verifyToken)
+        {
+            var principal = ValidateJwt(verifyToken, "verify")
+                ?? throw new UnauthorizedException("Invalid or expired verify token");
+
+            var user = CreateUserFromClaims(principal);
+
+            var cachedToken = await _cacheService.GetValueAsync($"verify:{user.Id}");
+            if (string.IsNullOrEmpty(cachedToken) || cachedToken != verifyToken)
+                throw new UnauthorizedException("Verification token invalid or already used.");
+
+            await _cacheService.DeleteKeyAsync($"verify:{user.Id}");
+
+            return user;
+        }
+
+        public string GenerateJwt(User user, string type)
+        {
+            type = type.ToLowerInvariant();
+
+            string secret = type switch
+            {
+                "access" => JWT_ACCESS_SECRET,
+                "refresh" => JWT_REFRESH_SECRET,
+                "verify" => JWT_VERIFY_SECRET,
+                _ => throw new ArgumentException($"Invalid token type: {type}")
+            };
+
+            TimeSpan expiry = type switch
+            {
+                "access" => JWT_ACCESS_LIFETIME,
+                "refresh" => JWT_REFESH_LIFETIME,
+                "verify" => JWT_VERIFY_LIFETIME,
+                _ => TimeSpan.Zero
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, user.Email),
+                new(ClaimTypes.Role, user.Usertype),
+                new("token_type", type)
+            };
+
+            if (type == "verify" && !string.IsNullOrEmpty(user.Password))
+                claims.Add(new Claim("password", user.Password));
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.Add(expiry),
+                SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature),
+                Issuer = ISSUER,
+                Audience = AUDIENCE
+            };
+
+            var token = _tokenHandler.CreateToken(tokenDescriptor);
+            return _tokenHandler.WriteToken(token);
+        }
+
+        private ClaimsPrincipal? ValidateJwt(string token, string type)
+        {
+            type = type.ToLowerInvariant();
+
+            string secret = type switch
+            {
+                "access" => JWT_ACCESS_SECRET,
+                "refresh" => JWT_REFRESH_SECRET,
+                "verify" => JWT_VERIFY_SECRET,
+                _ => throw new ArgumentException($"Invalid token type: {type}")
+            };
+
+            var key = Encoding.UTF8.GetBytes(secret);
 
             try
             {
@@ -112,38 +191,13 @@ namespace backend.Services
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = EnvManager.JwtIssuer,
-                    ValidAudience = EnvManager.JwtAudience,
+                    ValidIssuer = ISSUER,
+                    ValidAudience = AUDIENCE,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
                     ClockSkew = TimeSpan.Zero
                 }, out _);
 
-                return principal;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private ClaimsPrincipal? ValidateRefreshToken(string refreshToken)
-        {
-            var key = Encoding.UTF8.GetBytes(EnvManager.JwtSecretKeyRefresh);
-
-            try
-            {
-                var principal = _tokenHandler.ValidateToken(refreshToken, new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = EnvManager.JwtIssuer,
-                    ValidAudience = EnvManager.JwtAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ClockSkew = TimeSpan.Zero
-                }, out _);
-
-                if (principal.HasClaim(c => c.Type == "token_type" && c.Value == "refresh"))
+                if (principal.HasClaim(c => c.Type == "token_type" && c.Value == type))
                 {
                     return principal;
                 }
@@ -155,10 +209,23 @@ namespace backend.Services
                 return null;
             }
         }
-
-        public bool LogoutToken(string refreshToken)
+        private User CreateUserFromClaims(ClaimsPrincipal principal)
         {
-            throw new System.NotImplementedException();
+            var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var email = principal.FindFirstValue(ClaimTypes.Name);
+            var role = principal.FindFirstValue(ClaimTypes.Role);
+            var password = principal.FindFirst("password")?.Value;
+
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
+                throw new UnauthorizedException("Invalid refresh token claims");
+
+            return new User
+            {
+                Id = int.Parse(id),
+                Email = email,
+                Usertype = role,
+                Password = password
+            };
         }
     }
 }

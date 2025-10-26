@@ -31,13 +31,9 @@ namespace backend.Config
         public static string DbConnectionString => GetRequired("DB_CONNECTION_STRING");
         public static string RedisConnection => GetRequired("REDIS_CONNECTION");
 
-        public static string JwtIssuer => GetRequired("JWT_ISSUER");
-        public static string JwtAudience => GetRequired("JWT_AUDIENCE");
-        public static string JwtSecretKey => GetRequired("JWT_SECRET_KEY");
-
-        public static string JwtIssuerRefresh => GetRequired("JWT_ISSUER_REFRESH");
-        public static string JwtAudienceRefresh => GetRequired("JWT_AUDIENCE_REFRESH");
+        public static string JwtSecretKeyAccess => GetRequired("JWT_SECRET_KEY_ACCESS");
         public static string JwtSecretKeyRefresh => GetRequired("JWT_SECRET_KEY_REFRESH");
+        public static string JwtSecretKeyVerify => GetRequired("JWT_SECRET_KEY_VERIFY");
         public static string? Email => GetOptional("EMAIL");
         public static string? Password => GetOptional("EMAIL_PASSWORD");
         public static string? SmtpServer => GetOptional("SMTP_SERVER");
@@ -67,11 +63,7 @@ namespace backend.Config
             {
                 "DB_CONNECTION_STRING",
                 "REDIS_CONNECTION",
-                "JWT_ISSUER",
-                "JWT_AUDIENCE",
                 "JWT_SECRET_KEY",
-                "JWT_ISSUER_REFRESH",
-                "JWT_AUDIENCE_REFRESH",
                 "JWT_SECRET_KEY_REFRESH"
             };
 

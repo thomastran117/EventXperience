@@ -12,7 +12,7 @@ namespace backend.Config
             services.AddSingleton<IConnectionMultiplexer>(_ =>
                 ConnectionMultiplexer.Connect(EnvManager.RedisConnection));
 
-            services.AddScoped<RedisResource>();
+            services.AddSingleton<RedisResource>();
 
             using (var scope = services.BuildServiceProvider().CreateScope())
             {

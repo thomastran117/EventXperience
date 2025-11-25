@@ -9,13 +9,20 @@ namespace backend.Resources
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Club> Clubs { get; set; } = null!;
         public DbSet<EventClub> EventClubs { get; set; } = null!;
-
         public AppDatabaseContext(DbContextOptions<AppDatabaseContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+                
             modelBuilder.Entity<Club>()
                 .HasOne(c => c.User)
                 .WithMany(u => u.Clubs)

@@ -8,31 +8,34 @@ using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
 using backend.Resources;
+using backend.Repositories;
 
 namespace backend.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly AppDatabaseContext _context;
+        private readonly IUserRepository _userRepository;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private const string DummyHash = "$2a$11$9FJqO6j/4jP3E2fOQdWgMuKZXWWvPZ09f8Pj0L9VqB6TfqZ4fE5SO";
 
-        public AuthService(AppDatabaseContext context, ITokenService tokenService, IEmailService emailService)
+        public AuthService(UserRepository userRepository, ITokenService tokenService, IEmailService emailService)
         {
-            _context = context;
+            _userRepository = userRepository;
             _tokenService = tokenService;
             _emailService = emailService;
         }
 
         public async Task<UserToken> LoginAsync(string email, string password)
         {
-            User user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == email)
-                ?? throw new UnauthorizedException("Invalid email or password");
+            User? user = await _userRepository.GetUserByEmailAsync(email);
 
-            if (user.Password == null) throw new UnauthorizedException("Invalid email or password.");
+            var hashToCheck = user?.Password ?? DummyHash;
 
-            if (!VerifyPassword(password, user.Password)) throw new UnauthorizedException("Invalid email or password");
+            bool isValidPassword = VerifyPassword(password, hashToCheck);
+
+            if (user == null || user.Password == null || !isValidPassword)
+                throw new UnauthorizedException("Invalid email or password");
 
             Token token = await _tokenService.GenerateTokens(user);
 
@@ -43,7 +46,7 @@ namespace backend.Services
 
         public async Task<bool> SignUpAsync(string email, string password, string userType)
         {
-            if (await _context.Users.AnyAsync(u => u.Email == email))
+            if (await _userRepository.EmailExistsAsync(email))
                 throw new ConflictException($"An account is already registered with the email: {email}");
 
             string hashedPassword = HashPassword(password);
@@ -65,8 +68,7 @@ namespace backend.Services
         {
             var user = await _tokenService.VerifyVerificationToken(token);
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            await _userRepository.AddAsync(user);
 
             Token authToken = await _tokenService.GenerateTokens(user);
 

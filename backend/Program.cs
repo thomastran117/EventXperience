@@ -5,6 +5,7 @@ using Microsoft.Extensions.FileProviders;
 using backend.Config;
 using backend.Interfaces;
 using backend.Middlewares;
+using backend.Repositories;
 using backend.Services;
 using backend.Utilities;
 
@@ -27,6 +28,7 @@ builder.Services.AddControllers(options =>
     options.Conventions.Insert(0, new RoutePrefixConvention("api"));
 });
 
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();

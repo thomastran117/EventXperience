@@ -8,7 +8,10 @@ public class User
     public required string Usertype { get; set; }
     public string? Name { get; set; }
     public string? Username { get; set; }
+    public string? Avatar { get; set; }
     public string? Address { get; set; }
-
+    public string? Phone { get; set; }
+    public string? MicrosoftID { get; set; }
+    public string? GoogleID { get; set; }
     public ICollection<Club> Clubs { get; set; } = new List<Club>();
 }

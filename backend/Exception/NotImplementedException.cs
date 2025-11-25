@@ -1,8 +1,8 @@
 namespace backend.Exceptions
 {
-    public class NotImplementedException : AppException
+    public class CustomNotImplementedException : AppException
     {
-        public NotImplementedException(string message)
+        public CustomNotImplementedException(string message = "The service is not implemented yet")
             : base(message, StatusCodes.Status501NotImplemented) { }
     }
 }

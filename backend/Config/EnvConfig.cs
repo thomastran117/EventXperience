@@ -37,6 +37,8 @@ namespace backend.Config
         public static string? Email => GetOptional("EMAIL");
         public static string? Password => GetOptional("EMAIL_PASSWORD");
         public static string? SmtpServer => GetOptional("SMTP_SERVER");
+        public static string? MicrosoftClientId => GetOptional("MICROSOFT_CLIENT_ID");
+        public static string? GoogleClientId => GetOptional("GOOGLE_CLIENT_ID");
         public static string AppEnvironment => GetOptional("APP_ENV") ?? "development";
         public static string LogLevel => GetOptional("LOG_LEVEL") ?? "info";
         private static string GetRequired(string key)

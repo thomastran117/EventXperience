@@ -1,64 +1,60 @@
+[CmdletBinding()]
+param()
+
 $ErrorActionPreference = "Stop"
 
-function Check-Command {
-    param(
-        [string]$cmd,
-        [string]$friendlyName
-    )
-    $exists = Get-Command $cmd -ErrorAction SilentlyContinue
-    if (-not $exists) {
-        Write-Host "ERROR: $friendlyName not found. Please install it before running this script."
-        exit 1
-    } else {
-        Write-Host "Found $friendlyName."
-    }
+try {
+  $nodeVersion   = & node -v
+  $npmVersion    = & npm -v
+  $dotnetVersion = & dotnet --version
+  Write-Host "Node: $nodeVersion  npm: $npmVersion  .NET: $dotnetVersion" -ForegroundColor Green
+} catch {
+  throw "Missing dependency: Node.js, npm, or .NET SDK not installed or not on PATH."
 }
 
-Write-Host "Checking dependencies..."
-Check-Command "node" "Node.js"
-Check-Command "npm" "npm"
-Check-Command "dotnet" ".NET SDK"
-Write-Host ""
+$RootDir      = Resolve-Path (Join-Path $PSScriptRoot "..")
+$FrontendPath = Resolve-Path (Join-Path $RootDir "frontend")
+$BackendPath  = Resolve-Path (Join-Path $RootDir "backend")
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot  = Join-Path $scriptDir ".."
-$frontend  = Join-Path $repoRoot "frontend"
-$backend   = Join-Path $repoRoot "backend"
+function Assert-Package([string]$Path) {
+  if (-not (Test-Path (Join-Path $Path "package.json"))) {
+    throw "package.json not found in $Path"
+  }
+}
+Assert-Package $FrontendPath
 
-Write-Host "🚀 Starting frontend..." -ForegroundColor Cyan
-$frontendProc = Start-Process `
-  -FilePath "cmd.exe" `
-  -ArgumentList "/c","npm run dev" `
-  -WorkingDirectory $frontend `
-  -NoNewWindow `
-  -PassThru
-
-Write-Host "🧩 Checking for ASP.NET backend..." -ForegroundColor Cyan
-
-$projFiles = Get-ChildItem -Path $backend -Filter *.csproj -Recurse
+$projFiles = Get-ChildItem -Path $BackendPath -Filter *.csproj -Recurse
 if ($projFiles.Count -eq 0) {
-  Write-Host "❌ No .csproj file found in backend folder." -ForegroundColor Red
-  exit 1
+  throw "No .csproj file found under $BackendPath"
 }
+$ProjPath = $projFiles[0].FullName
 
-$projPath = $projFiles[0].FullName
-Write-Host "✅ Found project file: $projPath" -ForegroundColor Green
-
-Write-Host "🚀 Starting ASP.NET backend..." -ForegroundColor Cyan
-$backendProc = Start-Process `
-  -FilePath "cmd.exe" `
-  -ArgumentList "/c","dotnet run --no-launch-profile --project `"$projPath`"" `
-  -WorkingDirectory $backend `
-  -NoNewWindow `
+Write-Host ("Starting frontend in {0}" -f $FrontendPath) -ForegroundColor Cyan
+$feProc = Start-Process -FilePath "powershell.exe" `
+  -ArgumentList "-NoExit", "-Command", "cd '$FrontendPath'; npm run dev" `
   -PassThru
 
-Write-Host "`n✅ Both servers are running. Press Ctrl+C to stop them." -ForegroundColor Green
+Write-Host ("Starting backend in {0}" -f $BackendPath) -ForegroundColor Cyan
+$beProc = Start-Process -FilePath "powershell.exe" `
+  -ArgumentList "-NoExit", "-Command", "cd '$BackendPath'; dotnet run --no-launch-profile --project '$ProjPath'" `
+  -PassThru
+
+Write-Host "`nAll services running in new terminals."
+Write-Host "Press Ctrl+C or close this window to stop everything..." -ForegroundColor Green
 
 try {
-  Wait-Process -Id $frontendProc.Id,$backendProc.Id
+  while ($true) { Start-Sleep -Seconds 2 }
 } finally {
-  Write-Host "`n🛑 Stopping servers..." -ForegroundColor Yellow
-  if ($frontendProc -and -not $frontendProc.HasExited) { Stop-Process -Id $frontendProc.Id -Force }
-  if ($backendProc  -and -not $backendProc.HasExited)  { Stop-Process -Id $backendProc.Id  -Force }
-  Write-Host "✅ All stopped." -ForegroundColor Green
+  Write-Host "`nStopping all services..." -ForegroundColor Yellow
+  foreach ($p in @($feProc, $beProc)) {
+    try {
+      if ($p -and -not $p.HasExited) {
+        & taskkill /T /PID $p.Id /F | Out-Null
+        Write-Host "Killed PID $($p.Id)" -ForegroundColor DarkYellow
+      }
+    } catch {
+      Write-Host "Note: could not kill PID $($p.Id): $($_.Exception.Message)" -ForegroundColor DarkGray
+    }
+  }
+  Write-Host "All services stopped. Done." -ForegroundColor Green
 }

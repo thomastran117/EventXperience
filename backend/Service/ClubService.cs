@@ -73,15 +73,6 @@ namespace backend.Services
         {
             IQueryable<Club> q = _context.Clubs.AsNoTracking();
 
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var like = $"%{query.Trim()}%";
-                q = q.Where(c =>
-                    EF.Functions.ILike(c.Name, like) ||
-                    EF.Functions.ILike(c.Description, like) ||
-                    EF.Functions.ILike(c.Clubtype, like));
-            }
-
             return await q
                 .OrderBy(c => c.Id)
                 .ToListAsync();

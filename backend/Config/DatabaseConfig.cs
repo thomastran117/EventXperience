@@ -16,29 +16,6 @@ namespace backend.Config
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
             });
 
-            using (var scope = services.BuildServiceProvider().CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDatabaseContext>();
-
-                try
-                {
-                    if (db.Database.CanConnect())
-                    {
-                        Logger.Info("Database connection successful.");
-                    }
-                    else
-                    {
-                        Logger.Error("Database connection failed.");
-                        Environment.Exit(1);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Database connection error: {ex.Message}");
-                    Environment.Exit(1);
-                }
-            }
-
             return services;
         }
     }

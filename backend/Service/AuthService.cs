@@ -15,7 +15,6 @@ namespace backend.Services
     {
         private readonly AppDatabaseContext _context;
         private readonly ITokenService _tokenService;
-
         private readonly IEmailService _emailService;
 
         public AuthService(AppDatabaseContext context, ITokenService tokenService, IEmailService emailService)

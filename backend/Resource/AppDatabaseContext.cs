@@ -22,7 +22,7 @@ namespace backend.Resources
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
-                
+
             modelBuilder.Entity<Club>()
                 .HasOne(c => c.User)
                 .WithMany(u => u.Clubs)

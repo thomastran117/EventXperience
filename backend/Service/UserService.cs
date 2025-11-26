@@ -46,7 +46,7 @@ namespace backend.Services
             return true;
         }
 
-        public async Task<User> UpdateAvatarAsync(int id, IFormFile image)
+        public async Task<User?> UpdateAvatarAsync(int id, IFormFile image)
         {
             string filePath = await _fileService.UploadImageAsync(image, "users");
 

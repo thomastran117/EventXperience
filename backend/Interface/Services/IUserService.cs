@@ -6,7 +6,8 @@ namespace backend.Interfaces
     {
         Task<List<User>> GetAllUsersAsync();
         Task<User?> GetUserByIdAsync(int id);
-        Task<bool> UpdateUserAsync(int id, User updatedUser);
+        Task<User?> UpdateUserAsync(int id, User updatedUser);
+        Task<User?> UpdateAvatarAsync(int id, IFormFile image);
         Task<bool> DeleteUserAsync(int id);
     }
 }

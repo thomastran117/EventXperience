@@ -23,6 +23,14 @@ namespace backend.Resources
                 .HasIndex(u => u.Username)
                 .IsUnique();
 
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.GoogleID)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.MicrosoftID)
+                .IsUnique();
+
             modelBuilder.Entity<Club>()
                 .HasOne(c => c.User)
                 .WithMany(u => u.Clubs)

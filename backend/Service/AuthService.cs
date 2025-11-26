@@ -1,14 +1,7 @@
-using System.Text;
-
-using System.Security.Cryptography;
-using BCrypt.Net;
-
 using backend.Common;
 using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
-using backend.Resources;
-using backend.Repositories;
 
 namespace backend.Services
 {
@@ -19,7 +12,7 @@ namespace backend.Services
         private readonly IEmailService _emailService;
         private const string DummyHash = "$2a$11$9FJqO6j/4jP3E2fOQdWgMuKZXWWvPZ09f8Pj0L9VqB6TfqZ4fE5SO";
 
-        public AuthService(UserRepository userRepository, ITokenService tokenService, IEmailService emailService)
+        public AuthService(IUserRepository userRepository, ITokenService tokenService, IEmailService emailService)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
@@ -85,17 +78,17 @@ namespace backend.Services
 
         public Task<UserToken> GoogleAsync(string token)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public Task<UserToken> MicrosoftAsync(string email, string password)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public Task HandleLogoutAsync(string refreshToken)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         private string HashPassword(string password)

@@ -4,9 +4,7 @@ using backend.Common;
 using backend.Exceptions;
 using Google.Apis.Auth;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.IdentityModel.JsonWebTokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Json;
 
 namespace backend.Services
 {
@@ -70,11 +68,11 @@ namespace backend.Services
                     ValidateIssuer = true,
                     ValidIssuers = new[]
                     {
-                "https://login.microsoftonline.com/{tenantid}/v2.0",
-                "https://login.microsoftonline.com/common/v2.0",
-                "https://login.microsoftonline.com/organizations/v2.0",
-                "https://login.microsoftonline.com/consumers/v2.0",
-            },
+                        "https://login.microsoftonline.com/{tenantid}/v2.0",
+                        "https://login.microsoftonline.com/common/v2.0",
+                        "https://login.microsoftonline.com/organizations/v2.0",
+                        "https://login.microsoftonline.com/consumers/v2.0",
+                    },
 
                     ValidateAudience = true,
                     ValidAudience = _microsoftClientId,
@@ -98,10 +96,13 @@ namespace backend.Services
                     throw new UnauthorizedException("Invalid Microsoft ID token format");
 
                 var email = principal.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
-                         ?? principal.Claims.FirstOrDefault(c => c.Type == "email")?.Value;
+                         ?? principal.Claims.FirstOrDefault(c => c.Type == "email")?.Value
+                         ?? throw new UnauthorizedException("Bad Microsft Token");
 
-                var name = principal.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
-                var sub = principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                var name = principal.Claims.FirstOrDefault(c => c.Type == "name")?.Value 
+                    ?? throw new UnauthorizedException("Bad Microsft Token");
+                var sub = principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value
+                    ?? throw new UnauthorizedException("Bad Microsft Token");
 
                 return new OAuthUser(
                     sub,

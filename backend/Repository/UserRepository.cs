@@ -14,37 +14,14 @@ namespace backend.Repositories
             _context = context;
         }
 
-        public async Task<User> CreateUserAsync(
-            string email,
-            string provider,
-            string role,
-            string? password = null,
-            string? microsoftID = null,
-            string? googleID = null
-        )
+        public async Task<User> CreateUserAsync(User user)
         {
-            var user = new User
-            {
-                Email = email,
-                Usertype = role,
-                Password = password,
-                MicrosoftID = microsoftID,
-                GoogleID = googleID,
-                Username = email.Split('@')[0],
-            };
-
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
 
             return user;
         }
 
-        public async Task<User> AddAsync(User user)
-        {
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-            return user;
-        }
         public async Task<User?> UpdateUserAsync(int id, User updated)
         {
             var user = await _context.Users.FindAsync(id);

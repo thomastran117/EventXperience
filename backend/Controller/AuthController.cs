@@ -21,114 +21,264 @@ namespace backend.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> LocalAuthenticate([FromBody] LoginRequest request)
         {
-            UserToken userToken = await _authService.LoginAsync(request.Email, request.Password);
+            try
+            {
+                UserToken userToken = await _authService.LoginAsync(request.Email, request.Password);
 
-            User user = userToken.user;
-            Token token = userToken.token;
+                User user = userToken.user;
+                Token token = userToken.token;
 
-            HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
+                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
-            AuthResponse response = new(
-                user.Id,
-                user.Email,
-                user.Usertype,
-                token.AccessToken
-            );
+                AuthResponse response = new(
+                    user.Id,
+                    user.Email,
+                    user.Usertype,
+                    token.AccessToken
+                );
 
-            return StatusCode(
-                200,
-                new ApiResponse<AuthResponse>(
-                    $"Login successful",
-                    response
-                )
-            );
+                return StatusCode(
+                    200,
+                    new ApiResponse<AuthResponse>(
+                        $"Login successful",
+                        response
+                    )
+                );                
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] LocalAuthenticate failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpPost("signup")]
-        public async Task<IActionResult> SignUp([FromBody] SignUpRequest request)
+        public async Task<IActionResult> LocalSignup([FromBody] SignUpRequest request)
         {
-            _ = await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
+            try
+            {
+                await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
 
-            return StatusCode(
-                200,
-                new MessageResponse($"Signup successful.")
-            );
+                return StatusCode(
+                    200,
+                    new MessageResponse("Verification email sent.")
+                );   
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] LocalSignup failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpGet("verify")]
-        public async Task<IActionResult> Verify([FromQuery] string token)
+        public async Task<IActionResult> LocalVerify([FromQuery] string token)
         {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
+            try
+            {
+                UserToken userToken = await _authService.VerifyAsync(token);
+                User user = userToken.user;
+                Token authToken = userToken.token;
+
+                HttpUtility.SetRefreshTokenCookie(Response, authToken.RefreshToken);
+
+                AuthResponse response = new(
+                    user.Id,
+                    user.Email,
+                    user.Usertype,
+                    authToken.AccessToken
+                );
+
+                return StatusCode(
+                    200,
+                    new ApiResponse<AuthResponse>(
+                        $"Verification successful",
+                        response
+                    )
+                );     
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] LocalVerify failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpPost("google")]
-        public async Task<IActionResult> Google([FromBody] GoogleRequest request)
+        public async Task<IActionResult> GoogleAuthenticate([FromBody] GoogleRequest request)
         {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
+            try
+            {
+                UserToken userToken = await _authService.GoogleAsync(request.Token);
+
+                User user = userToken.user;
+                Token token = userToken.token;
+
+                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
+
+                AuthResponse response = new(
+                    user.Id,
+                    user.Email,
+                    user.Usertype,
+                    token.AccessToken
+                );
+
+                return StatusCode(
+                    200,
+                    new ApiResponse<AuthResponse>(
+                        $"Login successful",
+                        response
+                    )
+                );          
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] GoogleAuthenticate failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpPost("microsoft")]
-        public async Task<IActionResult> Microsoft([FromBody] MicrosoftRequest request)
+        public async Task<IActionResult> MicrosoftAuthenticate([FromBody] MicrosoftRequest request)
         {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
+            try
+            {
+                UserToken userToken = await _authService.MicrosoftAsync(request.Token);
+
+                User user = userToken.user;
+                Token token = userToken.token;
+
+                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
+
+                AuthResponse response = new(
+                    user.Id,
+                    user.Email,
+                    user.Usertype,
+                    token.AccessToken
+                );
+
+                return StatusCode(
+                    200,
+                    new ApiResponse<AuthResponse>(
+                        $"Login successful",
+                        response
+                    )
+                );       
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] ChangePassword failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh()
         {
-            string? refreshToken = Request.Cookies["refreshToken"];
-            if (string.IsNullOrEmpty(refreshToken))
-                throw new UnauthorizedException("Missing refresh token");
+            try
+            {
+                string? refreshToken = Request.Cookies["refreshToken"];
+                if (string.IsNullOrEmpty(refreshToken))
+                    throw new UnauthorizedException("Missing refresh token");
 
-            UserToken userToken = await _authService.HandleTokensAsync(refreshToken);
+                UserToken userToken = await _authService.HandleTokensAsync(refreshToken);
 
-            User user = userToken.user;
-            Token token = userToken.token;
+                User user = userToken.user;
+                Token token = userToken.token;
 
-            HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
+                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
-            return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
+                return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));                
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] Refresh failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            string? refreshToken = Request.Cookies["refreshToken"];
-            if (string.IsNullOrEmpty(refreshToken))
+            try
+            {
+                string? refreshToken = Request.Cookies["refreshToken"];
+                if (string.IsNullOrEmpty(refreshToken))
+                    return StatusCode(
+                        200,
+                        new MessageResponse($"The user is already logged out.")
+                    );
+
+                await _authService.HandleLogoutAsync(refreshToken);
+
                 return StatusCode(
                     200,
-                    new MessageResponse($"The user is already logged out.")
-                );
+                    new MessageResponse($"The user's logout is successful")
+                );              
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
 
-            await _authService.HandleLogoutAsync(refreshToken);
-
-            return StatusCode(
-                200,
-                new MessageResponse($"The user's logout is successful")
-            );
+                Logger.Error($"[AuthController] Logout failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
+            try
+            {
+                await _authService.ForgotPasswordAsync(request.Email);
+
+                return StatusCode(
+                    200,
+                    new MessageResponse("If the account exist, we send a reset email")
+                );                
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] ForgotPassword failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
 
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, [FromQuery] string token)
         {
-            throw new Exceptions.NotImplementedException("Not implemented yet");
-        }
+            try
+            {
+                await _authService.ChangePasswordAsync(token, request.Password);
 
-        [HttpGet("test")]
-        public async Task<IActionResult> Thing()
-        {
-            return StatusCode(
-                200,
-                new MessageResponse("Worked")
-            );
+                return StatusCode(
+                    200,
+                    new MessageResponse("Password reset successful. Please login")
+                );
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) return ErrorUtility.HandleError(e);
+
+                Logger.Error($"[AuthController] ChangePassword failed: {e}");
+                return ErrorUtility.HandleError(e);
+            }
         }
     }
 }

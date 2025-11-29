@@ -4,16 +4,7 @@ namespace backend.Interfaces
 {
     public interface IUserRepository
     {
-        Task<User> CreateUserAsync(
-            string email,
-            string provider,
-            string role,
-            string? password = null,
-            string? microsoftID = null,
-            string? googleID = null
-        );
-
-        Task<User> AddAsync(User user);
+        Task<User> CreateUserAsync(User user);
         Task<User?> UpdateUserAsync(int id, User updated);
         Task<User?> UpdatePartialAsync(User user);
         Task<User?> UpdateProviderIdsAsync(int id, string? googleId, string? microsoftId);

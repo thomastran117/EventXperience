@@ -31,7 +31,7 @@ $ProjPath = $projFiles[0].FullName
 
 Write-Host ("Starting frontend in {0}" -f $FrontendPath) -ForegroundColor Cyan
 $feProc = Start-Process -FilePath "powershell.exe" `
-  -ArgumentList "-NoExit", "-Command", "cd '$FrontendPath'; npm run dev" `
+  -ArgumentList "-NoExit", "-Command", "cd '$FrontendPath'; npm run start" `
   -PassThru
 
 Write-Host ("Starting backend in {0}" -f $BackendPath) -ForegroundColor Cyan

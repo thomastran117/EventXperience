@@ -8,7 +8,7 @@ namespace backend.Config
             {
                 options.AddPolicy(policyName, policy =>
                 {
-                    policy.WithOrigins("http://localhost:3030")
+                    policy.WithOrigins("http://localhost:3080")
                         .AllowAnyMethod()
                         .AllowAnyHeader();
                 });

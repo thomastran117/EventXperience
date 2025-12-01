@@ -48,7 +48,7 @@ app.UseSerilogRequestLogging(opts =>
     opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
     opts.EnrichDiagnosticContext = (ctx, http) =>
     {
-        ctx.Set("RequestHost", http.Request.Host.Value);
+        ctx.Set("RequestHost", http.Request.Host.Value!);
         ctx.Set("RequestScheme", http.Request.Scheme);
         ctx.Set("UserAgent", http.Request.Headers.UserAgent.ToString());
     };

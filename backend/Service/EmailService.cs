@@ -195,7 +195,7 @@ namespace backend.Services
                 Logger.Warn(warning);
                 throw new NotAvaliableException("warning");
             }
-            throw new Exceptions.NotImplementedException("Not implemented yet");
+            throw new NotImplementedException("Not implemented yet");
         }
 
         public async Task SendConfirmationEmailAsync(string toEmail, string token)
@@ -206,7 +206,7 @@ namespace backend.Services
                 Logger.Warn(warning);
                 throw new NotAvaliableException("warning");
             }
-            throw new Exceptions.NotImplementedException("Not implemented yet");
+            throw new NotImplementedException("Not implemented yet");
         }
 
         public bool isEmailEnabled()

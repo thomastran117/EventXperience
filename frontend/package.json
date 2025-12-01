@@ -28,7 +28,16 @@
     "@angular/forms": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
+    "@ngrx/effects": "^20.0.1",
+    "@ngrx/store": "^20.0.1",
+    "@ngrx/store-devtools": "^20.0.1",
+    "@popperjs/core": "^2.11.8",
+    "@tailwindcss/postcss": "^4.1.17",
+    "ng-recaptcha": "^13.2.1",
+    "ngx-captcha": "^14.0.0",
+    "postcss": "^8.5.6",
     "rxjs": "~7.8.0",
+    "tailwindcss": "^4.1.17",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },
@@ -37,12 +46,14 @@
     "@angular/cli": "^20.3.5",
     "@angular/compiler-cli": "^20.3.0",
     "@types/jasmine": "~5.1.0",
+    "dotenv": "^17.2.3",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "prettier": "^3.6.2",
     "typescript": "~5.9.2"
   }
 }

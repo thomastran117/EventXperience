@@ -1,7 +1,5 @@
 using Serilog;
 
-using Microsoft.Extensions.FileProviders;
-
 using backend.Config;
 using backend.Interfaces;
 using backend.Middlewares;
@@ -59,17 +57,11 @@ app.UseSerilogRequestLogging(opts =>
 app.UseHttpsRedirection();
 app.UseCors("AllowReact");
 app.UseRateLimiter();
-app.UseMiddleware<GlobalExceptionMiddleware>();
+// app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(builder.Environment.ContentRootPath, "www")),
-    RequestPath = "/public"
-});
 
 app.MapControllers();
 

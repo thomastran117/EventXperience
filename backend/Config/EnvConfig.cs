@@ -32,8 +32,6 @@ namespace backend.Config
         public static string RedisConnection => GetRequired("REDIS_CONNECTION");
 
         public static string JwtSecretKeyAccess => GetRequired("JWT_SECRET_KEY_ACCESS");
-        public static string JwtSecretKeyRefresh => GetRequired("JWT_SECRET_KEY_REFRESH");
-        public static string JwtSecretKeyVerify => GetRequired("JWT_SECRET_KEY_VERIFY");
         public static string? Email => GetOptional("EMAIL");
         public static string? Password => GetOptional("EMAIL_PASSWORD");
         public static string? SmtpServer => GetOptional("SMTP_SERVER");

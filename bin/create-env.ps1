@@ -45,15 +45,13 @@ MONGO_URL="mongodb://localhost:27017/app"
 ##############################################
 # Allowed origins for cross-origin requests (JSON array as string)
 # Typical dev front-end address:
-#   ["http://localhost:3090"]
-CORS_ALLOWED_REGION=["http://localhost:3090"]
+#   ["http://localhost:3080"]
+CORS_ALLOWED_REGION=["http://localhost:3080"]
 
 ##############################################
 # Security / JWT
 ##############################################
 JWT_SECRET_KEY=your_super_secret_key_here_12345
-JWT_SECRET_KEY_REFRESH=your_super_secret_key_here_12345
-JWT_SECRET_KEY_VERIFY=your_super_secret_key_here_12345
 
 ##############################################
 # Email (SMTP credentials)

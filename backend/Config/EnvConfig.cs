@@ -30,8 +30,7 @@ namespace backend.Config
 
         public static string DbConnectionString => GetRequired("DB_CONNECTION_STRING");
         public static string RedisConnection => GetRequired("REDIS_CONNECTION");
-
-        public static string JwtSecretKeyAccess => GetRequired("JWT_SECRET_KEY_ACCESS");
+        public static string JwtSecretKeyAccess => GetRequired("JWT_SECRET_KEY");
         public static string? Email => GetOptional("EMAIL");
         public static string? Password => GetOptional("EMAIL_PASSWORD");
         public static string? SmtpServer => GetOptional("SMTP_SERVER");
@@ -64,7 +63,6 @@ namespace backend.Config
                 "DB_CONNECTION_STRING",
                 "REDIS_CONNECTION",
                 "JWT_SECRET_KEY",
-                "JWT_SECRET_KEY_REFRESH"
             };
 
             var missing = requiredKeys

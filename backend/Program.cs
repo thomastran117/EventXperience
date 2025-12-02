@@ -29,6 +29,7 @@ builder.Services.AddControllers(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IOAuthService, OAuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IClubService, ClubService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
@@ -56,7 +57,7 @@ app.UseSerilogRequestLogging(opts =>
 
 app.UseHttpsRedirection();
 app.UseCors("AllowReact");
-app.UseRateLimiter();
+// app.UseRateLimiter();
 // app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseRouting();
 app.UseAuthentication();

@@ -89,7 +89,7 @@ namespace backend.Services
                 throw new NotAvaliableException("warning");
             }
 
-            var verifyUrl = $"http://localhost:3080/auth/verify?token={Uri.EscapeDataString(token)}";
+            var verifyUrl = $"http://localhost:3090/auth/verify?token={Uri.EscapeDataString(token)}";
 
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress("EventXperience Team", _username));

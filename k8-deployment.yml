@@ -98,7 +98,7 @@ spec:
         - name: backend
           image: eventxperience-backend:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8090
           env:
             - name: DB_CONNECTION_STRING
               value: "Server=mysql;Port=3306;Database=appdb;User=root;Password=root"
@@ -121,8 +121,8 @@ spec:
   selector:
     app: backend
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8090
+      targetPort: 8090
   type: ClusterIP
 ---
 apiVersion: apps/v1

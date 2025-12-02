@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [string]$Namespace = "eventxperience",
-  [string]$FrontendPort = "3080"
+  [string]$FrontendPort = "3090"
 )
 
 function Write-Status([string]$msg, [string]$color = "Cyan") {

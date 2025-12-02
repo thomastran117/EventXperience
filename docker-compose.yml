@@ -6,7 +6,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3070:80"
+      - "3090:80"
     depends_on:
       - backend
     networks:
@@ -23,7 +23,7 @@ services:
       - JWT_SECRET_KEY_REFRESH=amazing_secret_key_yup_yes_abcdef123
       - JWT_SECRET_KEY_VERIFY=amazing_secret_key_yup_yes_abcdef123
     ports:
-      - "8070:8070"
+      - "8090:8090"
     depends_on:
       mysql:
         condition: service_healthy

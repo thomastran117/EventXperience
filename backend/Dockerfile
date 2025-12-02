@@ -12,7 +12,7 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:8070
-EXPOSE 8070
+ENV ASPNETCORE_URLS=http://+:8090
+EXPOSE 8090
 
 ENTRYPOINT ["dotnet", "backend.dll"]

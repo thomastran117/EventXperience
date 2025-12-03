@@ -40,10 +40,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAppDatabase(builder.Configuration);
 builder.Services.AddAppRedis(builder.Configuration);
 builder.Services.AddJwtAuth(builder.Configuration);
-builder.Services.AddReactCors("AllowReact");
+builder.Services.AddCustomCors();
 
 var app = builder.Build();
 
+app.UseRouting();
+app.UseCors("AllowFrontend");
 app.UseSerilogRequestLogging(opts =>
 {
     opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
@@ -55,11 +57,8 @@ app.UseSerilogRequestLogging(opts =>
     };
 });
 
-app.UseHttpsRedirection();
-app.UseCors("AllowReact");
 // app.UseRateLimiter();
 // app.UseMiddleware<GlobalExceptionMiddleware>();
-app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();

@@ -1,0 +1,213 @@
+<div
+  class="relative min-h-screen grid grid-cols-1 lg:grid-cols-2 overflow-hidden
+         bg-gradient-to-br from-indigo-700 via-purple-700 to-fuchsia-600
+         animate-gradient-slow text-white"
+>
+  <div class="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/30 blur-3xl rounded-full animate-blob"></div>
+  <div class="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-fuchsia-500/30 blur-3xl rounded-full animate-blob animation-delay-2000"></div>
+
+  <div
+    class="absolute inset-0 opacity-20 bg-[url('https://www.toptal.com/designers/subtlepatterns/uploads/double-bubble-outline.png')]"
+  ></div>
+
+  <div class="hidden lg:flex flex-col justify-center px-16 relative z-10 text-white">
+    <div class="flex items-center gap-3 mb-10">
+      <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+        <i class="bi bi-stars text-3xl"></i>
+      </div>
+      <h1 class="text-4xl font-extrabold tracking-wide">EventXperience</h1>
+    </div>
+
+    <p class="text-lg opacity-90 mb-8 leading-relaxed max-w-md">
+      Upgrade your events with a fast, elegant, and powerful management experience.
+      Intuitive tools. Realtime dashboards. Seamless authentication.
+    </p>
+
+    <ul class="space-y-3 text-sm">
+      <li class="flex items-center gap-2">
+        <i class="bi bi-check-circle-fill text-xl"></i>
+        Club and organization hosting
+      </li>
+      <li class="flex items-center gap-2">
+        <i class="bi bi-check-circle-fill text-xl"></i>
+        Advanced event management suite
+      </li>
+      <li class="flex items-center gap-2">
+        <i class="bi bi-check-circle-fill text-xl"></i>
+        Realtime updates & monitoring
+      </li>
+    </ul>
+  </div>
+
+  <div class="flex items-center justify-center p-8 relative z-20">
+    <div
+      class="w-full max-w-md bg-white dark:bg-neutral-900
+             shadow-2xl rounded-3xl p-10 border border-white/20
+             backdrop-blur-md"
+    >
+      <h2 class="text-3xl font-bold text-center text-indigo-700 dark:text-indigo-300 mb-8">
+        Welcome Back
+      </h2>
+
+      <div class="flex flex-col gap-3 mb-6">
+        <app-google-button></app-google-button>
+        <app-microsoft-button></app-microsoft-button>
+      </div>
+
+      <div class="flex items-center my-6">
+        <div class="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+        <span class="px-3 text-gray-500 text-sm dark:text-gray-400">or</span>
+        <div class="flex-grow border-t border-gray-300 dark:border-gray-700"></div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Email
+          </label>
+
+          <div class="relative">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5 text-gray-500 dark:text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21.75 6.75v10.5A2.25 2.25 0 0 1 19.5 19.5h-15A2.25 2.25 0 0 1 2.25 17.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15A2.25 2.25 0 0 0 2.25 6.75m19.5 0v.243a2.25 2.25 0 0 1-1.125 1.94L12 12.75 3.375 8.933A2.25 2.25 0 0 1 2.25 6.993V6.75"
+                />
+              </svg>
+
+            <input
+              type="email"
+              formControlName="email"
+              class="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-neutral-700
+                    border border-gray-300 dark:border-neutral-600 
+                    text-gray-800 dark:text-gray-100
+                    focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+            />
+          </div>
+
+          <div *ngIf="submitted && form.controls['email'].invalid" class="text-red-500 text-sm mt-1">
+            A valid email is required.
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Password
+          </label>
+
+          <div class="relative">
+             <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-5 h-5 text-gray-500 dark:text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M16.5 10.5V7.5a4.5 4.5 0 10-9 0v3m-.75 3.75h10.5M6.75 14.25v6a1.5 1.5 0 001.5 1.5h7.5a1.5 1.5 0 001.5-1.5v-6"
+              />
+            </svg>
+
+            <input
+              [type]="showPw ? 'text' : 'password'"
+              formControlName="password"
+              class="w-full pl-10 pr-10 py-2 rounded-lg bg-gray-50 dark:bg-neutral-700
+                    border border-gray-300 dark:border-neutral-600
+                    text-gray-800 dark:text-gray-100
+                    focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+            />
+
+            <button
+                type="button"
+                (click)="togglePassword()"
+                class="absolute inset-y-0 right-3 flex items-center text-gray-500 dark:text-gray-300"
+              >
+                <svg
+                  *ngIf="!showPw"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-6 h-6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M1.5 12s3.75-7.5 10.5-7.5S22.5 12 22.5 12s-3.75 7.5-10.5 7.5S1.5 12 1.5 12z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+                  />
+                </svg>
+
+                <svg
+                  *ngIf="showPw"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-6 h-6"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3.98 8.223A10.477 10.477 0 001.5 12s3.75 7.5 10.5 7.5a10.47 10.47 0 004.74-1.223M6.223 6.223A10.47 10.47 0 0112 4.5c6.75 0 10.5 7.5 10.5 7.5a10.48 10.48 0 01-4.5 5.59M6.223 6.223L3 3m0 0l3.223 3.223M3 3l18 18"
+                  />
+                </svg>
+              </button>
+          </div>
+
+          <div *ngIf="submitted && form.controls['password'].invalid" class="text-red-500 text-sm mt-1">
+            Password must be at least 6 characters.
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-sm">
+          <label class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+            <input type="checkbox" formControlName="remember" class="h-4 w-4" />
+            Remember me
+          </label>
+
+          <a routerLink="/forgot-password" class="text-purple-600 hover:underline">
+            Forgot password?
+          </a>
+        </div>
+
+        <div *ngIf="error" class="text-red-500 text-sm mt-2">{{ error }}</div>
+
+        <button
+          type="submit"
+          [disabled]="loading"
+          class="relative w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-60
+                text-white py-2.5 rounded-lg font-semibold transition-all"
+        >
+          <div *ngIf="loading" class="absolute inset-0 flex items-center justify-center">
+            <div class="w-6 h-6 border-4 border-white/50 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+
+          <span [class.opacity-0]="loading">Sign In</span>
+        </button>
+
+      </form>
+
+      <p class="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
+        Don't have an account?
+        <a routerLink="/register" class="text-purple-600 hover:underline">Sign up</a>
+      </p>
+    </div>
+  </div>
+</div>

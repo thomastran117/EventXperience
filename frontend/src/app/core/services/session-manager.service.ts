@@ -23,7 +23,7 @@ export class SessionManagerService {
 
         this.store.dispatch(
           setUser({
-            user: res
+            user: res,
           }),
         );
       } else {

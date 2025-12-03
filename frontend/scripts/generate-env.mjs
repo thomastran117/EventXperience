@@ -1,10 +1,10 @@
-import fs from "fs";
-import dotenv from "dotenv";
+import fs from 'fs';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
 const environment = {
-  production: process.env.NODE_ENV === "production",
+  production: process.env.NODE_ENV === 'production',
   backendUrl: process.env.BACKEND_URL,
   frontendUrl: process.env.FRONTEND_URL,
   googleClientId: process.env.GOOGLE_CLIENT_ID,
@@ -12,10 +12,10 @@ const environment = {
   googleSiteKey: process.env.GOOGLE_SITE_KEY,
 };
 
-const filePath = "./src/environments/environment.ts";
+const filePath = './src/environments/environment.ts';
 
 if (fs.existsSync(filePath)) {
-  console.log("⚙️ Skipped: environment.ts already exists");
+  console.log('⚙️ Skipped: environment.ts already exists');
   process.exit(0);
 }
 
@@ -28,4 +28,4 @@ export const environment = ${JSON.stringify(environment, null, 2)} as const;
 `;
 
 fs.writeFileSync(filePath, content);
-console.log("Generated src/environments/environment.ts from .env");
+console.log('Generated src/environments/environment.ts from .env');

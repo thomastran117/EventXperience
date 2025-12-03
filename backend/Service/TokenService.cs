@@ -81,11 +81,13 @@ namespace backend.Services
 
                 while (true);
 
-                await _cacheService.SetValueAsync(
+                var result = await _cacheService.SetValueAsync(
                     key: $"refresh:{token}",
                     value: userId.ToString(),
                     expiry: REFRESH_TTL
                 );
+
+                if (!result) throw new NotAvaliableException();
 
                 return token;
             }
@@ -109,7 +111,8 @@ namespace backend.Services
 
                 int userId = int.Parse(idString);
 
-                await _cacheService.DeleteKeyAsync($"refresh:{refreshToken}");
+                var result = await _cacheService.DeleteKeyAsync($"refresh:{refreshToken}");
+                if (!result) throw new NotAvaliableException();
 
                 return userId;          
             }
@@ -137,11 +140,12 @@ namespace backend.Services
 
                 string serialized = JsonConvert.SerializeObject(payload);
 
-                await _cacheService.SetValueAsync(
+                var result = await _cacheService.SetValueAsync(
                     key: $"verify:{token}",
                     value: serialized,
                     expiry: VERIFY_TTL
                 );
+                if (!result) throw new NotAvaliableException();
 
                 return token;               
             }
@@ -163,7 +167,8 @@ namespace backend.Services
                 if (string.IsNullOrEmpty(json))
                     throw new UnauthorizedException("Invalid or expired verification token.");
 
-                await _cacheService.DeleteKeyAsync($"verify:{token}");
+                var result = await _cacheService.DeleteKeyAsync($"verify:{token}");
+                if (!result) throw new NotAvaliableException();
 
                 var draft = JsonConvert.DeserializeObject<User>(json)
                     ?? throw new UnauthorizedException("Invalid verification token payload.");

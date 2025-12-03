@@ -18,18 +18,12 @@ export class SessionManagerService {
         .post<AuthResponse>(`${environment.backendUrl}/auth/refresh`, { withCredentials: true })
         .toPromise();
 
-      if (res?.token) {
-        localStorage.setItem('access_token', res.token);
+      if (res?.Token) {
+        localStorage.setItem('access_token', res.Token);
 
         this.store.dispatch(
           setUser({
-            user: {
-              token: res.token,
-              id: res.id,
-              username: res.username,
-              avatar: res.avatar,
-              role: res.role,
-            },
+            user: res
           }),
         );
       } else {

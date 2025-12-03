@@ -15,7 +15,7 @@ export class AuthTokenService {
     private store: Store<{ user: UserState }>,
   ) {
     this.store
-      .select((state) => state.user.user?.token)
+      .select((state) => state.user.user?.Token)
       .subscribe((token) => {
         this.accessToken = token || null;
       });

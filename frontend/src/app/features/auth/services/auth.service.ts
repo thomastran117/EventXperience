@@ -12,15 +12,15 @@ export interface LoginRequest {
 export interface SignupRequest {
   email: string;
   password: string;
-  role: 'customer' | 'owner';
+  role: 'participant' | 'organizer';
 }
 
 export interface AuthResponse {
-  username: string;
-  token: string;
-  avatar: string;
-  role: string;
-  id: number;
+  Username: string;
+  Token: string;
+  Avatar: string;
+  Usertype: string;
+  Id: number;
 }
 
 @Injectable({ providedIn: 'root' })

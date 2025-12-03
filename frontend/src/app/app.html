@@ -4,21 +4,38 @@
 
 <ng-template #loadingScreen>
   <div
-    class="easyfood-loading-screen vh-100 d-flex flex-column align-items-center justify-content-center"
+    class="min-h-screen flex flex-col items-center justify-center bg-indigo-50 dark:bg-[#0f0a1c] px-4"
   >
-    <div class="loading-card rounded-4 shadow-lg p-5 text-center">
-      <div class="loader-icon mx-auto mb-4">
-        <i class="bi bi-arrow-repeat"></i>
-      </div>
+    <div
+      class="bg-white dark:bg-[#1b1530] rounded-3xl shadow-2xl p-10 text-center
+            border border-indigo-200/40 dark:border-indigo-500/20 max-w-sm w-full"
+    >
+      <div class="relative w-16 h-16 mx-auto mb-6">
+          <div
+            class="absolute inset-0 rounded-full border-4 border-indigo-500/20 blur-sm"
+          ></div>
+          <div
+            class="absolute inset-0 rounded-full border-4 border-indigo-300 dark:border-indigo-800"
+          ></div>
+          <div
+            class="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent
+                  dark:border-indigo-400 dark:border-t-transparent animate-spin"
+          ></div>
+        </div>
 
-      <h3 class="fw-bold text-primary mb-1">EventXperience</h3>
-      <p class="text-secondary mb-4">Restoring your session...</p>
+      <h3 class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 mb-2">
+        EventXperience
+      </h3>
 
-      <div class="loading-icons d-flex justify-content-center gap-4 mt-2">
-        <i class="bi bi-cup-hot text-primary icon-pulse"></i>
-        <i class="bi bi-egg-fried text-accent-orange icon-pulse delay-1"></i>
-        <i class="bi bi-basket2 text-primary icon-pulse delay-2"></i>
+      <p class="text-gray-600 dark:text-gray-300 mb-6">
+        Restoring your session...
+      </p>
+
+      <div class="flex justify-center gap-5">
+        <i class="bi bi-cup-hot text-indigo-500 dark:text-indigo-300 text-3xl animate-pulse"></i>
+        <i class="bi bi-egg-fried text-pink-400 text-3xl animate-pulse [animation-delay:0.15s]"></i>
+        <i class="bi bi-basket2 text-indigo-500 dark:text-indigo-300 text-3xl animate-pulse [animation-delay:0.3s]"></i>
       </div>
     </div>
   </div>
-</ng-template>
+<ng-template/>

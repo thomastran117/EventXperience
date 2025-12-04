@@ -57,9 +57,9 @@ Pop-Location
 
 Write-Status "Docker images built successfully."
 
-$manifest = Join-Path $root "k8-deployment.yml"
+$manifest = Join-Path $root "eventxperience.yml"
 if (-not (Test-Path $manifest)) {
-  Write-Error "k8-deployment.yml not found at $manifest"
+  Write-Error "eventxperience.yml not found at $manifest"
   exit 1
 }
 

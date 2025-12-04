@@ -1,3 +1,14 @@
+using System;
+using System.Threading.Tasks;
+using backend.Exceptions;
+using backend.Interfaces;
+using backend.Models;
+using backend.Services;
+using backend.Common;
+using FluentAssertions;
+using Moq;
+using Xunit;
+
 namespace Backend.Tests.Services
 {
     public class AuthServiceTests

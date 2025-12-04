@@ -34,9 +34,6 @@ namespace Backend.Tests.Services
             _tokenService = new TokenService(_cacheMock.Object);
         }
 
-        // -----------------------------------------------------------
-        // ACCESS TOKEN TESTS
-        // -----------------------------------------------------------
         [Fact]
         public void GenerateAccessToken_ShouldReturn_AValidJwtToken()
         {
@@ -71,7 +68,7 @@ namespace Backend.Tests.Services
         public async Task GenerateRefreshToken_ShouldRetry_OnCollision()
         {
             _cacheMock.SetupSequence(c => c.GetValueAsync(It.IsAny<string>()))
-                .ReturnsAsync("collision") // 1st attempt fails
+                .ReturnsAsync("collision")
                 .ReturnsAsync((string?)null);
 
             _cacheMock.Setup(c => c.SetValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
@@ -97,9 +94,6 @@ namespace Backend.Tests.Services
             await act.Should().ThrowAsync<NotAvaliableException>();
         }
 
-        // -----------------------------------------------------------
-        // VALIDATE REFRESH TOKEN
-        // -----------------------------------------------------------
         [Fact]
         public async Task ValidateRefreshToken_ShouldReturnUserId_AndDeleteKey()
         {
@@ -133,9 +127,6 @@ namespace Backend.Tests.Services
             await act.Should().ThrowAsync<NotAvaliableException>();
         }
 
-        // -----------------------------------------------------------
-        // VERIFICATION TOKEN
-        // -----------------------------------------------------------
         [Fact]
         public async Task GenerateVerificationToken_ShouldStoreSerializedUser()
         {

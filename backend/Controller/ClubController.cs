@@ -1,12 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
 using backend.Common;
 using backend.DTOs;
 using backend.Interfaces;
 using backend.Middlewares;
 using backend.Models;
 using backend.Utilities;
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers
 {

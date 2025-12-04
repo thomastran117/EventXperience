@@ -1,9 +1,12 @@
-using Polly;
-using Polly.Retry;
-using Polly.CircuitBreaker;
-using StackExchange.Redis;
-using Microsoft.Extensions.Logging;
 using System.Net.Sockets;
+
+using Microsoft.Extensions.Logging;
+
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+
+using StackExchange.Redis;
 
 namespace backend.Services
 {

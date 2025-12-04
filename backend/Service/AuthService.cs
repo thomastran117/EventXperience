@@ -35,7 +35,7 @@ namespace backend.Services
                 if (user == null || user.Password == null || !isValidPassword)
                     throw new UnauthorizedException("Invalid email or password");
 
-                return await GenerateTokenPair(user);               
+                return await GenerateTokenPair(user);
             }
             catch (Exception e)
             {
@@ -65,7 +65,7 @@ namespace backend.Services
                 var token = await _tokenService.GenerateVerificationToken(user);
                 await _emailService.SendVerificationEmailAsync(email, token);
 
-                return;                
+                return;
             }
             catch (Exception e)
             {
@@ -84,7 +84,7 @@ namespace backend.Services
 
                 await _userRepository.CreateUserAsync(user);
 
-                return await GenerateTokenPair(user);                
+                return await GenerateTokenPair(user);
             }
             catch (Exception e)
             {
@@ -109,10 +109,10 @@ namespace backend.Services
                     Usertype = "placeholder"
                 };
 
-                var token = await _tokenService.GenerateVerificationToken(user);                
+                var token = await _tokenService.GenerateVerificationToken(user);
                 await _emailService.SendResetPasswordEmailAsync(email, token);
 
-                return;   
+                return;
             }
             catch (Exception e)
             {
@@ -138,7 +138,7 @@ namespace backend.Services
 
                 await _userRepository.UpdateUserAsync(existingUser.Id, existingUser);
 
-                return;  
+                return;
             }
             catch (Exception e)
             {
@@ -171,7 +171,7 @@ namespace backend.Services
                     });
                 }
 
-                return await GenerateTokenPair(user);                
+                return await GenerateTokenPair(user);
             }
             catch (Exception e)
             {
@@ -204,7 +204,7 @@ namespace backend.Services
                     });
                 }
 
-                return await GenerateTokenPair(user);     
+                return await GenerateTokenPair(user);
             }
             catch (Exception e)
             {
@@ -222,7 +222,7 @@ namespace backend.Services
                 var userId = await _tokenService.ValidateRefreshToken(oldRefreshToken);
                 var user = await _userRepository.GetUserAsync(userId);
                 if (user == null) throw new NotFoundException($"User with ID {userId} is not found");
-                
+
                 return await GenerateTokenPair(user);
             }
             catch (Exception e)
@@ -239,7 +239,7 @@ namespace backend.Services
             try
             {
                 _ = await _tokenService.ValidateRefreshToken(refreshToken);
-                return;              
+                return;
             }
             catch (Exception e)
             {
@@ -254,7 +254,7 @@ namespace backend.Services
         {
             try
             {
-                return BCrypt.Net.BCrypt.HashPassword(password);                
+                return BCrypt.Net.BCrypt.HashPassword(password);
             }
             catch (Exception e)
             {
@@ -282,7 +282,8 @@ namespace backend.Services
 
         private async Task<UserToken> GenerateTokenPair(User user)
         {
-            try {
+            try
+            {
                 var accessToken = _tokenService.GenerateAccessToken(user);
                 var refreshToken = await _tokenService.GenerateRefreshToken(user.Id);
                 Token authToken = new Token(accessToken, refreshToken);
@@ -290,7 +291,7 @@ namespace backend.Services
                 UserToken userToken = new(authToken, user);
 
                 return userToken;
-            } 
+            }
             catch (Exception e)
             {
                 if (e is AppException) throw;

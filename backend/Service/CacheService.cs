@@ -1,6 +1,7 @@
-using StackExchange.Redis;
 using backend.Interfaces;
 using backend.Resources;
+
+using StackExchange.Redis;
 
 namespace backend.Services
 {
@@ -98,7 +99,7 @@ namespace backend.Services
             foreach (var key in server.Keys(pattern: pattern))
                 yield return key.ToString();
         }
-        
+
         public Task<bool> AcquireLockAsync(string key, string value, TimeSpan expiry) =>
             ExecuteAsync(async () =>
                 await _db.StringSetAsync(key, value, expiry, when: When.NotExists),

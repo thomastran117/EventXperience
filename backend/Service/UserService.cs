@@ -16,7 +16,7 @@ namespace backend.Services
 
         public async Task<List<User>> GetAllUsersAsync()
         {
-            return (List<User>) await _userRepository.GetUsersAsync();
+            return (List<User>)await _userRepository.GetUsersAsync();
         }
 
         public async Task<User?> GetUserByIdAsync(int id)

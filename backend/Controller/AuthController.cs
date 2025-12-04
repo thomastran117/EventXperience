@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-
 using backend.Common;
 using backend.DTOs;
 using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
 using backend.Utilities;
+
+using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers
 {
@@ -45,7 +45,7 @@ namespace backend.Controllers
                         $"Login successful",
                         response
                     )
-                );                
+                );
             }
             catch (Exception e)
             {
@@ -66,7 +66,7 @@ namespace backend.Controllers
                 return StatusCode(
                     200,
                     new MessageResponse("Verification email sent.")
-                );   
+                );
             }
             catch (Exception e)
             {
@@ -101,7 +101,7 @@ namespace backend.Controllers
                         $"Verification successful",
                         response
                     )
-                );     
+                );
             }
             catch (Exception e)
             {
@@ -137,7 +137,7 @@ namespace backend.Controllers
                         $"Login successful",
                         response
                     )
-                );          
+                );
             }
             catch (Exception e)
             {
@@ -173,7 +173,7 @@ namespace backend.Controllers
                         $"Login successful",
                         response
                     )
-                );       
+                );
             }
             catch (Exception e)
             {
@@ -200,7 +200,7 @@ namespace backend.Controllers
 
                 HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
 
-                return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));                
+                return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
             }
             catch (Exception e)
             {
@@ -228,7 +228,7 @@ namespace backend.Controllers
                 return StatusCode(
                     200,
                     new MessageResponse($"The user's logout is successful")
-                );              
+                );
             }
             catch (Exception e)
             {
@@ -249,7 +249,7 @@ namespace backend.Controllers
                 return StatusCode(
                     200,
                     new MessageResponse("If the account exist, we send a reset email")
-                );                
+                );
             }
             catch (Exception e)
             {

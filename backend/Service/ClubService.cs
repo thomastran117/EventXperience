@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
-
 using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
 using backend.Resources;
+
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
 {

@@ -1,14 +1,17 @@
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+
 using backend.Config;
 using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
-using System.Security.Cryptography;
-using Newtonsoft.Json;
 using backend.Utilities;
+
+using Microsoft.IdentityModel.Tokens;
+
+using Newtonsoft.Json;
 
 namespace backend.Services
 {
@@ -52,7 +55,7 @@ namespace backend.Services
                 };
 
                 var token = _tokenHandler.CreateToken(tokenDescriptor);
-                return _tokenHandler.WriteToken(token);                
+                return _tokenHandler.WriteToken(token);
             }
             catch (Exception e)
             {
@@ -114,7 +117,7 @@ namespace backend.Services
                 var result = await _cacheService.DeleteKeyAsync($"refresh:{refreshToken}");
                 if (!result) throw new NotAvaliableException();
 
-                return userId;          
+                return userId;
             }
             catch (Exception e)
             {
@@ -147,7 +150,7 @@ namespace backend.Services
                 );
                 if (!result) throw new NotAvaliableException();
 
-                return token;               
+                return token;
             }
             catch (Exception e)
             {
@@ -173,7 +176,7 @@ namespace backend.Services
                 var draft = JsonConvert.DeserializeObject<User>(json)
                     ?? throw new UnauthorizedException("Invalid verification token payload.");
 
-                return draft;  
+                return draft;
             }
             catch (Exception e)
             {

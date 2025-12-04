@@ -1,10 +1,13 @@
-using backend.Interfaces;
-using backend.Config;
-using backend.Common;
-using backend.Exceptions;
-using Google.Apis.Auth;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+
+using backend.Common;
+using backend.Config;
+using backend.Exceptions;
+using backend.Interfaces;
+
+using Google.Apis.Auth;
+
+using Microsoft.IdentityModel.Tokens;
 
 namespace backend.Services
 {
@@ -99,7 +102,7 @@ namespace backend.Services
                          ?? principal.Claims.FirstOrDefault(c => c.Type == "email")?.Value
                          ?? throw new UnauthorizedException("Bad Microsft Token");
 
-                var name = principal.Claims.FirstOrDefault(c => c.Type == "name")?.Value 
+                var name = principal.Claims.FirstOrDefault(c => c.Type == "name")?.Value
                     ?? throw new UnauthorizedException("Bad Microsft Token");
                 var sub = principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value
                     ?? throw new UnauthorizedException("Bad Microsft Token");

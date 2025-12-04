@@ -1,10 +1,12 @@
-using MimeKit;
-using MailKit.Net.Smtp;
-using MailKit.Security;
 using backend.Config;
-using backend.Utilities;
 using backend.Exceptions;
 using backend.Interfaces;
+using backend.Utilities;
+
+using MailKit.Net.Smtp;
+using MailKit.Security;
+
+using MimeKit;
 
 namespace backend.Services
 {

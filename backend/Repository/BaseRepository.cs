@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using Polly;
-using Polly.Retry;
-using Polly.CircuitBreaker;
 using System.Data.Common;
+
 using backend.Resources;
+
+using Microsoft.EntityFrameworkCore;
+
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 
 namespace backend.Repositories
 {

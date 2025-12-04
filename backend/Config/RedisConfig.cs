@@ -1,7 +1,7 @@
-using StackExchange.Redis;
-
 using backend.Resources;
 using backend.Utilities;
+
+using StackExchange.Redis;
 
 namespace backend.Config
 {

@@ -1,6 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-
 using backend.Models;
+
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Resources
 {

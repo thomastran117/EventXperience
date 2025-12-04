@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
-
 using backend.Utilities;
+
+using Microsoft.AspNetCore.Mvc;
 
 public class GlobalExceptionMiddleware
 {

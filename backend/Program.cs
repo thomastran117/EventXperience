@@ -1,11 +1,11 @@
-using Serilog;
-
 using backend.Config;
 using backend.Interfaces;
 using backend.Middlewares;
 using backend.Repositories;
 using backend.Services;
 using backend.Utilities;
+
+using Serilog;
 
 Logger.Configure(o =>
 {

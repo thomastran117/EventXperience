@@ -1,5 +1,6 @@
-using DotNetEnv;
 using backend.Utilities;
+
+using DotNetEnv;
 
 namespace backend.Config
 {

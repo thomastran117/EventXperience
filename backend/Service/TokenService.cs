@@ -134,20 +134,19 @@ namespace backend.Services
             {
                 string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
-                var payload = new
+                var serialized = JsonConvert.SerializeObject(new User
                 {
-                    email = user.Email,
-                    password = user.Password,
-                    role = user.Usertype
-                };
-
-                string serialized = JsonConvert.SerializeObject(payload);
+                    Email = user.Email,
+                    Password = user.Password,
+                    Usertype = user.Usertype
+                });
 
                 var result = await _cacheService.SetValueAsync(
                     key: $"verify:{token}",
                     value: serialized,
                     expiry: VERIFY_TTL
                 );
+
                 if (!result) throw new NotAvaliableException();
 
                 return token;

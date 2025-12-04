@@ -12,6 +12,7 @@ namespace backend.Repositories
         protected readonly AppDatabaseContext _context;
         private readonly AsyncRetryPolicy _retryPolicy;
         private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
+        private static readonly Random Jitterer = new Random();
 
         protected BaseRepository(AppDatabaseContext context)
         {
@@ -22,9 +23,15 @@ namespace backend.Repositories
                 .WaitAndRetryAsync(
                     retryCount: 3,
                     sleepDurationProvider: attempt =>
-                        TimeSpan.FromMilliseconds(100 * Math.Pow(2, attempt)),
+                    {
+                        double baseDelayMs = 100 * Math.Pow(2, attempt);
+                        double jitterFactor = 0.5 + Jitterer.NextDouble();
+
+                        return TimeSpan.FromMilliseconds(baseDelayMs * jitterFactor);
+                    },
                     onRetry: (ex, delay, attempt, ctx) =>
                     {
+                        // logger
                     });
 
             _circuitBreakerPolicy = Policy
@@ -34,10 +41,11 @@ namespace backend.Repositories
                     durationOfBreak: TimeSpan.FromSeconds(10),
                     onBreak: (ex, delay) =>
                     {
-                       
+                        // logging
                     },
                     onReset: () =>
                     {
+                        // logging
                     });
         }
 
@@ -69,9 +77,8 @@ namespace backend.Repositories
                     catch (Exception ex)
                     {
                         if (!IsTransient(ex))
-                        {
                             throw;
-                        }
+
                         throw;
                     }
                 });

@@ -1,12 +1,44 @@
 using backend.Utilities;
-
 using DotNetEnv;
 
 namespace backend.Config
 {
     public static class EnvManager
     {
+        private static readonly string _dbConnectionString;
+        private static readonly string _redisConnection;
+        private static readonly string _jwtSecretKeyAccess;
+        private static readonly string? _email;
+        private static readonly string? _password;
+        private static readonly string? _smtpServer;
+        private static readonly string? _microsoftClientId;
+        private static readonly string? _googleClientId;
+        private static readonly string _appEnvironment;
+        private static readonly string _logLevel;
+
         static EnvManager()
+        {
+            TryLoadEnvFile();
+
+            _dbConnectionString = GetOrDefault("DB_CONNECTION_STRING",
+                "Server=localhost;Port=3306;Database=database;User=root;Password=password123");
+
+            _redisConnection = GetOrDefault("REDIS_CONNECTION", "localhost:6379");
+
+            _jwtSecretKeyAccess = GetOrDefault("JWT_SECRET_KEY", "default_secret_super_key");
+
+            _email = GetOptional("EMAIL");
+            _password = GetOptional("EMAIL_PASSWORD");
+            _smtpServer = GetOptional("SMTP_SERVER");
+
+            _microsoftClientId = GetOptional("MICROSOFT_CLIENT_ID");
+            _googleClientId = GetOptional("GOOGLE_CLIENT_ID");
+
+            _appEnvironment = GetOrDefault("APP_ENV", "development");
+            _logLevel = GetOrDefault("LOG_LEVEL", "info");
+        }
+
+        private static void TryLoadEnvFile()
         {
             try
             {
@@ -17,61 +49,60 @@ namespace backend.Config
             {
                 Logger.Warn("No .env file found — relying on system environment variables.");
             }
-
-            try
-            {
-                ValidateRequiredVariables();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Environment validation failed: {ex.Message}");
-                Environment.Exit(1);
-            }
         }
-
-        public static string DbConnectionString => GetRequired("DB_CONNECTION_STRING");
-        public static string RedisConnection => GetRequired("REDIS_CONNECTION");
-        public static string JwtSecretKeyAccess => GetRequired("JWT_SECRET_KEY");
-        public static string? Email => GetOptional("EMAIL");
-        public static string? Password => GetOptional("EMAIL_PASSWORD");
-        public static string? SmtpServer => GetOptional("SMTP_SERVER");
-        public static string? MicrosoftClientId => GetOptional("MICROSOFT_CLIENT_ID");
-        public static string? GoogleClientId => GetOptional("GOOGLE_CLIENT_ID");
-        public static string AppEnvironment => GetOptional("APP_ENV") ?? "development";
-        public static string LogLevel => GetOptional("LOG_LEVEL") ?? "info";
-        private static string GetRequired(string key)
-        {
-            var val = Environment.GetEnvironmentVariable(key);
-            if (string.IsNullOrWhiteSpace(val))
-                throw new Exception($"Missing required environment variable: {key}");
-            return val;
-        }
-
         private static string? GetOptional(string key)
         {
             var val = Environment.GetEnvironmentVariable(key);
+
             if (string.IsNullOrWhiteSpace(val))
             {
                 Logger.Debug($"Optional variable {key} not set.");
                 return null;
             }
+
             return val;
         }
-        private static void ValidateRequiredVariables()
+
+        private static string GetOrDefault(string key, string fallback) =>
+            GetOptional(key) ?? fallback;
+        public static string DbConnectionString => _dbConnectionString;
+        public static string RedisConnection => _redisConnection;
+        public static string JwtSecretKeyAccess => _jwtSecretKeyAccess;
+
+        public static string? Email => _email;
+        public static string? Password => _password;
+        public static string? SmtpServer => _smtpServer;
+
+        public static string? MicrosoftClientId => _microsoftClientId;
+        public static string? GoogleClientId => _googleClientId;
+
+        public static string AppEnvironment => _appEnvironment;
+        public static string LogLevel => _logLevel;
+
+        public static void Validate()
         {
-            var requiredKeys = new[]
+            if (_appEnvironment == "development" || _appEnvironment == "test")
             {
-                "DB_CONNECTION_STRING",
-                "REDIS_CONNECTION",
-                "JWT_SECRET_KEY",
+                Logger.Warn("Skipping environment validation (dev/test mode).");
+                return;
+            }
+
+            var required = new Dictionary<string, string>
+            {
+                { "DB_CONNECTION_STRING", _dbConnectionString },
+                { "REDIS_CONNECTION", _redisConnection },
+                { "JWT_SECRET_KEY", _jwtSecretKeyAccess }
             };
 
-            var missing = requiredKeys
-                .Where(k => string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(k)))
+            var missing = required
+                .Where(kv => string.IsNullOrWhiteSpace(kv.Value))
+                .Select(kv => kv.Key)
                 .ToList();
 
             if (missing.Any())
-                throw new Exception($"Missing required variables: {string.Join(", ", missing)}");
+                throw new Exception($"Missing required environment variables: {string.Join(", ", missing)}");
+
+            Logger.Info("Environment variables validated.");
         }
     }
 }

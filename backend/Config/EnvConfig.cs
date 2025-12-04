@@ -25,7 +25,7 @@ namespace backend.Config
 
             _redisConnection = GetOrDefault("REDIS_CONNECTION", "localhost:6379");
 
-            _jwtSecretKeyAccess = GetOrDefault("JWT_SECRET_KEY", "default_secret_super_key");
+            _jwtSecretKeyAccess = GetOrDefault("JWT_SECRET_KEY", "unit_test_secret_12345678901234567890");
 
             _email = GetOptional("EMAIL");
             _password = GetOptional("EMAIL_PASSWORD");

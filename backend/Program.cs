@@ -1,8 +1,5 @@
 using backend.Config;
-using backend.Interfaces;
 using backend.Middlewares;
-using backend.Repositories;
-using backend.Services;
 using backend.Utilities;
 
 using Serilog;
@@ -26,15 +23,7 @@ builder.Services.AddControllers(options =>
     options.Conventions.Insert(0, new RoutePrefixConvention("api"));
 });
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IOAuthService, OAuthService>();
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IClubService, ClubService>();
-builder.Services.AddScoped<IFileUploadService, FileUploadService>();
-builder.Services.AddSingleton<IEmailService, EmailService>();
-builder.Services.AddSingleton<ICacheService, CacheService>();
+builder.Services.AddApplicationServices();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAppDatabase(builder.Configuration);

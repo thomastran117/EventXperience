@@ -82,6 +82,59 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: mongo
+  namespace: eventxperience
+spec:
+  selector:
+    matchLabels:
+      app: mongo
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: mongo-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: eventxperience
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: eventxperience
+spec:
+  selector:
+    app: mongo
+  ports:
+    - port: 27017
+      targetPort: 27017
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: backend
   namespace: eventxperience
 spec:
@@ -102,8 +155,13 @@ spec:
           env:
             - name: DB_CONNECTION_STRING
               value: "Server=mysql;Port=3306;Database=appdb;User=root;Password=root"
+
             - name: REDIS_CONNECTION
               value: "redis:6379"
+
+            - name: MONGO_CONNECTION
+              value: "mongodb://mongo:27017/eventxperience"
+
             - name: JWT_SECRET_KEY
               value: "amazing_secret_key_yup_yes_abcdef123"
             - name: JWT_SECRET_KEY_REFRESH

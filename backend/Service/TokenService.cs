@@ -107,12 +107,32 @@ namespace backend.Services
         {
             try
             {
-                string? idString = await _cacheService.GetValueAsync($"refresh:{refreshToken}");
+                string? storedValue  = await _cacheService.GetValueAsync($"refresh:{refreshToken}");
 
-                if (string.IsNullOrEmpty(idString))
+                if (string.IsNullOrEmpty(storedValue ))
                     throw new UnauthorizedException("Invalid or expired refresh token.");
 
-                int userId = int.Parse(idString);
+                int userId;
+
+                if (int.TryParse(storedValue, out userId))
+                {
+                    // OK
+                }
+                else
+                {
+                    try
+                    {
+                        var user = JsonConvert.DeserializeObject<User>(storedValue)
+                            ?? throw new UnauthorizedException("Invalid refresh token payload.");
+
+                        userId = user.Id;
+                    }
+                    catch
+                    {
+                        throw new UnauthorizedException("Invalid refresh token payload.");
+                    }
+                }
+
 
                 var result = await _cacheService.DeleteKeyAsync($"refresh:{refreshToken}");
                 if (!result) throw new NotAvaliableException();

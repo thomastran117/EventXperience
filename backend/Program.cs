@@ -42,6 +42,13 @@ builder.Services.AddAppRedis(builder.Configuration);
 builder.Services.AddAppMongo(builder.Configuration);
 builder.Services.AddJwtAuth(builder.Configuration);
 builder.Services.AddCustomCors();
+builder.Services.AddAppRateLimiter(new RateLimitOptions
+{
+    Strategy = RateLimitStrategy.TokenBucket,
+    TokenLimit = 10,
+    TokensPerPeriod = 10,
+    ReplenishmentPeriod = TimeSpan.FromSeconds(30)
+});
 
 var app = builder.Build();
 
@@ -58,8 +65,8 @@ app.UseSerilogRequestLogging(opts =>
     };
 });
 
-// app.UseRateLimiter();
-// app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<RedisRateLimitMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();

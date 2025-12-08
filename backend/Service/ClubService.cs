@@ -2,6 +2,7 @@ using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
 using backend.Resources;
+using backend.Common;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -39,7 +40,7 @@ namespace backend.Services
             {
                 Name = name,
                 Description = description,
-                Clubtype = clubtype,
+                Clubtype = ClubType.Sports,
                 ClubImage = imageUrl,
                 Phone = phone,
                 Email = email,
@@ -110,7 +111,7 @@ namespace backend.Services
 
             club.Name = name;
             club.Description = description;
-            club.Clubtype = clubtype;
+            club.Clubtype = ClubType.Sports;
             club.ClubImage = newImageUrl;
             club.Phone = phone;
             club.Email = email;

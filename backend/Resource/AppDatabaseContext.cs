@@ -38,15 +38,19 @@ namespace backend.Resources
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Club>()
+                .Property(c => c.Rating)
+                .HasPrecision(2, 1);
+                
+            modelBuilder.Entity<Club>()
+                .HasIndex(c => c.UserId);
+
             modelBuilder.Entity<EventClub>()
                 .HasOne(c => c.Club)
                 .WithMany(e => e.EventClubs)
                 .HasForeignKey(c => c.ClubId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Club>()
-                .HasIndex(c => c.UserId);
         }
     }
 }

@@ -40,7 +40,7 @@ namespace backend.Controllers
                 club.Id,
                 club.Name,
                 club.Description,
-                club.Clubtype,
+                "thing",
                 club.ClubImage
             )
             {
@@ -80,7 +80,7 @@ namespace backend.Controllers
                 club.Id,
                 club.Name,
                 club.Description,
-                club.Clubtype,
+                "thing",
                 club.ClubImage
             )
             {
@@ -123,7 +123,7 @@ namespace backend.Controllers
                 club.Id,
                 club.Name,
                 club.Description,
-                club.Clubtype,
+                "thing",
                 club.ClubImage
             )
             {
@@ -151,7 +151,7 @@ namespace backend.Controllers
                 club.Id,
                 club.Name,
                 club.Description,
-                club.Clubtype,
+                "thing",
                 club.ClubImage
             )
             {

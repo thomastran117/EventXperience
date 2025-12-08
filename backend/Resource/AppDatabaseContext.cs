@@ -41,7 +41,7 @@ namespace backend.Resources
             modelBuilder.Entity<Club>()
                 .Property(c => c.Rating)
                 .HasPrecision(2, 1);
-                
+
             modelBuilder.Entity<Club>()
                 .HasIndex(c => c.UserId);
 

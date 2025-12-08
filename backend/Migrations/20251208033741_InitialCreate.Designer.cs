@@ -12,7 +12,7 @@ using backend.Resources;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDatabaseContext))]
-    [Migration("20251208031521_InitialCreate")]
+    [Migration("20251208033741_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -143,6 +143,9 @@ namespace backend.Migrations
                     b.Property<string>("Avatar")
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
@@ -161,6 +164,9 @@ namespace backend.Migrations
 
                     b.Property<string>("Phone")
                         .HasColumnType("longtext");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Username")
                         .HasColumnType("varchar(255)");

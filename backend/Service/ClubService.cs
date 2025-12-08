@@ -9,11 +9,14 @@ namespace backend.Services
     {
         private readonly IFileUploadService _fileUploadService;
         private readonly IClubRepository _clubRepository;
+        private readonly IUserService _userService;
 
         public ClubService(
             IClubRepository clubRepository,
+            IUserService userService,
             IFileUploadService fileUploadService)
         {
+            _userService = userService;
             _clubRepository = clubRepository;
             _fileUploadService = fileUploadService;
         }
@@ -27,6 +30,9 @@ namespace backend.Services
             string? phone = null,
             string? email = null)
         {
+            var user = await _userService.GetUserByIdAsync(userId)
+                ?? throw new NotFoundException();
+
             var imageUrl = await _fileUploadService
                 .UploadImageAsync(clubimage, "clubs")
                 ?? throw new InternalServerException("Failed to upload club image");
@@ -42,7 +48,7 @@ namespace backend.Services
                 UserId = userId,
                 MemberCount = 0,
                 IsVerified = false,
-                User = null
+                User = user
             };
 
             return await _clubRepository.CreateAsync(club);
@@ -101,6 +107,9 @@ namespace backend.Services
             if (club.UserId != userId)
                 throw new ForbiddenException($"You are not allowed to update club with id {clubId}");
 
+            var user = await _userService.GetUserByIdAsync(userId)
+                ?? throw new NotFoundException();
+
             var oldImageUrl = club.ClubImage;
             var newImageUrl = await _fileUploadService.UploadImageAsync(clubimage, "clubs");
 
@@ -114,7 +123,7 @@ namespace backend.Services
                 Email = email,
                 IsVerified = club.IsVerified,
                 MemberCount = club.MemberCount,
-                User = null
+                User = user
             });
 
             if (!string.IsNullOrWhiteSpace(oldImageUrl) &&

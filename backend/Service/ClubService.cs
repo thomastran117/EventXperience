@@ -69,21 +69,29 @@ namespace backend.Services
                 throw new InternalServerException("Failed to delete club");
         }
 
-        public async Task<List<Club>> GetAllClubs(string? query = null)
+        public async Task<List<Club>> GetAllClubs(
+            string? search = null,
+            int page = 1,
+            int pageSize = 20)
         {
-            var clubs = await _clubRepository.GetAllAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
 
-            if (!string.IsNullOrWhiteSpace(query))
+            var clubs = await _clubRepository.GetAllAsync(page, pageSize);
+
+            if (!string.IsNullOrWhiteSpace(search))
             {
                 return clubs
                     .Where(c =>
-                        c.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                        c.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
+                        c.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                        c.Description.Contains(search, StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
 
             return clubs.ToList();
         }
+
 
         public async Task<Club> GetClub(int clubId)
         {

@@ -113,9 +113,13 @@ namespace backend.Controllers
         }
 
         [HttpGet("")]
-        public async Task<IActionResult> GetClubs([FromQuery] string? search)
+        public async Task<IActionResult> GetClubs(
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
-            List<Club> clubs = await _clubService.GetAllClubs(search);
+            List<Club> clubs = await _clubService
+                .GetAllClubs(search, page, pageSize);
 
             IEnumerable<ClubResponse> responses = clubs.Select(MapToResponse);
 

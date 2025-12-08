@@ -14,4 +14,6 @@ public class User
     public string? MicrosoftID { get; set; }
     public string? GoogleID { get; set; }
     public ICollection<Club> Clubs { get; set; } = new List<Club>();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

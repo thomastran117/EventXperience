@@ -9,7 +9,7 @@ namespace backend.Config
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<IUserRepository, UserRepository>();
-            
+
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IOAuthService, OAuthService>();

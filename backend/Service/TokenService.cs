@@ -107,9 +107,9 @@ namespace backend.Services
         {
             try
             {
-                string? storedValue  = await _cacheService.GetValueAsync($"refresh:{refreshToken}");
+                string? storedValue = await _cacheService.GetValueAsync($"refresh:{refreshToken}");
 
-                if (string.IsNullOrEmpty(storedValue ))
+                if (string.IsNullOrEmpty(storedValue))
                     throw new UnauthorizedException("Invalid or expired refresh token.");
 
                 int userId;

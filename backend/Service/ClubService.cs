@@ -4,6 +4,7 @@ using backend.Common;
 using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
+using backend.Utilities;
 
 namespace backend.Services
 {
@@ -13,7 +14,6 @@ namespace backend.Services
         private readonly IClubRepository _clubRepository;
         private readonly IUserService _userService;
         private readonly ICacheService _cacheService;
-
         private static readonly TimeSpan ClubCacheTTL = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan ClubListCacheTTL = TimeSpan.FromSeconds(60);
 
@@ -38,51 +38,71 @@ namespace backend.Services
             string? phone = null,
             string? email = null)
         {
-            var user = await _userService.GetUserByIdAsync(userId)
-                ?? throw new NotFoundException("User not found");
-
-            var imageUrl = await _fileUploadService
-                .UploadImageAsync(clubimage, "clubs")
-                ?? throw new InternalServerException("Failed to upload club image");
-
-            var club = new Club
+            try
             {
-                Name = name,
-                Description = description,
-                Clubtype = Enum.Parse<ClubType>(clubtype, true),
-                ClubImage = imageUrl,
-                Phone = phone,
-                Email = email,
-                UserId = userId,
-                MemberCount = 0,
-                IsVerified = false,
-                User = user
-            };
+                var user = await _userService.GetUserByIdAsync(userId)
+                    ?? throw new NotFoundException("User not found");
 
-            var created = await _clubRepository.CreateAsync(club);
+                var imageUrl = await _fileUploadService
+                    .UploadImageAsync(clubimage, "clubs")
+                    ?? throw new InternalServerException("Failed to upload club image");
 
-            await CacheClubAsync(created);
-            await InvalidateClubListsAsync();
+                var club = new Club
+                {
+                    Name = name,
+                    Description = description,
+                    Clubtype = Enum.Parse<ClubType>(clubtype, true),
+                    ClubImage = imageUrl,
+                    Phone = phone,
+                    Email = email,
+                    UserId = userId,
+                    MemberCount = 0,
+                    IsVerified = false,
+                    User = user
+                };
 
-            return created;
+                var created = await _clubRepository.CreateAsync(club);
+
+                await CacheClubAsync(created);
+                await InvalidateClubListsAsync();
+
+                return created;
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) throw;
+
+                Logger.Error($"[ClubService] CreateClub failed: {e}");
+                throw new InternalServerException();
+            }
         }
         public async Task DeleteClub(int clubId, int userId)
         {
-            var cacheKey = GetClubCacheKey(clubId);
+            try
+            {
+                var cacheKey = GetClubCacheKey(clubId);
 
-            var club = await GetClub(clubId);
+                var club = await GetClub(clubId);
 
-            if (club.UserId != userId)
-                throw new ForbiddenException($"You are not allowed to delete club with id {clubId}");
+                if (club.UserId != userId)
+                    throw new ForbiddenException($"You are not allowed to delete club with id {clubId}");
 
-            await _fileUploadService.DeleteImageAsync(club.ClubImage);
+                await _fileUploadService.DeleteImageAsync(club.ClubImage);
 
-            var success = await _clubRepository.DeleteAsync(clubId);
-            if (!success)
-                throw new InternalServerException("Failed to delete club");
+                var success = await _clubRepository.DeleteAsync(clubId);
+                if (!success)
+                    throw new InternalServerException("Failed to delete club");
 
-            await _cacheService.DeleteKeyAsync(cacheKey);
-            await InvalidateClubListsAsync();
+                await _cacheService.DeleteKeyAsync(cacheKey);
+                await InvalidateClubListsAsync();
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) throw;
+
+                Logger.Error($"[ClubService] DeleteClub failed: {e}");
+                throw new InternalServerException();
+            }
         }
 
         public async Task<List<Club>> GetAllClubs(
@@ -90,54 +110,74 @@ namespace backend.Services
             int page = 1,
             int pageSize = 20)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 20;
-            if (pageSize > 100) pageSize = 100;
-
-            string cacheKey = GetClubListCacheKey(search, page, pageSize);
-
-            var cached = await _cacheService.GetValueAsync(cacheKey);
-            if (!string.IsNullOrWhiteSpace(cached))
+            try
             {
-                return JsonSerializer.Deserialize<List<Club>>(cached)!;
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+                if (pageSize > 100) pageSize = 100;
+
+                string cacheKey = GetClubListCacheKey(search, page, pageSize);
+
+                var cached = await _cacheService.GetValueAsync(cacheKey);
+                if (!string.IsNullOrWhiteSpace(cached))
+                {
+                    return JsonSerializer.Deserialize<List<Club>>(cached)!;
+                }
+
+                var clubs = await _clubRepository.GetAllAsync(page, pageSize);
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    clubs = clubs
+                        .Where(c =>
+                            c.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                            c.Description.Contains(search, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+
+                await _cacheService.SetValueAsync(
+                    cacheKey,
+                    JsonSerializer.Serialize(clubs),
+                    ClubListCacheTTL
+                );
+
+                return clubs.ToList();
             }
-
-            var clubs = await _clubRepository.GetAllAsync(page, pageSize);
-
-            if (!string.IsNullOrWhiteSpace(search))
+            catch (Exception e)
             {
-                clubs = clubs
-                    .Where(c =>
-                        c.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                        c.Description.Contains(search, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                if (e is AppException) throw;
+
+                Logger.Error($"[ClubService] GetAllClubs failed: {e}");
+                throw new InternalServerException();
             }
-
-            await _cacheService.SetValueAsync(
-                cacheKey,
-                JsonSerializer.Serialize(clubs),
-                ClubListCacheTTL
-            );
-
-            return clubs.ToList();
         }
 
         public async Task<Club> GetClub(int clubId)
         {
-            string cacheKey = GetClubCacheKey(clubId);
-
-            var cached = await _cacheService.GetValueAsync(cacheKey);
-            if (!string.IsNullOrWhiteSpace(cached))
+            try
             {
-                return JsonSerializer.Deserialize<Club>(cached)!;
+                string cacheKey = GetClubCacheKey(clubId);
+
+                var cached = await _cacheService.GetValueAsync(cacheKey);
+                if (!string.IsNullOrWhiteSpace(cached))
+                {
+                    return JsonSerializer.Deserialize<Club>(cached)!;
+                }
+
+                var club = await _clubRepository.GetByIdAsync(clubId)
+                    ?? throw new NotFoundException($"Club with id {clubId} is not found");
+
+                await CacheClubAsync(club);
+
+                return club;
             }
+            catch (Exception e)
+            {
+                if (e is AppException) throw;
 
-            var club = await _clubRepository.GetByIdAsync(clubId)
-                ?? throw new NotFoundException($"Club with id {clubId} is not found");
-
-            await CacheClubAsync(club);
-
-            return club;
+                Logger.Error($"[ClubService] GetClub failed: {e}");
+                throw new InternalServerException();
+            }
         }
 
         public async Task<Club> UpdateClub(
@@ -150,40 +190,50 @@ namespace backend.Services
             string? phone = null,
             string? email = null)
         {
-            var club = await GetClub(clubId);
-
-            if (club.UserId != userId)
-                throw new ForbiddenException($"You are not allowed to update club with id {clubId}");
-
-            var user = await _userService.GetUserByIdAsync(userId)
-                ?? throw new NotFoundException("User not found");
-
-            var oldImageUrl = club.ClubImage;
-            var newImageUrl = await _fileUploadService.UploadImageAsync(clubimage, "clubs");
-
-            var updated = await _clubRepository.UpdateAsync(clubId, new Club
+            try
             {
-                Name = name,
-                Description = description,
-                Clubtype = Enum.Parse<ClubType>(clubtype, true),
-                ClubImage = newImageUrl!,
-                Phone = phone,
-                Email = email,
-                IsVerified = club.IsVerified,
-                MemberCount = club.MemberCount,
-                User = user
-            }) ?? throw new InternalServerException("Club update failed");
+                var club = await GetClub(clubId);
 
-            await CacheClubAsync(updated);
-            await InvalidateClubListsAsync();
+                if (club.UserId != userId)
+                    throw new ForbiddenException($"You are not allowed to update club with id {clubId}");
 
-            if (!string.IsNullOrWhiteSpace(oldImageUrl) &&
-                !oldImageUrl.Equals(newImageUrl, StringComparison.OrdinalIgnoreCase))
-            {
-                _ = _fileUploadService.DeleteImageAsync(oldImageUrl);
+                var user = await _userService.GetUserByIdAsync(userId)
+                    ?? throw new NotFoundException("User not found");
+
+                var oldImageUrl = club.ClubImage;
+                var newImageUrl = await _fileUploadService.UploadImageAsync(clubimage, "clubs");
+
+                var updated = await _clubRepository.UpdateAsync(clubId, new Club
+                {
+                    Name = name,
+                    Description = description,
+                    Clubtype = Enum.Parse<ClubType>(clubtype, true),
+                    ClubImage = newImageUrl!,
+                    Phone = phone,
+                    Email = email,
+                    IsVerified = club.IsVerified,
+                    MemberCount = club.MemberCount,
+                    User = user
+                }) ?? throw new InternalServerException("Club update failed");
+
+                await CacheClubAsync(updated);
+                await InvalidateClubListsAsync();
+
+                if (!string.IsNullOrWhiteSpace(oldImageUrl) &&
+                    !oldImageUrl.Equals(newImageUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    _ = _fileUploadService.DeleteImageAsync(oldImageUrl);
+                }
+
+                return updated;
             }
+            catch (Exception e)
+            {
+                if (e is AppException) throw;
 
-            return updated;
+                Logger.Error($"[ClubService] UpdateClub failed: {e}");
+                throw new InternalServerException();
+            }
         }
 
         private async Task CacheClubAsync(Club club)

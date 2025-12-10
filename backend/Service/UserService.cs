@@ -19,7 +19,7 @@ namespace backend.Services
             return (List<User>)await _userRepository.GetUsersAsync();
         }
 
-        public async Task<User?> GetUserByIdAsync(int id)
+        public async Task<User> GetUserByIdAsync(int id)
         {
             var user = await _userRepository.GetUserAsync(id);
             if (user == null)

@@ -10,7 +10,7 @@ services:
     depends_on:
       - backend
     networks:
-      - app-network
+      - event-network
 
   backend:
     build:
@@ -20,8 +20,6 @@ services:
       - DB_CONNECTION_STRING=Server=mysql;Port=3306;Database=appdb;User=appuser;Password=apppass
       - REDIS_CONNECTION=redis:6379
       - JWT_SECRET_KEY=amazing_secret_key_yup_yes_abcdef123
-      - JWT_SECRET_KEY_REFRESH=amazing_secret_key_yup_yes_abcdef123
-      - JWT_SECRET_KEY_VERIFY=amazing_secret_key_yup_yes_abcdef123
     ports:
       - "8090:8090"
     depends_on:
@@ -30,7 +28,7 @@ services:
       redis:
         condition: service_started
     networks:
-      - app-network
+      - event-network
 
   mysql:
     image: mysql:8.4
@@ -50,7 +48,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - app-network
+      - event-network
 
   redis:
     image: redis:7-alpine
@@ -60,10 +58,10 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - app-network
+      - event-network
 
 networks:
-  app-network:
+  event-network:
     driver: bridge
 
 volumes:

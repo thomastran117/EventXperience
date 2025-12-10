@@ -202,7 +202,7 @@ spec:
         - name: frontend
           image: eventxperience-frontend:latest
           ports:
-            - containerPort: 80
+            - containerPort: 3090
           imagePullPolicy: IfNotPresent
 ---
 apiVersion: v1
@@ -214,6 +214,6 @@ spec:
   selector:
     app: frontend
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 3090
+      targetPort: 3090
   type: NodePort

@@ -11,4 +11,4 @@ COPY . .
 
 EXPOSE 3090
 
-CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--port", "3040"]
+CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--port", "3090"]

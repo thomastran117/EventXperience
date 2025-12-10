@@ -28,7 +28,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAppDatabase(builder.Configuration);
 builder.Services.AddAppRedis(builder.Configuration);
-builder.Services.AddAppMongo(builder.Configuration);
+// builder.Services.AddAppMongo(builder.Configuration);
 builder.Services.AddJwtAuth(builder.Configuration);
 builder.Services.AddCustomCors();
 builder.Services.AddAppRateLimiter(new RateLimitOptions

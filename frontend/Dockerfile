@@ -9,6 +9,6 @@ RUN npm install -g @angular/cli && npm install --legacy-peer-deps
 
 COPY . .
 
-EXPOSE 3040
+EXPOSE 3090
 
 CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--port", "3040"]

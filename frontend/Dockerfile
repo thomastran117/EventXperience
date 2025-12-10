@@ -1,17 +1,14 @@
-FROM node:20-alpine AS builder
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine
+
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+
+RUN npm install -g @angular/cli && npm install --legacy-peer-deps
 
 COPY . .
-RUN npm run build
 
-FROM nginx:1.27-alpine
-WORKDIR /usr/share/nginx/html
-COPY --from=builder /app/dist ./
+EXPOSE 3090
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--port", "3090"]

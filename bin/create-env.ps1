@@ -15,16 +15,15 @@ if (-not (Test-Path -Path $backendDir -PathType Container)) {
     Write-Host "Created backend directory."
 }
 
-$envPath = Join-Path -Path $backendDir -ChildPath ".env"
+$backendEnvPath = Join-Path -Path $backendDir -ChildPath ".env"
 
-if ((Test-Path $envPath) -and -not $Force) {
-    Write-Host "Warning: $envPath already exists. Use -Force to overwrite."
-    exit 0
+if ((Test-Path $backendEnvPath) -and -not $Force) {
+    Write-Host "Warning: $backendEnvPath already exists. Use -Force to overwrite."
 }
+else {
+    $secret = if ($RandomSecret) { New-RandomSecret } else { "change_me_dev_secret" }
 
-$secret = if ($RandomSecret) { New-RandomSecret } else { "change_me_dev_secret" }
-
-$envContent = @"
+    $backendEnvContent = @"
 ##############################################
 # Server
 ##############################################
@@ -37,21 +36,18 @@ PORT=8090
 ##############################################
 
 DB_CONNECTION_STRING="Server=localhost;Port=3306;Database=database;User=root;Password=password"
-REDIS_CONNECTION="redis://localhost:6379/0"
+REDIS_CONNECTION="localhost:6379"
 MONGO_URL="mongodb://localhost:27017/app"
 
 ##############################################
 # CORS Configuration
 ##############################################
-# Allowed origins for cross-origin requests (JSON array as string)
-# Typical dev front-end address:
-#   ["http://localhost:3090"]
 CORS_ALLOWED_REGION=["http://localhost:3090"]
 
 ##############################################
 # Security / JWT
 ##############################################
-JWT_SECRET_KEY=your_super_secret_key_here_12345
+JWT_SECRET_KEY=$secret
 
 ##############################################
 # Email (SMTP credentials)
@@ -71,5 +67,47 @@ MS_TENANT_ID="your-microsoft-tenant-id"
 MS_CLIENT_ID="your-microsoft-client-id"
 "@
 
-$envContent | Set-Content -Path $envPath -Encoding UTF8 -NoNewline
-Write-Host "Created .env at $envPath"
+    $backendEnvContent | Set-Content -Path $backendEnvPath -Encoding UTF8 -NoNewline
+    Write-Host "Created backend .env at $backendEnvPath"
+}
+
+$frontendDir = "frontend"
+if (-not (Test-Path -Path $frontendDir -PathType Container)) {
+    New-Item -ItemType Directory -Path $frontendDir | Out-Null
+    Write-Host "Created frontend directory."
+}
+
+$frontendEnvPath = Join-Path -Path $frontendDir -ChildPath ".env"
+
+if ((Test-Path $frontendEnvPath) -and -not $Force) {
+    Write-Host "Warning: $frontendEnvPath already exists. Use -Force to overwrite."
+}
+else {
+    $frontendEnvContent = @"
+##############################################
+# Frontend Environment
+##############################################
+
+BACKEND_URL="http://localhost:8090/api"
+FRONTEND_URL="http://localhost:3090"
+GOOGLE_CLIENT_ID="google-client"
+MSAL_CLIENT_ID="msal-client"
+GOOGLE_SITE_KEY="google-site"
+PAYPAL_MODE="sandbox"
+PAYPAL_CLIENT_ID="id"
+PAYPAL_SECRET_KEY="secret"
+"@
+
+    $frontendEnvContent | Set-Content -Path $frontendEnvPath -Encoding UTF8 -NoNewline
+    Write-Host "Created frontend .env at $frontendEnvPath"
+}
+
+$envFolderPath = "frontend/src/environments"
+
+if (-not (Test-Path -Path $envFolderPath -PathType Container)) {
+    New-Item -ItemType Directory -Path $envFolderPath -Force | Out-Null
+    Write-Host "Created frontend Angular environments folder at $envFolderPath"
+}
+else {
+    Write-Host "Frontend environments folder already exists."
+}

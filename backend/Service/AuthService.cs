@@ -50,6 +50,9 @@ namespace backend.Services
         {
             try
             {
+                var result = await _tokenService.VerificationTokenExist(email);
+                if (result is not null) return;
+                
                 if (await _userRepository.EmailExistsAsync(email))
                     throw new ConflictException($"An account is already registered with the email: {email}");
 

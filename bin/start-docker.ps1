@@ -28,19 +28,18 @@ Write-Host "Building Docker images..."
 docker-compose build
 
 Write-Host ""
-Write-Host "Starting MySQL & Redis..."
-docker-compose up -d mysql redis
+Write-Host "Starting MySQL & Redis (persistent volumes)..."
+docker compose up -d --no-attach mysql --no-attach redis mysql redis
 
 Start-Sleep -Seconds 6
 
+Write-Host ""
+Write-Host "Applying EF Core migrations in a one-off container..."
+docker-compose run --rm --entrypoint "dotnet ef database update" backend
 
 Write-Host ""
-Write-Host "Applying EF Core migrations..."
-docker-compose run --rm backend dotnet ef database update
-
-Write-Host ""
-Write-Host "Starting full application stack..."
-docker-compose up -d
+Write-Host "Starting full application stack (no recreate)..."
+docker-compose up --no-recreate
 
 Pop-Location
 

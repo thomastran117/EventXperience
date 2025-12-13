@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace backend.Utilities
 {
     public enum LogLevel
@@ -25,6 +27,7 @@ namespace backend.Utilities
     {
         private static readonly object _consoleLock = new();
         private static readonly object _fileLock = new();
+        private static volatile bool _fileLoggingFailed;
         private static LoggerOptions _options = new();
         private static string _logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
 
@@ -98,14 +101,37 @@ namespace backend.Utilities
             }
 
             if (_options.EnableFileLogging && level >= _options.MinFileLevel)
-            {
-                var path = GetLogFilePath(now);
-                lock (_fileLock)
+                if (_options.EnableFileLogging && level >= _options.MinFileLevel && !_fileLoggingFailed)
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                    File.AppendAllText(path, line + Environment.NewLine);
+                    try
+                    {
+                        var path = GetLogFilePath(now);
+
+                        lock (_fileLock)
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                            File.AppendAllText(path, line + Environment.NewLine);
+                        }
+                    }
+                    catch (Exception fileEx)
+                    {
+                        _fileLoggingFailed = true;
+
+                        // Fallback: console-only warning (do NOT re-log through Logger)
+                        lock (_consoleLock)
+                        {
+                            var original = Console.ForegroundColor;
+                            Console.ForegroundColor = ConsoleColor.Red;
+
+                            Console.WriteLine(
+                                $"[LOGGER] File logging disabled due to error: {fileEx.GetType().Name} - {fileEx.Message}"
+                            );
+
+                            Console.ForegroundColor = original;
+                        }
+                    }
                 }
-            }
+
         }
 
         private static ConsoleColor LevelColor(LogLevel level) => level switch

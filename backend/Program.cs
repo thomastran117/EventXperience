@@ -13,6 +13,8 @@ Logger.Configure(o =>
 });
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration
+    .AddEnvironmentVariables();
 
 builder.WebHost.UseUrls("http://0.0.0.0:8090");
 builder.Host.UseMinimalSerilog();

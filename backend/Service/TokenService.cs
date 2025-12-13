@@ -194,7 +194,7 @@ namespace backend.Services
             try
             {
                 string? json = await _cacheService.GetValueAsync($"verify:token:{token}");
-                
+
                 if (string.IsNullOrEmpty(json))
                     throw new UnauthorizedException("Invalid or expired verification token.");
 
@@ -223,7 +223,8 @@ namespace backend.Services
                 if (existingToken == null)
                 {
                     return null;
-                } else
+                }
+                else
                 {
                     return existingToken;
                 }

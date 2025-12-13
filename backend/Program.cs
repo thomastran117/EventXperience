@@ -1,10 +1,11 @@
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 
 using backend.Config;
 using backend.Middlewares;
 using backend.Resources;
 using backend.Utilities;
+
+using Microsoft.AspNetCore.RateLimiting;
 
 using Serilog;
 
@@ -74,6 +75,7 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+await DatabaseConfig.VerifyDatabaseConnectionAsync(app.Services);
 app.UseRouting();
 app.UseCors("AllowFrontend");
 
@@ -160,11 +162,6 @@ app.Use(async (context, next) =>
 });
 
 var redisHealth = app.Services.GetRequiredService<RedisHealth>();
-Logger.Info(
-    redisHealth.IsAvailable
-        ? "Redis available — using Redis-backed rate limiting."
-        : "Redis unavailable — using ASP.NET local rate limiter fallback."
-);
 
 Logger.Info($"Server is listening on port {port}");
 

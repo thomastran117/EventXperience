@@ -1,6 +1,8 @@
-using backend.Interfaces;
-using StackExchange.Redis;
 using System.Collections.Concurrent;
+
+using backend.Interfaces;
+
+using StackExchange.Redis;
 
 namespace backend.Services
 {
@@ -9,8 +11,8 @@ namespace backend.Services
         private sealed record CacheEntry(object Value, DateTime? Expiry);
 
         private readonly ConcurrentDictionary<string, CacheEntry> _store = new();
-                private bool IsExpired(CacheEntry entry) =>
-            entry.Expiry is not null && entry.Expiry <= DateTime.UtcNow;
+        private bool IsExpired(CacheEntry entry) =>
+    entry.Expiry is not null && entry.Expiry <= DateTime.UtcNow;
 
         private bool TryGet(string key, out CacheEntry entry)
         {

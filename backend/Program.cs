@@ -1,10 +1,11 @@
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 
 using backend.Config;
 using backend.Middlewares;
 using backend.Resources;
 using backend.Utilities;
+
+using Microsoft.AspNetCore.RateLimiting;
 
 using Serilog;
 

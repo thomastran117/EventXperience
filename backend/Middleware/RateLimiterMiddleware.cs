@@ -84,7 +84,7 @@ namespace backend.Middlewares
         }
     }
 
-     public class RedisRateLimitMiddleware
+    public class RedisRateLimitMiddleware
     {
         private readonly RequestDelegate _next;
 
@@ -98,48 +98,48 @@ namespace backend.Middlewares
     RedisHealth redisHealth,
     RedisRateLimiter redisLimiter,
     RateLimitOptions options)
-{
-    // If Redis is DOWN → skip and let ASP.NET limiter handle it
-    if (!redisHealth.IsAvailable)
-    {
-        await _next(context);
-        return;
-    }
-
-    // Redis-backed limiting
-    var key =
-        context.User.Identity?.IsAuthenticated == true
-            ? $"rl:user:{context.User.FindFirst("sub")?.Value}"
-            : $"rl:ip:{context.Connection.RemoteIpAddress}";
-
-    var result =
-        options.Strategy == RateLimitStrategy.FixedWindow
-            ? await redisLimiter.FixedWindowAsync(
-                key,
-                options.PermitLimit,
-                options.Window)
-            : await redisLimiter.TokenBucketAsync(
-                key,
-                options.TokenLimit,
-                options.TokensPerPeriod,
-                options.ReplenishmentPeriod);
-
-    if (!result.allowed)
-    {
-        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        context.Response.ContentType = "application/json";
-
-        await context.Response.WriteAsJsonAsync(new
         {
-            error = "Too many requests. Slow down.",
-            path = context.Request.Path,
-            retryAfter = result.retryAfter?.TotalSeconds
-        });
+            // If Redis is DOWN → skip and let ASP.NET limiter handle it
+            if (!redisHealth.IsAvailable)
+            {
+                await _next(context);
+                return;
+            }
 
-        return;
-    }
+            // Redis-backed limiting
+            var key =
+                context.User.Identity?.IsAuthenticated == true
+                    ? $"rl:user:{context.User.FindFirst("sub")?.Value}"
+                    : $"rl:ip:{context.Connection.RemoteIpAddress}";
 
-    await _next(context);
-}
+            var result =
+                options.Strategy == RateLimitStrategy.FixedWindow
+                    ? await redisLimiter.FixedWindowAsync(
+                        key,
+                        options.PermitLimit,
+                        options.Window)
+                    : await redisLimiter.TokenBucketAsync(
+                        key,
+                        options.TokenLimit,
+                        options.TokensPerPeriod,
+                        options.ReplenishmentPeriod);
+
+            if (!result.allowed)
+            {
+                context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                context.Response.ContentType = "application/json";
+
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    error = "Too many requests. Slow down.",
+                    path = context.Request.Path,
+                    retryAfter = result.retryAfter?.TotalSeconds
+                });
+
+                return;
+            }
+
+            await _next(context);
+        }
     }
 }

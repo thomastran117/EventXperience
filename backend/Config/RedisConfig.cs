@@ -1,7 +1,9 @@
 using backend.Resources;
 using backend.Utilities;
+
 using Polly;
 using Polly.Retry;
+
 using StackExchange.Redis;
 
 namespace backend.Config

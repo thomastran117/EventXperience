@@ -14,6 +14,7 @@ Logger.Configure(o =>
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.UseUrls("http://0.0.0.0:8090");
 builder.Host.UseMinimalSerilog();
 
 builder.Configuration.AddEnvironmentVariables();
@@ -98,6 +99,6 @@ app.MapGet("/health", () =>
 });
 
 var addresses = app.Urls.Any() ? string.Join(", ", app.Urls) : "no specific URLs";
-Logger.Info("Server built successfully. Listening on: ...");
+Logger.Info($"Server is listening on: {addresses}");
 
 app.Run();

@@ -1,8 +1,14 @@
 using backend.Config;
 using backend.Interfaces;
+using backend.Resources;
 
 namespace backend.Middlewares
 {
+    public sealed class NoopRateLimiter
+    {
+        public Task<(bool allowed, TimeSpan? retryAfter)> AllowAllAsync()
+            => Task.FromResult<(bool, TimeSpan?)>((true, null));
+    }
 
     public class RedisRateLimiter
     {
@@ -63,6 +69,7 @@ namespace backend.Middlewares
             return (true, null);
         }
     }
+
     public static class RateLimiterMiddleware
     {
         public static IServiceCollection AddAppRateLimiter(
@@ -70,6 +77,7 @@ namespace backend.Middlewares
             RateLimitOptions options)
         {
             services.AddScoped<RedisRateLimiter>();
+            services.AddSingleton<NoopRateLimiter>();
             services.AddSingleton(options);
 
             return services;
@@ -86,24 +94,31 @@ namespace backend.Middlewares
         }
 
         public async Task InvokeAsync(
-            HttpContext context,
-            ICacheService cache,
-            RateLimitOptions options)
+    HttpContext context,
+    RedisHealth redisHealth,
+    RedisRateLimiter redisLimiter,
+    RateLimitOptions options)
         {
-            var limiter = new RedisRateLimiter(cache);
+            // If Redis is DOWN → skip and let ASP.NET limiter handle it
+            if (!redisHealth.IsAvailable)
+            {
+                await _next(context);
+                return;
+            }
 
+            // Redis-backed limiting
             var key =
                 context.User.Identity?.IsAuthenticated == true
-                ? $"rl:user:{context.User.FindFirst("sub")?.Value}"
-                : $"rl:ip:{context.Connection.RemoteIpAddress}";
+                    ? $"rl:user:{context.User.FindFirst("sub")?.Value}"
+                    : $"rl:ip:{context.Connection.RemoteIpAddress}";
 
-            (bool allowed, TimeSpan? retryAfter) result =
+            var result =
                 options.Strategy == RateLimitStrategy.FixedWindow
-                    ? await limiter.FixedWindowAsync(
+                    ? await redisLimiter.FixedWindowAsync(
                         key,
                         options.PermitLimit,
                         options.Window)
-                    : await limiter.TokenBucketAsync(
+                    : await redisLimiter.TokenBucketAsync(
                         key,
                         options.TokenLimit,
                         options.TokensPerPeriod,

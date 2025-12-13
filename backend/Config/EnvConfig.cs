@@ -22,15 +22,25 @@ namespace backend.Config
         {
             TryLoadEnvFile();
 
-            _dbConnectionString = GetOrDefault("DB_CONNECTION_STRING",
-                "Server=localhost;Port=3306;Database=database;User=root;Password=password123");
+            _dbConnectionString = GetOrDefault(
+                "DB_CONNECTION_STRING",
+                "Server=localhost;Port=3306;Database=database;User=root;Password=password123"
+            );
 
-            _mongoConnection = GetOrDefault("MONGO_CONNECTION",
-                "mongodb://localhost:27017/eventxperience");
+            _mongoConnection = GetOrDefault(
+                "MONGO_CONNECTION",
+                "mongodb://localhost:27017/eventxperience"
+            );
 
-            _redisConnection = GetOrDefault("REDIS_CONNECTION", "localhost:6379");
+            _redisConnection = GetOrDefault(
+                "REDIS_CONNECTION",
+                "localhost:6379"
+            );
 
-            _jwtSecretKeyAccess = GetOrDefault("JWT_SECRET_KEY", "unit_test_secret_12345678901234567890");
+            _jwtSecretKeyAccess = GetOrDefault(
+                "JWT_SECRET_KEY",
+                "unit_test_secret_12345678901234567890"
+            );
 
             _email = GetOptional("EMAIL");
             _password = GetOptional("EMAIL_PASSWORD");
@@ -39,21 +49,37 @@ namespace backend.Config
             _microsoftClientId = GetOptional("MICROSOFT_CLIENT_ID");
             _googleClientId = GetOptional("GOOGLE_CLIENT_ID");
 
-            _appEnvironment = GetOrDefault("APP_ENV", "development");
-            _logLevel = GetOrDefault("LOG_LEVEL", "info");
+            _appEnvironment = GetOrDefault("APP_ENV", "development").ToLowerInvariant();
+            _logLevel = GetOrDefault("LOG_LEVEL", "info").ToLowerInvariant();
         }
 
         private static void TryLoadEnvFile()
         {
-            try
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var dir = new DirectoryInfo(baseDir);
+
+            while (dir != null)
             {
-                Env.Load();
-                Logger.Info(".env file loaded successfully.");
+                var envPath = Path.Combine(dir.FullName, ".env");
+
+                if (File.Exists(envPath))
+                {
+                    try
+                    {
+                        Env.Load(envPath);
+                        Logger.Info($".env file loaded from: {envPath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn(ex, $"Failed to load .env file at {envPath}");
+                    }
+                    return;
+                }
+
+                dir = dir.Parent;
             }
-            catch
-            {
-                Logger.Warn("No .env file found — relying on system environment variables.");
-            }
+
+            Logger.Debug("No .env file found in directory hierarchy — using system environment variables.");
         }
         private static string? GetOptional(string key)
         {
@@ -61,7 +87,7 @@ namespace backend.Config
 
             if (string.IsNullOrWhiteSpace(val))
             {
-                Logger.Debug($"Optional variable {key} not set.");
+                Logger.Debug($"Optional environment variable '{key}' not set.");
                 return null;
             }
 
@@ -70,6 +96,7 @@ namespace backend.Config
 
         private static string GetOrDefault(string key, string fallback) =>
             GetOptional(key) ?? fallback;
+
         public static string DbConnectionString => _dbConnectionString;
         public static string RedisConnection => _redisConnection;
         public static string MongoConnection => _mongoConnection;
@@ -84,7 +111,7 @@ namespace backend.Config
 
         public static void Validate()
         {
-            if (_appEnvironment == "development" || _appEnvironment == "test")
+            if (_appEnvironment is "development" or "test")
             {
                 Logger.Warn("Skipping environment validation (dev/test mode).");
                 return;
@@ -103,9 +130,11 @@ namespace backend.Config
                 .ToList();
 
             if (missing.Any())
-                throw new Exception($"Missing required environment variables: {string.Join(", ", missing)}");
+                throw new InvalidOperationException(
+                    $"Missing required environment variables: {string.Join(", ", missing)}"
+                );
 
-            Logger.Info("Environment variables validated.");
+            Logger.Info("Environment variables validated successfully.");
         }
     }
 }

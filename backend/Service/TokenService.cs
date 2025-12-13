@@ -152,6 +152,9 @@ namespace backend.Services
         {
             try
             {
+                var existingToken = await _cacheService.GetValueAsync($"verify:email:{user.Email}");
+                if (existingToken is not null) return existingToken;
+
                 string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
                 var serialized = JsonConvert.SerializeObject(new User
@@ -162,8 +165,14 @@ namespace backend.Services
                 });
 
                 var result = await _cacheService.SetValueAsync(
-                    key: $"verify:{token}",
+                    key: $"verify:token:{token}",
                     value: serialized,
+                    expiry: VERIFY_TTL
+                );
+
+                _ = await _cacheService.SetValueAsync(
+                    key: $"verify:email:{user.Email}",
+                    value: token,
                     expiry: VERIFY_TTL
                 );
 
@@ -184,16 +193,16 @@ namespace backend.Services
         {
             try
             {
-                string? json = await _cacheService.GetValueAsync($"verify:{token}");
+                string? json = await _cacheService.GetValueAsync($"verify:token:{token}");
 
                 if (string.IsNullOrEmpty(json))
                     throw new UnauthorizedException("Invalid or expired verification token.");
 
-                var result = await _cacheService.DeleteKeyAsync($"verify:{token}");
-                if (!result) throw new NotAvaliableException();
-
                 var draft = JsonConvert.DeserializeObject<User>(json)
                     ?? throw new UnauthorizedException("Invalid verification token payload.");
+
+                _ = await _cacheService.DeleteKeyAsync($"verify:token:{token}");
+                _ = await _cacheService.DeleteKeyAsync($"verify:email:{draft.Email}");
 
                 return draft;
             }
@@ -202,6 +211,29 @@ namespace backend.Services
                 if (e is AppException) throw;
 
                 Logger.Error($"[TokenService] VerifyVerificationToken failed: {e}");
+                throw new InternalServerException();
+            }
+        }
+
+        public async Task<string?> VerificationTokenExist(string email)
+        {
+            try
+            {
+                var existingToken = await _cacheService.GetValueAsync($"verify:email:{email}");
+                if (existingToken == null)
+                {
+                    return null;
+                }
+                else
+                {
+                    return existingToken;
+                }
+            }
+            catch (Exception e)
+            {
+                if (e is AppException) throw;
+
+                Logger.Error($"[TokenService] VerificationTokenExist failed: {e}");
                 throw new InternalServerException();
             }
         }

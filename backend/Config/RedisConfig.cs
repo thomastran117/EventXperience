@@ -1,36 +1,67 @@
 using backend.Resources;
 using backend.Utilities;
 
+using Polly;
+using Polly.Retry;
+
 using StackExchange.Redis;
 
 namespace backend.Config
 {
     public static class RedisConfig
     {
-        public static IServiceCollection AddAppRedis(this IServiceCollection services, IConfiguration config)
+        private static readonly AsyncRetryPolicy _retryPolicy =
+            Policy
+                .Handle<RedisConnectionException>()
+                .Or<TimeoutException>()
+                .WaitAndRetryAsync(
+                    retryCount: 3,
+                    sleepDurationProvider: attempt =>
+                        TimeSpan.FromMilliseconds(200 * Math.Pow(2, attempt)),
+                    onRetry: (ex, delay, attempt, _) =>
+                    {
+                        Logger.Warn(
+                            $"Redis connection attempt {attempt} failed. Retrying in {delay.TotalMilliseconds} ms. Error: {ex.Message}"
+                        );
+                    });
+
+        public static IServiceCollection AddAppRedis(
+            this IServiceCollection services,
+            IConfiguration _)
         {
-            services.AddSingleton<IConnectionMultiplexer>(_ =>
-                ConnectionMultiplexer.Connect(EnvManager.RedisConnection));
+            var health = new RedisHealth();
 
-            services.AddSingleton<RedisResource>();
-
-            using (var scope = services.BuildServiceProvider().CreateScope())
+            try
             {
-                try
+                _retryPolicy.ExecuteAsync(async () =>
                 {
-                    var mux = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
+                    var mux = await ConnectionMultiplexer.ConnectAsync(
+                        EnvManager.RedisConnection);
+
                     var db = mux.GetDatabase();
 
-                    var latency = db.Ping();
-                    Logger.Info($"Redis connection successful (ping: {latency.TotalMilliseconds} ms).");
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Redis connection error: {ex.Message}");
-                    Environment.Exit(1);
-                }
+                    await db.PingAsync();
+
+                    services.AddSingleton<IConnectionMultiplexer>(mux);
+                    services.AddSingleton(new RedisResource(mux));
+
+                    health.IsAvailable = true;
+
+                    Logger.Info("Redis connection established successfully.");
+                }).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                health.IsAvailable = false;
+                health.Failure = ex;
+
+                Logger.Warn(
+                    ex,
+                    "Redis unavailable after retries — falling back to in-memory cache."
+                );
             }
 
+            services.AddSingleton(health);
             return services;
         }
     }

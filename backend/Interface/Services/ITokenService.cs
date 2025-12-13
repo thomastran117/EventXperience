@@ -10,5 +10,6 @@ namespace backend.Interfaces
         public Task<string> GenerateVerificationToken(User user);
         public Task<User> VerifyVerificationToken(string verifyToken);
         public Task<int> ValidateRefreshToken(string refreshToken);
+        public Task<string?> VerificationTokenExist(string email);
     }
 }

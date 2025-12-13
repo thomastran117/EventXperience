@@ -1,6 +1,8 @@
 using backend.Interfaces;
 using backend.Repositories;
+using backend.Resources;
 using backend.Services;
+using backend.Utilities;
 
 namespace backend.Config
 {
@@ -9,7 +11,6 @@ namespace backend.Config
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<IUserRepository, UserRepository>();
-
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IOAuthService, OAuthService>();
@@ -18,7 +19,21 @@ namespace backend.Config
             services.AddScoped<IFileUploadService, FileUploadService>();
 
             services.AddSingleton<IEmailService, EmailService>();
-            services.AddSingleton<ICacheService, CacheService>();
+
+            services.AddSingleton<ICacheService>(sp =>
+            {
+                var redisHealth = sp.GetRequiredService<RedisHealth>();
+
+                if (redisHealth.IsAvailable)
+                {
+                    Logger.Info("Using Redis-backed CacheService.");
+                    var redis = sp.GetRequiredService<RedisResource>();
+                    return new CacheService(redis);
+                }
+
+                Logger.Warn("Using InMemoryCacheService (Redis unavailable).");
+                return new InMemoryCacheService();
+            });
 
             return services;
         }

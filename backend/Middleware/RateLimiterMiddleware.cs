@@ -1,8 +1,14 @@
 using backend.Config;
 using backend.Interfaces;
+using backend.Resources;
 
 namespace backend.Middlewares
 {
+    public sealed class NoopRateLimiter
+    {
+        public Task<(bool allowed, TimeSpan? retryAfter)> AllowAllAsync()
+            => Task.FromResult<(bool, TimeSpan?)>((true, null));
+    }
 
     public class RedisRateLimiter
     {
@@ -63,6 +69,7 @@ namespace backend.Middlewares
             return (true, null);
         }
     }
+
     public static class RateLimiterMiddleware
     {
         public static IServiceCollection AddAppRateLimiter(
@@ -70,13 +77,14 @@ namespace backend.Middlewares
             RateLimitOptions options)
         {
             services.AddScoped<RedisRateLimiter>();
+            services.AddSingleton<NoopRateLimiter>();
             services.AddSingleton(options);
 
             return services;
         }
     }
 
-    public class RedisRateLimitMiddleware
+     public class RedisRateLimitMiddleware
     {
         private readonly RequestDelegate _next;
 
@@ -86,45 +94,52 @@ namespace backend.Middlewares
         }
 
         public async Task InvokeAsync(
-            HttpContext context,
-            ICacheService cache,
-            RateLimitOptions options)
+    HttpContext context,
+    RedisHealth redisHealth,
+    RedisRateLimiter redisLimiter,
+    RateLimitOptions options)
+{
+    // If Redis is DOWN → skip and let ASP.NET limiter handle it
+    if (!redisHealth.IsAvailable)
+    {
+        await _next(context);
+        return;
+    }
+
+    // Redis-backed limiting
+    var key =
+        context.User.Identity?.IsAuthenticated == true
+            ? $"rl:user:{context.User.FindFirst("sub")?.Value}"
+            : $"rl:ip:{context.Connection.RemoteIpAddress}";
+
+    var result =
+        options.Strategy == RateLimitStrategy.FixedWindow
+            ? await redisLimiter.FixedWindowAsync(
+                key,
+                options.PermitLimit,
+                options.Window)
+            : await redisLimiter.TokenBucketAsync(
+                key,
+                options.TokenLimit,
+                options.TokensPerPeriod,
+                options.ReplenishmentPeriod);
+
+    if (!result.allowed)
+    {
+        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.Response.ContentType = "application/json";
+
+        await context.Response.WriteAsJsonAsync(new
         {
-            var limiter = new RedisRateLimiter(cache);
+            error = "Too many requests. Slow down.",
+            path = context.Request.Path,
+            retryAfter = result.retryAfter?.TotalSeconds
+        });
 
-            var key =
-                context.User.Identity?.IsAuthenticated == true
-                ? $"rl:user:{context.User.FindFirst("sub")?.Value}"
-                : $"rl:ip:{context.Connection.RemoteIpAddress}";
+        return;
+    }
 
-            (bool allowed, TimeSpan? retryAfter) result =
-                options.Strategy == RateLimitStrategy.FixedWindow
-                    ? await limiter.FixedWindowAsync(
-                        key,
-                        options.PermitLimit,
-                        options.Window)
-                    : await limiter.TokenBucketAsync(
-                        key,
-                        options.TokenLimit,
-                        options.TokensPerPeriod,
-                        options.ReplenishmentPeriod);
-
-            if (!result.allowed)
-            {
-                context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                context.Response.ContentType = "application/json";
-
-                await context.Response.WriteAsJsonAsync(new
-                {
-                    error = "Too many requests. Slow down.",
-                    path = context.Request.Path,
-                    retryAfter = result.retryAfter?.TotalSeconds
-                });
-
-                return;
-            }
-
-            await _next(context);
-        }
+    await _next(context);
+}
     }
 }

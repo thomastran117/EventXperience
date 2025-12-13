@@ -74,3 +74,5 @@ Thumbs.db
 ehthumbs.db
 Icon?
 backend/.env
+
+.vscode/

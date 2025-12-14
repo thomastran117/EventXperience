@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: eventxperience
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -9,10 +10,10 @@ metadata:
   name: mysql
   namespace: eventxperience
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: mysql
-  replicas: 1
   template:
     metadata:
       labels:
@@ -52,16 +53,28 @@ spec:
     requests:
       storage: 2Gi
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: eventxperience
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
   namespace: eventxperience
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: redis
-  replicas: 1
   template:
     metadata:
       labels:
@@ -72,65 +85,60 @@ spec:
           image: redis:7-alpine
           ports:
             - containerPort: 6379
-          volumeMounts:
-            - name: redis-data
-              mountPath: /data
-      volumes:
-        - name: redis-data
-          emptyDir: {}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mongo
-  namespace: eventxperience
-spec:
-  selector:
-    matchLabels:
-      app: mongo
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: mongo
-    spec:
-      containers:
-        - name: mongo
-          image: mongo:7
-          ports:
-            - containerPort: 27017
-          volumeMounts:
-            - name: mongo-data
-              mountPath: /data/db
-      volumes:
-        - name: mongo-data
-          persistentVolumeClaim:
-            claimName: mongo-pvc
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mongo-pvc
-  namespace: eventxperience
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongo
+  name: redis
   namespace: eventxperience
 spec:
   selector:
-    app: mongo
+    app: redis
   ports:
-    - port: 27017
-      targetPort: 27017
-  type: ClusterIP
+    - port: 6379
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: eventxperience
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13-management
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: appuser
+            - name: RABBITMQ_DEFAULT_PASS
+              value: apppass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: eventxperience
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+    - name: management
+      port: 15672
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -149,26 +157,21 @@ spec:
     spec:
       containers:
         - name: backend
-          image: eventxperience-backend:latest
+          image: myapp-backend:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8090
           env:
+            - name: ASPNETCORE_URLS
+              value: "http://0.0.0.0:8090"
             - name: DB_CONNECTION_STRING
-              value: "Server=mysql;Port=3306;Database=appdb;User=root;Password=root"
-
+              value: "Server=mysql;Port=3306;Database=appdb;User=appuser;Password=apppass"
             - name: REDIS_CONNECTION
               value: "redis:6379"
-
-            - name: MONGO_CONNECTION
-              value: "mongodb://mongo:27017/eventxperience"
-
+            - name: RABBIT_CONNECTION
+              value: "amqp://appuser:apppass@rabbitmq:5672"
             - name: JWT_SECRET_KEY
               value: "amazing_secret_key_yup_yes_abcdef123"
-            - name: JWT_SECRET_KEY_REFRESH
-              value: "amazing_secret_key_yup_yes_abcdef123"
-            - name: JWT_SECRET_KEY_VERIFY
-              value: "amazing_secret_key_yup_yes_abcdef123"
-          imagePullPolicy: IfNotPresent
 ---
 apiVersion: v1
 kind: Service
@@ -180,8 +183,33 @@ spec:
     app: backend
   ports:
     - port: 8090
-      targetPort: 8090
-  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: eventxperience
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: myapp-worker:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RABBIT_CONNECTION
+              value: "amqp://appuser:apppass@rabbitmq:5672"
+            - name: REDIS_CONNECTION
+              value: "redis:6379"
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -200,10 +228,10 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: eventxperience-frontend:latest
+          image: myapp-frontend:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3090
-          imagePullPolicy: IfNotPresent
 ---
 apiVersion: v1
 kind: Service
@@ -215,5 +243,4 @@ spec:
     app: frontend
   ports:
     - port: 3090
-      targetPort: 3090
   type: NodePort

@@ -159,32 +159,119 @@ namespace worker.Services
             var builder = new BodyBuilder
             {
                 HtmlBody = $@"
-                    <html>
-                    <body style='font-family:Segoe UI,Roboto,Arial,sans-serif;background:#f7f8fc;'>
-                    <div style='max-width:640px;margin:40px auto;background:#fff;border-radius:12px;padding:32px'>
-                        <h2 style='color:#5a8dee'>Welcome to EventXperience 🎉</h2>
-                        <p>Please confirm your email address by clicking the button below:</p>
+            <!DOCTYPE html>
+            <html>
+            <body style='margin:0;padding:0;background-color:#f5f3ff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;'>
+                <div style='max-width:640px;margin:48px auto;padding:0 16px;'>
 
-                        <div style='text-align:center;margin:32px 0'>
-                        <a href='{verifyUrl}'
-                            style='background:#5a8dee;color:#fff;padding:14px 26px;
-                                    border-radius:8px;text-decoration:none;font-weight:600'>
-                            Verify My Email
-                        </a>
-                        </div>
+                <!-- Card -->
+                <div style='
+                    background:#ffffff;
+                    border-radius:18px;
+                    box-shadow:0 12px 30px rgba(88,80,236,0.18);
+                    overflow:hidden;
+                '>
 
-                        <p style='font-size:14px;color:#666'>
-                        This link expires in 10 minutes.
-                        </p>
+                    <!-- Header -->
+                    <div style='
+                    background:linear-gradient(135deg,#6d28d9,#7c3aed,#8b5cf6);
+                    padding:36px 28px;
+                    text-align:center;
+                    color:#ffffff;
+                    '>
+                    <h1 style='
+                        margin:0;
+                        font-size:26px;
+                        font-weight:700;
+                        letter-spacing:0.4px;
+                    '>
+                        Welcome to EventXperience
+                    </h1>
+                    <p style='
+                        margin:10px 0 0;
+                        font-size:15px;
+                        opacity:0.95;
+                    '>
+                        Discover events. Create moments. ✨
+                    </p>
                     </div>
-                    </body>
-                </html>",
+
+                    <!-- Body -->
+                    <div style='padding:40px 34px;color:#1f2937;'>
+                    <p style='font-size:17px;margin:0 0 18px;'>
+                        Hi there 👋
+                    </p>
+
+                    <p style='font-size:16px;line-height:1.65;margin:0 0 22px;color:#374151;'>
+                        Thanks for signing up for <strong>EventXperience</strong>!
+                        Before you get started, please confirm your email address.
+                    </p>
+
+                    <!-- CTA -->
+                    <div style='text-align:center;margin:36px 0;'>
+                        <a href='{verifyUrl}'
+                        style='
+                            display:inline-block;
+                            background:linear-gradient(135deg,#7c3aed,#8b5cf6);
+                            color:#ffffff;
+                            padding:16px 34px;
+                            font-size:16px;
+                            font-weight:600;
+                            border-radius:12px;
+                            text-decoration:none;
+                            box-shadow:0 6px 16px rgba(124,58,237,0.45);
+                        '>
+                        Verify My Email
+                        </a>
+                    </div>
+
+                    <p style='font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 12px;'>
+                        This verification link will expire in <strong>10 minutes</strong> for security reasons.
+                    </p>
+
+                    <p style='font-size:14px;color:#6b7280;line-height:1.6;margin:0;'>
+                        If you didn’t create an EventXperience account, you can safely ignore this email.
+                    </p>
+                    </div>
+
+                    <!-- Divider -->
+                    <div style='height:1px;background:#e5e7eb;margin:0 34px;'></div>
+
+                    <!-- Footer -->
+                    <div style='padding:24px 34px 32px;text-align:center;'>
+                    <p style='
+                        font-size:14px;
+                        color:#4f46e5;
+                        font-weight:600;
+                        margin:0 0 8px;
+                    '>
+                        — The EventXperience Team
+                    </p>
+                    <p style='
+                        font-size:12px;
+                        color:#9ca3af;
+                        margin:0;
+                    '>
+                        © {DateTime.UtcNow.Year} EventXperience. All rights reserved.
+                    </p>
+                    </div>
+
+                </div>
+                </div>
+            </body>
+            </html>
+            ",
+
                 TextBody =
-                    $"Verify your email address using the link below:\n\n{verifyUrl}\n\n" +
-                    $"This link expires in 10 minutes."
+                    $"Welcome to EventXperience!\n\n" +
+                    $"Please verify your email address using the link below:\n\n" +
+                    $"{verifyUrl}\n\n" +
+                    $"This link expires in 10 minutes.\n\n" +
+                    $"— The EventXperience Team"
             };
 
             message.Body = builder.ToMessageBody();
+
             return message;
         }
 

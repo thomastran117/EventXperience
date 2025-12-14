@@ -1,4 +1,5 @@
 using backend.Interfaces;
+using backend.Queues;
 using backend.Repositories;
 using backend.Resources;
 using backend.Services;
@@ -11,6 +12,8 @@ namespace backend.Config
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<IUserRepository, UserRepository>();
+
+            services.AddSingleton<IPublisher, Publisher>();
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IAuthService, AuthService>();

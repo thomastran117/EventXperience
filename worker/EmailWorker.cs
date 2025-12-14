@@ -56,7 +56,7 @@ public sealed class EmailWorker : BackgroundService, IAsyncDisposable
         };
 
         await _channel!.BasicConsumeAsync(
-            queue: "email_queue",
+            queue: "eventxperience-email",
             autoAck: false,
             consumer: consumer
         );
@@ -108,7 +108,7 @@ public sealed class EmailWorker : BackgroundService, IAsyncDisposable
                 _channel = await _connection.CreateChannelAsync(null, ct);
 
                 await _channel.QueueDeclareAsync(
-                    queue: "email_queue",
+                    queue: "eventxperience-email",
                     durable: true,
                     exclusive: false,
                     autoDelete: false,

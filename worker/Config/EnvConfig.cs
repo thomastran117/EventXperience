@@ -1,21 +1,17 @@
-using backend.Utilities;
-
 using DotNetEnv;
 
-namespace backend.Config
+using worker.Utilities;
+
+namespace worker.Config
 {
     public static class EnvManager
     {
         private static readonly string _dbConnectionString;
-        private static readonly string _mongoConnection;
         private static readonly string _redisConnection;
         private static readonly string _rabbitConnection;
-        private static readonly string _jwtSecretKeyAccess;
         private static readonly string? _email;
         private static readonly string? _password;
         private static readonly string? _smtpServer;
-        private static readonly string? _microsoftClientId;
-        private static readonly string? _googleClientId;
         private static readonly string _appEnvironment;
         private static readonly string _logLevel;
 
@@ -28,11 +24,6 @@ namespace backend.Config
                 "Server=localhost;Port=3306;Database=database;User=root;Password=password123"
             );
 
-            _mongoConnection = GetOrDefault(
-                "MONGO_CONNECTION",
-                "mongodb://localhost:27017/eventxperience"
-            );
-
             _redisConnection = GetOrDefault(
                 "REDIS_CONNECTION",
                 "localhost:6379"
@@ -43,17 +34,9 @@ namespace backend.Config
                 "amqp://guest:guest@localhost:5672"
             );
 
-            _jwtSecretKeyAccess = GetOrDefault(
-                "JWT_SECRET_KEY",
-                "unit_test_secret_12345678901234567890"
-            );
-
             _email = GetOptional("EMAIL");
             _password = GetOptional("EMAIL_PASSWORD");
             _smtpServer = GetOptional("SMTP_SERVER");
-
-            _microsoftClientId = GetOptional("MICROSOFT_CLIENT_ID");
-            _googleClientId = GetOptional("GOOGLE_CLIENT_ID");
 
             _appEnvironment = GetOrDefault("APP_ENV", "development").ToLowerInvariant();
             _logLevel = GetOrDefault("LOG_LEVEL", "info").ToLowerInvariant();
@@ -105,14 +88,10 @@ namespace backend.Config
 
         public static string DbConnectionString => _dbConnectionString;
         public static string RedisConnection => _redisConnection;
-        public static string MongoConnection => _mongoConnection;
         public static string RabbitConnection => _rabbitConnection;
-        public static string JwtSecretKeyAccess => _jwtSecretKeyAccess;
         public static string? Email => _email;
         public static string? Password => _password;
         public static string? SmtpServer => _smtpServer;
-        public static string? MicrosoftClientId => _microsoftClientId;
-        public static string? GoogleClientId => _googleClientId;
         public static string AppEnvironment => _appEnvironment;
         public static string LogLevel => _logLevel;
 
@@ -128,7 +107,6 @@ namespace backend.Config
             {
                 { "DB_CONNECTION_STRING", _dbConnectionString },
                 { "REDIS_CONNECTION", _redisConnection },
-                { "JWT_SECRET_KEY", _jwtSecretKeyAccess }
             };
 
             var missing = required

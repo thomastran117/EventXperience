@@ -1,93 +1,91 @@
 [CmdletBinding()]
 param(
-  [string]$Namespace = "eventxperience",
-  [string]$FrontendPort = "3090"
+  [string]$Namespace    = "eventxperience",
+  [int]   $FrontendPort = 3090,
+  [int]   $BackendPort  = 8090
 )
 
-function Write-Status([string]$msg, [string]$color = "Cyan") {
-  Write-Host ("[SETUP] $msg") -ForegroundColor $color
+$ErrorActionPreference = "Stop"
+
+function Info($msg) {
+  Write-Host "[K8S] $msg" -ForegroundColor Cyan
 }
 
-Write-Status "Checking dependencies..."
+function Success($msg) {
+  Write-Host "[OK ] $msg" -ForegroundColor Green
+}
 
-$dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
-if (-not $dockerCmd) {
-  Write-Error "Docker not detected or not on PATH."
+function Warn($msg) {
+  Write-Host "[WARN] $msg" -ForegroundColor Yellow
+}
+
+function Fail($msg) {
+  Write-Host "[ERR ] $msg" -ForegroundColor Red
   exit 1
 }
 
-$dockerVersion = (& docker version --format '{{.Server.Version}}' 2>$null)
-if (-not $dockerVersion) { $dockerVersion = (& docker version 2>$null | Select-String "Version" | Select-Object -First 1) }
+Info "Checking dependencies..."
 
-$kubectlCmd = Get-Command kubectl -ErrorAction SilentlyContinue
-if (-not $kubectlCmd) {
-  Write-Error "kubectl not detected or not on PATH."
-  exit 1
+foreach ($cmd in @("docker", "kubectl")) {
+  if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+    Fail "$cmd not found on PATH"
+  }
 }
 
-$kubectlVersionOutput = & kubectl version --client 2>$null
-if ($LASTEXITCODE -ne 0) {
-  Write-Error "kubectl command failed to run. Ensure Docker Desktop Kubernetes is enabled."
-  exit 1
-}
+Success "All dependencies found"
 
-Write-Status "Docker: $dockerVersion"
-Write-Status "Kubectl: $kubectlVersionOutput"
-Write-Status "Building ARM64 Docker images..."
+$root = Resolve-Path (Join-Path (Split-Path $MyInvocation.MyCommand.Path) "..")
 
-$root = Resolve-Path (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Definition) "..")
 $frontendPath = Join-Path $root "frontend"
 $backendPath  = Join-Path $root "backend"
+$workerPath   = Join-Path $root "worker"
+$manifest     = Join-Path $root "eventxperience.yml"
 
-Push-Location $frontendPath
-docker buildx build --platform linux/arm64 -t myapp-frontend:latest .
-if ($LASTEXITCODE -ne 0) {
-  Write-Error "Frontend image build failed."
-  exit 1
-}
-Pop-Location
+Info "Building Docker images (linux/arm64)..."
 
-Push-Location $backendPath
-docker buildx build --platform linux/arm64 -t myapp-backend:latest .
-if ($LASTEXITCODE -ne 0) {
-  Write-Error "Backend image build failed."
-  exit 1
-}
-Pop-Location
+docker buildx build --platform linux/arm64 -t myapp-frontend:latest $frontendPath | Out-Null
+docker buildx build --platform linux/arm64 -t myapp-backend:latest  $backendPath  | Out-Null
+docker buildx build --platform linux/arm64 -t myapp-worker:latest   $workerPath   | Out-Null
 
-Write-Status "Docker images built successfully."
+Success "Docker images built"
 
-$manifest = Join-Path $root "eventxperience.yml"
-if (-not (Test-Path $manifest)) {
-  Write-Error "eventxperience.yml not found at $manifest"
-  exit 1
-}
+Info "Applying Kubernetes manifests..."
+kubectl apply -f $manifest | Out-Null
 
-Write-Status "Applying Kubernetes manifests..."
-kubectl apply -f $manifest | Write-Host
+Success "Manifests applied"
 
-Write-Status "Waiting for pods in namespace '$Namespace' to become Ready..."
-$retries = 0
-do {
-  Start-Sleep -Seconds 5
-  $status = & kubectl get pods -n $Namespace --no-headers 2>$null
-  $ready = ($status -match "Running") -and ($status -notmatch "CrashLoopBackOff")
-  $retries++
-  if ($ready) { break }
-  if ($retries -ge 24) { Write-Warning "Timeout waiting for pods."; break }
-} while (-not $ready)
+Info "Waiting for deployments to stabilize..."
 
-Write-Status "Current pod status:"
+kubectl rollout status deployment/frontend -n $Namespace --timeout=120s | Out-Null
+kubectl rollout status deployment/backend  -n $Namespace --timeout=120s | Out-Null
+
+Success "Core services are Ready"
+
+Info "Current pod status:"
 kubectl get pods -n $Namespace
 
-Write-Status "Starting port-forward to http://localhost:$FrontendPort ..."
-Write-Host "Press Ctrl+C to stop the port-forward."
+Info "Starting port-forwards (silent)..."
+Info "  Frontend → http://localhost:$FrontendPort"
+Info "  Backend  → http://localhost:$BackendPort"
+Warn "Press Ctrl+C to stop port-forwarding"
 
-Start-Process -NoNewWindow powershell -ArgumentList @(
-  "-NoProfile", "-Command",
-  "kubectl port-forward -n $Namespace svc/frontend $FrontendPort`:80"
+Start-Process powershell -NoNewWindow -ArgumentList @(
+  "-NoProfile",
+  "-Command",
+  "kubectl port-forward -n $Namespace svc/frontend $FrontendPort`:3090 > `$null 2>&1"
+)
+
+Start-Process powershell -NoNewWindow -ArgumentList @(
+  "-NoProfile",
+  "-Command",
+  "kubectl port-forward -n $Namespace svc/backend $BackendPort`:8090 > `$null 2>&1"
 )
 
 Write-Host ""
-Write-Host "To clean up all resources later, run:" -ForegroundColor Yellow
+Success "Dev environment is ready"
+Write-Host "  Frontend: http://localhost:$FrontendPort" -ForegroundColor White
+Write-Host "  Backend : http://localhost:$BackendPort"  -ForegroundColor White
+
+Write-Host ""
+Write-Host "To clean up everything later:" -ForegroundColor Yellow
 Write-Host "  kubectl delete namespace $Namespace" -ForegroundColor Yellow

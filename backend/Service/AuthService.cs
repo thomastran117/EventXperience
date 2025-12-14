@@ -1,4 +1,5 @@
 using backend.Common;
+using backend.DTOs;
 using backend.Exceptions;
 using backend.Interfaces;
 using backend.Models;
@@ -11,15 +12,15 @@ namespace backend.Services
         private readonly IUserRepository _userRepository;
         private readonly IOAuthService _oauthService;
         private readonly ITokenService _tokenService;
-        private readonly IEmailService _emailService;
+        private readonly IPublisher _publisher;
         private const string DummyHash = "$2a$11$9FJqO6j/4jP3E2fOQdWgMuKZXWWvPZ09f8Pj0L9VqB6TfqZ4fE5SO";
 
-        public AuthService(IUserRepository userRepository, IOAuthService oauthService, ITokenService tokenService, IEmailService emailService)
+        public AuthService(IUserRepository userRepository, IOAuthService oauthService, ITokenService tokenService, IPublisher publisher)
         {
             _userRepository = userRepository;
             _oauthService = oauthService;
             _tokenService = tokenService;
-            _emailService = emailService;
+            _publisher = publisher;
         }
 
         public async Task<UserToken> LoginAsync(string email, string password)
@@ -66,7 +67,14 @@ namespace backend.Services
                 };
 
                 var token = await _tokenService.GenerateVerificationToken(user);
-                await _emailService.SendVerificationEmailAsync(email, token);
+                var message = new EmailMessage
+                {
+                    Type = EmailMessageType.VerifyEmail,
+                    Email = email,
+                    Token = token
+                };
+
+                await _publisher.PublishAsync("eventxperience-email", message);
 
                 return;
             }
@@ -113,7 +121,14 @@ namespace backend.Services
                 };
 
                 var token = await _tokenService.GenerateVerificationToken(user);
-                await _emailService.SendResetPasswordEmailAsync(email, token);
+                var message = new EmailMessage
+                {
+                    Type = EmailMessageType.ResetPassword,
+                    Email = email,
+                    Token = token
+                };
+
+                await _publisher.PublishAsync("eventxperience-email", message);
 
                 return;
             }

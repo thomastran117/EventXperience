@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   frontend:
+    container_name: event-frontned
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -13,6 +14,7 @@ services:
       - event-network
 
   backend:
+    container_name: event-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -34,6 +36,7 @@ services:
       - event-network
 
   worker:
+    container_name: event-worker
     build:
       context: ./worker
       dockerfile: Dockerfile
@@ -50,6 +53,7 @@ services:
     restart: unless-stopped
 
   mysql:
+    container_name: event-mysql
     image: mysql:8.4
     restart: always
     environment:
@@ -70,6 +74,7 @@ services:
       - event-network
 
   redis:
+    container_name: event-redis
     image: redis:7-alpine
     restart: always
     ports:

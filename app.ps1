@@ -1,43 +1,72 @@
 param(
     [Parameter(Position = 0, Mandatory = $false)]
-    [string]$Command
+    [string]$Command = "--help"
 )
 
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$ScriptsDir = Join-Path $ScriptDir "bin"
+
+function Write-Header {
+    param([string]$Text)
+    Write-Host ""
+    Write-Host $Text -ForegroundColor Cyan
+}
+
+function Write-Command {
+    param(
+        [string]$Name,
+        [string]$Description
+    )
+    "{0,-12} {1}" -f $Name, $Description | Write-Host
+}
+
+function Invoke-Script {
+    param([string]$ScriptName)
+
+    $Path = Join-Path $ScriptsDir $ScriptName
+
+    if (-not (Test-Path $Path)) {
+        Write-Host "`nScript not found: $ScriptName`n" -ForegroundColor Red
+        exit 1
+    }
+
+    & $Path
+}
+
 function Show-Help {
-    Write-Host ""
-    Write-Host "Usage:" -ForegroundColor Cyan
-    Write-Host "  .\app.ps1 <command> [options]" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Description:" -ForegroundColor Cyan
-    Write-Host "  Main entry point for managing and running project tasks." 
-    Write-Host ""
-    Write-Host "Commands:" -ForegroundColor Cyan
-    
-    "{0,-10} {1}" -f "docker", "Run start-docker.ps1   → Starts Docker Compose services"  | Write-Host
-    "{0,-10} {1}" -f "app",    "Run start-app.ps1      → Launches the app locally"       | Write-Host
-    "{0,-10} {1}" -f "env",    "Run create-env.ps1   → Generates a new .env file"      | Write-Host
-    "{0,-10} {1}" -f "setup",  "Run setup.ps1        → Installs local dependencies"    | Write-Host
-    "{0,-10} {1}" -f "--help", "Show this help message"                                | Write-Host
-    
-    Write-Host ""
-    Write-Host "Examples:" -ForegroundColor Cyan
+    Write-Header "Usage"
+    Write-Host "  .\app.ps1 <command>" -ForegroundColor Yellow
+
+    Write-Header "Description"
+    Write-Host "  Main entry point for managing and running project tasks."
+
+    Write-Header "Commands"
+    Write-Command "docker"  "Start Docker Compose services"
+    Write-Command "k8"      "Start Kubernetes services"
+    Write-Command "local"   "Run the application locally"
+    Write-Command "env"     "Generate a new .env file"
+    Write-Command "setup"   "Install local dependencies"
+    Write-Command "format"  "Run code formatting scripts"
+    Write-Command "--help"  "Show this help message"
+
+    Write-Header "Examples"
     Write-Host "  .\app.ps1 docker" -ForegroundColor Yellow
-    Write-Host "  .\app.ps1 app"
+    Write-Host "  .\app.ps1 local"
     Write-Host "  .\app.ps1 env"
     Write-Host "  .\app.ps1 setup"
     Write-Host ""
 }
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-
-switch ($Command) {
-    "docker" { & "$ScriptDir\bin\start-docker.ps1"; break }
-    "app"    { & "$ScriptDir\bin\start-app.ps1"; break }
-    "env"    { & "$ScriptDir\bin\create-env.ps1"; break }
-    "setup"  { & "$ScriptDir\bin\setup.ps1"; break }
-    "--help" { Show-Help; break }
+switch ($Command.ToLower()) {
+    "docker" { Invoke-Script "docker.ps1" }
+    "k8" { Invoke-Script "k8.ps1" }
+    "local"  { Invoke-Script "local.ps1" }
+    "env"    { Invoke-Script "env.ps1" }
+    "setup"  { Invoke-Script "setup.ps1" }
+    "format" { Invoke-Script "format.ps1" }
+    "--help" { Show-Help }
     default {
-        Write-Host "`nUnknown or missing command: $Command`n" -ForegroundColor Red
+        Write-Host "`nUnknown command: $Command`n" -ForegroundColor Red
         Show-Help
         exit 1
     }

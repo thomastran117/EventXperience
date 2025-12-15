@@ -166,5 +166,10 @@ namespace backend.Services
             if (existing != value) return Task.FromResult(false);
             return DeleteKeyAsync(key);
         }
+
+        public IServer GetServer()
+        {
+            return null;
+        }
     }
 }

@@ -1,0 +1,122 @@
+using backend.Interfaces;
+using backend.Models;
+using backend.Resources;
+
+using Microsoft.EntityFrameworkCore;
+
+namespace backend.Repositories
+{
+    public class ClubRepository : BaseRepository, IClubRepository
+    {
+        public ClubRepository(AppDatabaseContext context) : base(context) { }
+
+        public async Task<Club> CreateAsync(Club club)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                _context.Clubs.Add(club);
+                await _context.SaveChangesAsync();
+                return club;
+            })!;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                var club = await _context.Clubs.FindAsync(id);
+                if (club == null) return false;
+
+                _context.Clubs.Remove(club);
+                await _context.SaveChangesAsync();
+                return true;
+            })!;
+        }
+
+        public async Task<bool> ExistsAsync(int id)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                return await _context.Clubs.AnyAsync(c => c.Id == id);
+            })!;
+        }
+
+        public async Task<IEnumerable<Club>> GetAllAsync(int page = 1, int pageSize = 20)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                return await _context.Clubs
+                    .Include(c => c.User)
+                    .Include(c => c.EventClubs)
+                    .AsNoTracking()
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+            })!;
+        }
+
+        public async Task<Club?> GetByIdAsync(int id)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                return await _context.Clubs
+                    .Include(c => c.User)
+                    .Include(c => c.EventClubs)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == id);
+            });
+        }
+
+        public async Task<Club?> GetByUserIdAsync(int userId)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                return await _context.Clubs
+                    .Include(c => c.EventClubs)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.UserId == userId);
+            });
+        }
+
+        public async Task<Club?> UpdateAsync(int id, Club updatedClub)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                var existing = await _context.Clubs.FindAsync(id);
+                if (existing == null) return null;
+
+                existing.Name = updatedClub.Name;
+                existing.Description = updatedClub.Description;
+                existing.Clubtype = updatedClub.Clubtype;
+                existing.ClubImage = updatedClub.ClubImage;
+                existing.Phone = updatedClub.Phone;
+                existing.Email = updatedClub.Email;
+                existing.WebsiteUrl = updatedClub.WebsiteUrl;
+                existing.Location = updatedClub.Location;
+                existing.Rating = updatedClub.Rating;
+                existing.IsVerified = updatedClub.IsVerified;
+                existing.MemberCount = updatedClub.MemberCount;
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return existing;
+            });
+        }
+
+        public async Task<bool> UpdatePartialAsync(int id, Action<Club> patch)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                var club = await _context.Clubs.FindAsync(id);
+                if (club == null) return false;
+
+                patch(club);
+                club.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            })!;
+        }
+    }
+}

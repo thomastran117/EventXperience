@@ -8,7 +8,7 @@ namespace backend.Services
     public class CacheService : BaseCacheService, ICacheService
     {
         public CacheService(RedisResource redisResource)
-            : base(redisResource.Database) { }
+            : base(redisResource) { }
 
         public Task<bool> SetValueAsync(string key, string value, TimeSpan? expiry = null) =>
             ExecuteAsync(async () => await _db.StringSetAsync(key, value, expiry), fallback: false);
@@ -114,5 +114,11 @@ namespace backend.Services
 
                 return await DeleteKeyAsync(key);
             }, fallback: false);
+
+        public IServer GetServer()
+        {
+            var endpoint = _redis.GetEndPoints().First();
+            return _redis.GetServer(endpoint);
+        }
     }
 }

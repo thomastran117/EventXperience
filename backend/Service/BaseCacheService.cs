@@ -1,5 +1,7 @@
 using System.Net.Sockets;
 
+using backend.Resources;
+
 using Microsoft.Extensions.Logging;
 
 using Polly;
@@ -13,12 +15,14 @@ namespace backend.Services
     public abstract class BaseCacheService
     {
         protected readonly IDatabase _db;
+        protected readonly IConnectionMultiplexer _redis;
         private readonly AsyncRetryPolicy _retryPolicy;
         private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
 
-        protected BaseCacheService(IDatabase db)
+        protected BaseCacheService(RedisResource redisResource)
         {
-            _db = db;
+            _db = redisResource.Database;
+            _redis = redisResource.Multiplexer;
 
             _retryPolicy = Policy
                 .Handle<Exception>(IsTransientRedisError)

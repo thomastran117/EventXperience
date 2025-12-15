@@ -15,6 +15,7 @@ namespace backend.Controllers
     public class ClubController : ControllerBase
     {
         private readonly IClubService _clubService;
+
         public ClubController(IClubService clubService)
         {
             _clubService = clubService;
@@ -27,8 +28,8 @@ namespace backend.Controllers
             UserPayload userPayload = User.GetUserPayload();
 
             Club club = await _clubService.CreateClub(
-                userId: userPayload.Id,
                 name: request.Name,
+                userId: userPayload.Id,
                 description: request.Description,
                 clubtype: request.Clubtype,
                 clubimage: request.ClubImage,
@@ -36,18 +37,7 @@ namespace backend.Controllers
                 email: request.Email
             );
 
-            ClubResponse response = new(
-                club.Id,
-                club.Name,
-                club.Description,
-                club.Clubtype,
-                club.ClubImage
-            )
-            {
-                Phone = club.Phone,
-                Email = club.Email,
-                Rating = club.Rating
-            };
+            ClubResponse response = MapToResponse(club);
 
             return StatusCode(
                 201,
@@ -76,18 +66,7 @@ namespace backend.Controllers
                 email: request.Email
             );
 
-            ClubResponse response = new(
-                club.Id,
-                club.Name,
-                club.Description,
-                club.Clubtype,
-                club.ClubImage
-            )
-            {
-                Phone = club.Phone,
-                Email = club.Email,
-                Rating = club.Rating
-            };
+            ClubResponse response = MapToResponse(club);
 
             return StatusCode(
                 200,
@@ -104,11 +83,14 @@ namespace backend.Controllers
         {
             UserPayload userPayload = User.GetUserPayload();
             ValidateUtility.ValidatePositiveId(id);
-            await _clubService.DeleteClub(userPayload.Id, id);
+
+            await _clubService.DeleteClub(id, userPayload.Id);
 
             return StatusCode(
                 200,
-                new MessageResponse($"The club with ID {id} has been deleted successfully.")
+                new MessageResponse(
+                    $"The club with ID {id} has been deleted successfully."
+                )
             );
         }
 
@@ -116,21 +98,10 @@ namespace backend.Controllers
         public async Task<IActionResult> GetClub(int id)
         {
             ValidateUtility.ValidatePositiveId(id);
-            Club club = await _clubService
-                .GetClub(id);
 
-            ClubResponse response = new(
-                club.Id,
-                club.Name,
-                club.Description,
-                club.Clubtype,
-                club.ClubImage
-            )
-            {
-                Phone = club.Phone,
-                Email = club.Email,
-                Rating = club.Rating
-            };
+            Club club = await _clubService.GetClub(id);
+
+            ClubResponse response = MapToResponse(club);
 
             return StatusCode(
                 200,
@@ -141,33 +112,40 @@ namespace backend.Controllers
             );
         }
 
-
         [HttpGet("")]
-        public async Task<IActionResult> GetClubs([FromQuery] string? search)
+        public async Task<IActionResult> GetClubs(
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
-            List<Club> clubs = await _clubService.GetAllClubs(search);
+            List<Club> clubs = await _clubService
+                .GetAllClubs(search, page, pageSize);
 
-            IEnumerable<ClubResponse> responses = clubs.Select(club => new ClubResponse(
+            IEnumerable<ClubResponse> responses = clubs.Select(MapToResponse);
+
+            return StatusCode(
+                200,
+                new ApiResponse<IEnumerable<ClubResponse>>(
+                    $"The clubs have been fetched successfully.",
+                    responses
+                )
+            );
+        }
+
+        private static ClubResponse MapToResponse(Club club)
+        {
+            return new ClubResponse(
                 club.Id,
                 club.Name,
                 club.Description,
-                club.Clubtype,
+                club.Clubtype.ToString(),
                 club.ClubImage
             )
             {
                 Phone = club.Phone,
                 Email = club.Email,
                 Rating = club.Rating
-            });
-
-
-            return StatusCode(
-                200,
-                new ApiResponse<IEnumerable<ClubResponse>>(
-                    $"The club has been fetched successfully.",
-                    responses
-                )
-            );
+            };
         }
     }
 }

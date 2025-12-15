@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   frontend:
+    container_name: event-frontned
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -13,6 +14,7 @@ services:
       - event-network
 
   backend:
+    container_name: event-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -20,6 +22,7 @@ services:
       - DB_CONNECTION_STRING=Server=mysql;Port=3306;Database=appdb;User=appuser;Password=apppass
       - REDIS_CONNECTION=redis:6379
       - JWT_SECRET_KEY=amazing_secret_key_yup_yes_abcdef123
+      - RABBIT_CONNECTION=amqp://appuser:apppass@rabbitmq:5672
     ports:
       - "8090:8090"
     depends_on:
@@ -27,10 +30,30 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - event-network
 
+  worker:
+    container_name: event-worker
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    environment:
+      - RABBIT_CONNECTION=amqp://appuser:apppass@rabbitmq:5672
+      - REDIS_CONNECTION=redis:6379
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - event-network
+    restart: unless-stopped
+
   mysql:
+    container_name: event-mysql
     image: mysql:8.4
     restart: always
     environment:
@@ -51,12 +74,32 @@ services:
       - event-network
 
   redis:
+    container_name: event-redis
     image: redis:7-alpine
     restart: always
     ports:
       - "6380:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - event-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: event-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: appuser
+      RABBITMQ_DEFAULT_PASS: apppass
+      RABBITMQ_DEFAULT_VHOST: /
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - event-network
 

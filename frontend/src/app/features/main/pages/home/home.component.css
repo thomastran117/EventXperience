@@ -31,7 +31,7 @@
 
 .cta-primary:hover {
   transform: scale(1.05);
-  box-shadow: 0 20px 40px rgba(168,85,247,.4);
+  box-shadow: 0 20px 40px rgba(168, 85, 247, 0.4);
 }
 
 .cta-section {
@@ -62,7 +62,6 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
-
 .cta-actions {
   margin-top: 3.5rem;
   display: flex;
@@ -89,8 +88,8 @@
   backdrop-filter: blur(8px);
 
   transition:
-    transform 0.35s cubic-bezier(.2,.8,.2,1),
-    box-shadow 0.35s cubic-bezier(.2,.8,.2,1),
+    transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
     background 0.35s ease,
     border-color 0.35s ease;
 }

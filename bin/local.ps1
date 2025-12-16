@@ -15,6 +15,7 @@ try {
 $RootDir      = Resolve-Path (Join-Path $PSScriptRoot "..")
 $FrontendPath = Resolve-Path (Join-Path $RootDir "frontend")
 $BackendPath  = Resolve-Path (Join-Path $RootDir "backend")
+$WorkerPath  = Resolve-Path (Join-Path $RootDir "worker")
 
 function Assert-Package([string]$Path) {
   if (-not (Test-Path (Join-Path $Path "package.json"))) {
@@ -29,6 +30,12 @@ if ($projFiles.Count -eq 0) {
 }
 $ProjPath = $projFiles[0].FullName
 
+$workerprojFiles = Get-ChildItem -Path $WorkerPath -Filter *.csproj -Recurse
+if ($workerprojFiles.Count -eq 0) {
+  throw "No .csproj file found under $WorkerPath"
+}
+$WorkerProjPath = $workerprojFiles[0].FullName
+
 Write-Host ("Starting frontend in {0}" -f $FrontendPath) -ForegroundColor Cyan
 $feProc = Start-Process -FilePath "powershell.exe" `
   -ArgumentList "-NoExit", "-Command", "cd '$FrontendPath'; npm run start" `
@@ -39,6 +46,10 @@ $beProc = Start-Process -FilePath "powershell.exe" `
   -ArgumentList "-NoExit", "-Command", "cd '$BackendPath'; dotnet run --no-launch-profile --project '$ProjPath'" `
   -PassThru
 
+Write-Host ("Starting worker in {0}" -f $WorkerPath) -ForegroundColor Cyan
+$weProc = Start-Process -FilePath "powershell.exe" `
+  -ArgumentList "-NoExit", "-Command", "cd '$WorkerPath'; dotnet run --no-launch-profile --project '$WorkerProjPath'" `
+  -PassThru
 Write-Host "`nAll services running in new terminals."
 Write-Host "Press Ctrl+C or close this window to stop everything..." -ForegroundColor Green
 
@@ -46,7 +57,7 @@ try {
   while ($true) { Start-Sleep -Seconds 2 }
 } finally {
   Write-Host "`nStopping all services..." -ForegroundColor Yellow
-  foreach ($p in @($feProc, $beProc)) {
+  foreach ($p in @($feProc, $beProc, $weProc)) {
     try {
       if ($p -and -not $p.HasExited) {
         & taskkill /T /PID $p.Id /F | Out-Null

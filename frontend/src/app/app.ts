@@ -2,11 +2,13 @@ import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SessionManagerService } from './core/services/session-manager.service';
 import { NgIf } from '@angular/common';
+import { NavbarComponent } from './shared/navbar/navbar.component';
+import { FooterComponent } from './shared/footer/footer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgIf],
+  imports: [RouterOutlet, NgIf, NavbarComponent, FooterComponent],
   templateUrl: './app.html',
 })
 export class App implements OnInit {

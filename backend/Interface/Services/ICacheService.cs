@@ -26,5 +26,6 @@ namespace backend.Interfaces
         IEnumerable<string> ScanKeys(IServer server, string pattern);
         Task<bool> AcquireLockAsync(string key, string value, TimeSpan expiry);
         Task<bool> ReleaseLockAsync(string key, string value);
+        IServer GetServer();
     }
 }

@@ -1,5 +1,7 @@
 <ng-container *ngIf="!loading; else loadingScreen">
+  <app-navbar></app-navbar>
   <router-outlet></router-outlet>
+  <app-footer></app-footer>
 </ng-container>
 
 <ng-template #loadingScreen>

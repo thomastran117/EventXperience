@@ -16,8 +16,9 @@ import { clearUser } from '../../core/stores/user.actions';
 })
 export class NavbarComponent {
   scrolled = false;
+  customersOpen = false;
+  userMenuOpen = false;
   mobileOpen = false;
-  dropdownOpen = false;
   user$: Observable<User | null>;
   isCollapsed = true;
 
@@ -34,13 +35,19 @@ export class NavbarComponent {
     this.mobileOpen = !this.mobileOpen;
   }
 
-  toggleDropdown() {
-    this.dropdownOpen = !this.dropdownOpen;
+  toggleCustomers() {
+    this.customersOpen = !this.customersOpen;
+    this.userMenuOpen = false;
   }
 
-  closeAll() {
-    this.mobileOpen = false;
-    this.dropdownOpen = false;
+  toggleUserMenu() {
+    this.userMenuOpen = !this.userMenuOpen;
+    this.customersOpen = false;
+  }
+
+  closeAllDropdowns() {
+    this.customersOpen = false;
+    this.userMenuOpen = false;
   }
 
   logout() {

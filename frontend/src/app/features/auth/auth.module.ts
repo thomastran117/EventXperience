@@ -5,6 +5,8 @@ import { RouterModule } from '@angular/router';
 
 import { LoginComponent } from './pages/login/login.component';
 import { GoogleCallbackComponent } from './pages/google-callback/google-callback.component';
+import { MicrosoftCallbackComponent } from './pages/microsoft-callback/microsoft-callback.component';
+
 @NgModule({
   imports: [
     CommonModule,
@@ -13,6 +15,7 @@ import { GoogleCallbackComponent } from './pages/google-callback/google-callback
       { path: '', redirectTo: 'login', pathMatch: 'full' },
       { path: 'login', component: LoginComponent },
       { path: 'google', component: GoogleCallbackComponent },
+      { path: 'microsoft', component: MicrosoftCallbackComponent },
     ]),
   ],
 })

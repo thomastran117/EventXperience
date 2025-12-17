@@ -24,10 +24,12 @@ $binDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $binDir "..") | ForEach-Object { $_.Path }
 $frontend = Join-Path $repoRoot "frontend"
 $backend  = Join-Path $repoRoot "backend"
+$worker  = Join-Path $repoRoot "worker"
 
 Write-Host "Project paths:"
 Write-Host "  Frontend: $frontend"
 Write-Host "  Backend : $backend"
+Write-Host "  Worker : $worker"
 Write-Host ""
 
 if (Test-Path $frontend) {
@@ -68,6 +70,36 @@ if (Test-Path $backend) {
     Pop-Location
 } else {
     Write-Host "WARNING: Backend folder not found at $backend"
+}
+
+if (Test-Path $worker) {
+    Write-Host ""
+    Write-Host "Setting up worker..."
+    Push-Location $worker
+
+    $envPath = Join-Path $worker ".env"
+    if (-not (Test-Path $envPath)) {
+        Write-Host "ERROR: .env file not found in backend. Please create one before continuing."
+        Pop-Location
+        exit 1
+    } else {
+        Write-Host "Found .env file."
+    }
+
+    Write-Host "Restoring .NET dependencies..."
+    dotnet restore
+
+    Write-Host "Applying Entity Framework Core migrations..."
+    try {
+        dotnet ef database update
+        Write-Host "EF Core migrations applied successfully."
+    } catch {
+        Write-Host "ERROR: EF Core migration failed. Check your connection string or EF setup."
+    }
+
+    Pop-Location
+} else {
+    Write-Host "WARNING: Worker folder not found at $worker"
 }
 
 Write-Host ""

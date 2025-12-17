@@ -122,7 +122,7 @@ namespace backend.Services
 
         public IEnumerable<string> ScanKeys(IServer server, string pattern)
         {
-            foreach (var key in server.Keys(pattern: pattern)) 
+            foreach (var key in server.Keys(pattern: pattern))
                 yield return key.ToString();
         }
     }

@@ -9,15 +9,16 @@
     <!-- Logo -->
     <a routerLink="/" class="text-2xl font-extrabold tracking-tight">
       <span class="text-purple-400">Event</span>
-      <span class="text-white">Xperience</span>
+      <span class="text-black dark:text-white">Xperience</span>
     </a>
 
     <!-- Desktop Nav -->
     <div class="hidden md:flex items-center gap-10 text-sm text-black/70 dark:text-white/80">
       <a href="#features" class="hover:text-black dark:hover:text-white transition"> Features </a>
+
       <a href="#pricing" class="hover:text-black dark:hover:text-white transition"> Pricing </a>
 
-      <!-- Dropdown -->
+      <!-- Customers Dropdown -->
       <div class="relative">
         <button
           (click)="toggleDropdown()"
@@ -59,12 +60,89 @@
         </div>
       </div>
 
-      <!-- CTA -->
-      <button
-        class="px-5 py-2 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition"
-      >
-        Sign In
-      </button>
+      <!-- AUTH SECTION -->
+      <ng-container *ngIf="user$ | async as user; else loggedOut">
+        <div class="relative">
+          <button
+            (click)="toggleDropdown()"
+            class="flex items-center gap-3 hover:text-black dark:hover:text-white transition"
+          >
+            <!-- Avatar -->
+            <ng-container *ngIf="user.Avatar; else initialsAvatar">
+              <img
+                [src]="user.Avatar"
+                alt="User avatar"
+                class="w-8 h-8 rounded-full object-cover border border-black/10 dark:border-white/10"
+              />
+            </ng-container>
+
+            <ng-template #initialsAvatar>
+              <div
+                class="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold uppercase"
+              >
+                {{ user.Username[0] }}
+              </div>
+            </ng-template>
+
+            <svg
+              class="w-4 h-4 transition"
+              [class.rotate-180]="dropdownOpen"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          <!-- Dropdown -->
+          <div
+            *ngIf="dropdownOpen"
+            class="absolute top-10 right-0 w-56 rounded-xl bg-white dark:bg-[#140d2a] border border-black/10 dark:border-white/10 shadow-xl overflow-hidden"
+          >
+            <div class="px-4 py-3 text-xs text-black/60 dark:text-white/60">
+              Signed in as
+              <div class="font-medium truncate text-black dark:text-white">
+                {{ user.Username }}
+              </div>
+              <div class="text-[11px] uppercase tracking-wide mt-1">
+                {{ user.Usertype }}
+              </div>
+            </div>
+
+            <div class="border-t border-black/5 dark:border-white/10"></div>
+
+            <a
+              routerLink="/dashboard"
+              class="block px-4 py-3 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition"
+            >
+              Dashboard
+            </a>
+
+            <button
+              (click)="logout()"
+              class="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Logged Out -->
+      <ng-template #loggedOut>
+        <a
+          routerLink="/auth/login"
+          class="px-5 py-2 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition"
+        >
+          Sign In
+        </a>
+      </ng-template>
     </div>
 
     <!-- Mobile Toggle -->
@@ -88,17 +166,37 @@
     <a class="block text-black/70 dark:text-white/80 hover:text-black dark:hover:text-white">
       Features
     </a>
+
     <a class="block text-black/70 dark:text-white/80 hover:text-black dark:hover:text-white">
       Pricing
     </a>
-    <a class="block text-black/70 dark:text-white/80 hover:text-black dark:hover:text-white">
-      Customers
-    </a>
 
-    <button
-      class="w-full mt-4 px-5 py-3 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition"
-    >
-      Sign In
-    </button>
+    <ng-container *ngIf="user$ | async as user; else mobileLoggedOut">
+      <div class="pt-2 text-sm text-black/60 dark:text-white/60">
+        Signed in as
+        <div class="font-medium text-black dark:text-white">
+          {{ user.Username }}
+        </div>
+        <div class="text-[11px] uppercase tracking-wide">
+          {{ user.Usertype }}
+        </div>
+      </div>
+
+      <button
+        (click)="logout()"
+        class="w-full mt-4 px-5 py-3 rounded-xl bg-red-500/10 text-red-600 hover:bg-red-500/20 transition"
+      >
+        Sign out
+      </button>
+    </ng-container>
+
+    <ng-template #mobileLoggedOut>
+      <a
+        routerLink="/auth/login"
+        class="block w-full mt-4 px-5 py-3 text-center rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition"
+      >
+        Sign In
+      </a>
+    </ng-template>
   </div>
 </nav>

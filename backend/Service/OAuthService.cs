@@ -51,7 +51,7 @@ namespace backend.Services
                 "google"
             );
         }
-        
+
         public async Task<OAuthUser> VerifyMicrosoftTokenAsync(string microsoftToken)
         {
             if (_microsoftClientId == null)

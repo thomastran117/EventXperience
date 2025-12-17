@@ -50,7 +50,7 @@ export class AuthService {
   googleVerify(idToken: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(
       `${this.baseUrl}/google`,
-      { id_token: idToken },
+      { Token: idToken },
       { withCredentials: true },
     );
   }
@@ -58,7 +58,7 @@ export class AuthService {
   microsoftVerify(idToken: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(
       `${this.baseUrl}/microsoft`,
-      { id_token: idToken },
+      { Token: idToken },
       { withCredentials: true },
     );
   }

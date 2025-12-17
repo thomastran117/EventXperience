@@ -4,7 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 import { LoginComponent } from './pages/login/login.component';
-
+import { GoogleCallbackComponent } from './pages/google-callback/google-callback.component';
 @NgModule({
   imports: [
     CommonModule,
@@ -12,6 +12,7 @@ import { LoginComponent } from './pages/login/login.component';
     RouterModule.forChild([
       { path: '', redirectTo: 'login', pathMatch: 'full' },
       { path: 'login', component: LoginComponent },
+      { path: 'google', component: GoogleCallbackComponent },
     ]),
   ],
 })

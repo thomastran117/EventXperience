@@ -1,5 +1,8 @@
+
 using backend.Interfaces;
 using backend.Resources;
+
+using Microsoft.Extensions.Logging;
 
 using StackExchange.Redis;
 
@@ -7,27 +10,28 @@ namespace backend.Services
 {
     public class CacheService : BaseCacheService, ICacheService
     {
-        public CacheService(RedisResource redisResource)
-            : base(redisResource) { }
+        public CacheService(
+            RedisResource redisResource
+        ) : base(redisResource) { }
 
         public Task<bool> SetValueAsync(string key, string value, TimeSpan? expiry = null) =>
-            ExecuteAsync(async () => await _db.StringSetAsync(key, value, expiry), fallback: false);
+            ExecuteAsync(() => _db.StringSetAsync(key, value, expiry), false);
 
         public Task<string?> GetValueAsync(string key) =>
             ExecuteAsync(async () =>
             {
-                var result = await _db.StringGetAsync(key);
-                return result.HasValue ? result.ToString() : null;
+                var v = await _db.StringGetAsync(key);
+                return v.HasValue ? v.ToString() : null;
             });
 
         public Task<long> IncrementAsync(string key, long value = 1) =>
-            ExecuteAsync(async () => await _db.StringIncrementAsync(key, value), fallback: 0);
+            ExecuteAsync(() => _db.StringIncrementAsync(key, value), 0);
 
         public Task<long> DecrementAsync(string key, long value = 1) =>
-            ExecuteAsync(async () => await _db.StringDecrementAsync(key, value), fallback: 0);
+            ExecuteAsync(() => _db.StringDecrementAsync(key, value), 0);
 
         public Task<bool> HashSetAsync(string key, string field, string value) =>
-            ExecuteAsync(async () => await _db.HashSetAsync(key, field, value), fallback: false);
+            ExecuteAsync(() => _db.HashSetAsync(key, field, value), false);
 
         public Task<string?> HashGetAsync(string key, string field) =>
             ExecuteAsync(async () =>
@@ -41,32 +45,32 @@ namespace backend.Services
             {
                 var entries = await _db.HashGetAllAsync(key);
                 return entries.ToDictionary(
-                    x => x.Name.ToString(),
-                    x => x.Value.ToString()
+                    e => e.Name.ToString(),
+                    e => e.Value.ToString()
                 );
-            }, fallback: new Dictionary<string, string>());
+            }, new Dictionary<string, string>());
 
         public Task<bool> HashDeleteAsync(string key, string field) =>
-            ExecuteAsync(async () => await _db.HashDeleteAsync(key, field), fallback: false);
+            ExecuteAsync(() => _db.HashDeleteAsync(key, field), false);
 
         public Task<bool> SetAddAsync(string key, string value) =>
-            ExecuteAsync(async () => await _db.SetAddAsync(key, value), fallback: false);
+            ExecuteAsync(() => _db.SetAddAsync(key, value), false);
 
         public Task<bool> SetRemoveAsync(string key, string value) =>
-            ExecuteAsync(async () => await _db.SetRemoveAsync(key, value), fallback: false);
+            ExecuteAsync(() => _db.SetRemoveAsync(key, value), false);
 
         public Task<string[]> SetMembersAsync(string key) =>
             ExecuteAsync(async () =>
             {
                 var members = await _db.SetMembersAsync(key);
                 return members.Select(m => m.ToString()).ToArray();
-            }, fallback: Array.Empty<string>());
+            }, Array.Empty<string>());
 
         public Task<long> ListLeftPushAsync(string key, string value) =>
-            ExecuteAsync(async () => await _db.ListLeftPushAsync(key, value), fallback: 0);
+            ExecuteAsync(() => _db.ListLeftPushAsync(key, value), 0);
 
         public Task<long> ListRightPushAsync(string key, string value) =>
-            ExecuteAsync(async () => await _db.ListRightPushAsync(key, value), fallback: 0);
+            ExecuteAsync(() => _db.ListRightPushAsync(key, value), 0);
 
         public Task<string?> ListLeftPopAsync(string key) =>
             ExecuteAsync(async () =>
@@ -83,27 +87,22 @@ namespace backend.Services
             });
 
         public Task<bool> DeleteKeyAsync(string key) =>
-            ExecuteAsync(async () => await _db.KeyDeleteAsync(key), fallback: false);
+            ExecuteAsync(() => _db.KeyDeleteAsync(key), false);
 
         public Task<bool> KeyExistsAsync(string key) =>
-            ExecuteAsync(async () => await _db.KeyExistsAsync(key), fallback: false);
+            ExecuteAsync(() => _db.KeyExistsAsync(key), false);
 
         public Task<TimeSpan?> GetTTLAsync(string key) =>
-            ExecuteAsync(async () => await _db.KeyTimeToLiveAsync(key));
+            ExecuteAsync(() => _db.KeyTimeToLiveAsync(key));
 
         public Task<bool> SetExpiryAsync(string key, TimeSpan expiry) =>
-            ExecuteAsync(async () => await _db.KeyExpireAsync(key, expiry), fallback: false);
-
-        public IEnumerable<string> ScanKeys(IServer server, string pattern)
-        {
-            foreach (var key in server.Keys(pattern: pattern))
-                yield return key.ToString();
-        }
+            ExecuteAsync(() => _db.KeyExpireAsync(key, expiry), false);
 
         public Task<bool> AcquireLockAsync(string key, string value, TimeSpan expiry) =>
-            ExecuteAsync(async () =>
-                await _db.StringSetAsync(key, value, expiry, when: When.NotExists),
-                fallback: false);
+            ExecuteAsync(
+                () => _db.StringSetAsync(key, value, expiry, When.NotExists),
+                false
+            );
 
         public Task<bool> ReleaseLockAsync(string key, string value) =>
             ExecuteAsync(async () =>
@@ -113,12 +112,18 @@ namespace backend.Services
                     return false;
 
                 return await DeleteKeyAsync(key);
-            }, fallback: false);
+            }, false);
 
         public IServer GetServer()
         {
             var endpoint = _redis.GetEndPoints().First();
             return _redis.GetServer(endpoint);
+        }
+
+        public IEnumerable<string> ScanKeys(IServer server, string pattern)
+        {
+            foreach (var key in server.Keys(pattern: pattern)) 
+                yield return key.ToString();
         }
     }
 }

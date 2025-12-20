@@ -12,5 +12,9 @@ namespace backend.Interfaces
         Task<bool> UpdatePartialAsync(int id, Action<Club> patch);
         Task<bool> DeleteAsync(int id);
         Task<bool> ExistsAsync(int id);
+        Task<List<Club>> SearchAsync(
+            string? search,
+            int page = 1,
+            int pageSize = 20);
     }
 }

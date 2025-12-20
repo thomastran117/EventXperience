@@ -118,5 +118,35 @@ namespace backend.Repositories
                 return true;
             })!;
         }
+
+        public async Task<List<Club>> SearchAsync(
+            string? search,
+            int page = 1,
+            int pageSize = 20)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                IQueryable<Club> query = _context.Clubs
+                    .Include(c => c.User)
+                    .Include(c => c.EventClubs)
+                    .AsNoTracking();
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var term = search.Trim();
+
+                    query = query.Where(c =>
+                        EF.Functions.Like(c.Name, $"%{term}%") ||
+                        EF.Functions.Like(c.Description, $"%{term}%")
+                    );
+                }
+
+                return await query
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+            })!;
+        }
     }
 }

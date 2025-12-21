@@ -59,5 +59,5 @@ namespace backend.Services
 
             return ttl.Value <= refreshAhead;
         }
-    }   
+    }
 }

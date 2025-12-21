@@ -75,7 +75,6 @@ namespace backend.Services
 
         public async Task<Club> GetClub(int clubId)
         {
-            await TrackClubAccessAsync(clubId);
             var key = $"club:{clubId}";
 
             var cached = await _cache.GetValueAsync(key);
@@ -83,20 +82,41 @@ namespace backend.Services
             if (cached == NullSentinel)
                 throw new NotFoundException($"Club {clubId} not found");
 
+            Club club;
+
             if (cached != null)
             {
                 var dto = JsonSerializer.Deserialize<ClubCacheDto>(cached)!;
-                return ClubCacheMapper.ToEntity(dto);
+                club = ClubCacheMapper.ToEntity(dto);
             }
-
-            var club = await _clubRepository.GetByIdAsync(clubId);
-            if (club == null)
+            else
             {
-                await _cache.SetValueAsync(key, NullSentinel, NotFoundTTL);
-                throw new NotFoundException($"Club {clubId} not found");
+                var fetchedClub = await _clubRepository.GetByIdAsync(clubId);
+                if (fetchedClub == null)
+                {
+                    await _cache.SetValueAsync(key, NullSentinel, NotFoundTTL);
+                    throw new NotFoundException($"Club {clubId} not found");
+                }
+
+                club = fetchedClub;
+                await CacheClubAsync(club);
             }
 
-            await CacheClubAsync(club);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await TrackClubAccessAsync(clubId);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(
+                        ex,
+                        "Failed to track club access for club"
+                    );
+                }
+            });
+
             return club;
         }
 

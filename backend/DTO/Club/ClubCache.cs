@@ -9,7 +9,6 @@ namespace backend.DTOs
         string? Phone,
         string? Email,
         int MemberCount,
-        bool IsVerified,
         int UserId
     );
 }

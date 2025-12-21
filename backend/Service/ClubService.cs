@@ -61,8 +61,6 @@ namespace backend.Services
                 Email = email,
                 UserId = userId,
                 MemberCount = 0,
-                IsVerified = false,
-                User = user
             };
 
             var created = await _clubRepository.CreateAsync(club);
@@ -148,9 +146,6 @@ namespace backend.Services
         {
             var existing = await GetClub(clubId);
 
-            if (existing.UserId != userId)
-                throw new ForbiddenException("Not allowed");
-
             var newImage = await _fileUploadService.UploadImageAsync(clubimage, "clubs")
                 ?? throw new InternalServerException("Image upload failed");
 
@@ -163,9 +158,7 @@ namespace backend.Services
                 Phone = phone,
                 Email = email,
                 MemberCount = existing.MemberCount,
-                IsVerified = existing.IsVerified,
                 UserId = userId,
-                User = existing.User
             }) ?? throw new InternalServerException("Update failed");
 
             await CacheClubAsync(updated);

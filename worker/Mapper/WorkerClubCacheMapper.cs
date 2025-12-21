@@ -31,7 +31,6 @@ namespace backend.Mappers
             MemberCount = dto.MemberCount,
             IsVerified = dto.IsVerified,
             UserId = dto.UserId,
-            User = null!
         };
     }
 }

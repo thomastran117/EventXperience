@@ -32,8 +32,8 @@ namespace backend.Resources
                 .IsUnique();
 
             modelBuilder.Entity<Club>()
-                .HasOne(c => c.User)
-                .WithMany(u => u.Clubs)
+                .HasOne<User>()
+                .WithMany()
                 .HasForeignKey(c => c.UserId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
@@ -47,7 +47,7 @@ namespace backend.Resources
 
             modelBuilder.Entity<EventClub>()
                 .HasOne(c => c.Club)
-                .WithMany(e => e.EventClubs)
+                .WithMany()
                 .HasForeignKey(c => c.ClubId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);

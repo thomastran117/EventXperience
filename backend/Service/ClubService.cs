@@ -20,7 +20,9 @@ namespace backend.Services
         private static readonly TimeSpan ClubTTL = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan ClubListTTL = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan NotFoundTTL = TimeSpan.FromSeconds(15);
-
+        private const int HotThreshold = 5;
+        private static readonly TimeSpan HotWindow = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan HotCooldown = TimeSpan.FromMinutes(2);
         private const string ClubListVersionKey = "clubs:version";
         private const string NullSentinel = "__null__";
 
@@ -73,6 +75,7 @@ namespace backend.Services
 
         public async Task<Club> GetClub(int clubId)
         {
+            await TrackClubAccessAsync(clubId);
             var key = $"club:{clubId}";
 
             var cached = await _cache.GetValueAsync(key);
@@ -220,5 +223,33 @@ namespace backend.Services
                 baseTtl.TotalMilliseconds * delta / 100.0
             );
         }
+
+        private async Task TrackClubAccessAsync(int clubId)
+        {
+            var counterKey = $"club:hot:count:{clubId}";
+            var hotFlagKey = $"club:hot:{clubId}";
+
+            if (await _cache.KeyExistsAsync(hotFlagKey))
+                return;
+
+            var count = await _cache.IncrementAsync(counterKey);
+
+            if (count == 1)
+            {
+                await _cache.SetExpiryAsync(counterKey, HotWindow);
+            }
+
+            if (count >= HotThreshold)
+            {
+                await _cache.SetValueAsync(
+                    hotFlagKey,
+                    "1",
+                    HotCooldown
+                );
+
+                Console.WriteLine("hot");
+            }
+        }
+
     }
 }

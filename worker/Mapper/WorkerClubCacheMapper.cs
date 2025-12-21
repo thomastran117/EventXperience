@@ -2,7 +2,7 @@ using worker.Common;
 using worker.DTOs;
 using worker.Models;
 
-namespace backend.Mappers
+namespace worker.Mappers
 {
     public static class ClubCacheMapper
     {
@@ -15,7 +15,6 @@ namespace backend.Mappers
             club.Phone,
             club.Email,
             club.MemberCount,
-            club.IsVerified,
             club.UserId
         );
 
@@ -29,7 +28,6 @@ namespace backend.Mappers
             Phone = dto.Phone,
             Email = dto.Email,
             MemberCount = dto.MemberCount,
-            IsVerified = dto.IsVerified,
             UserId = dto.UserId,
         };
     }

@@ -1,7 +1,7 @@
+using StackExchange.Redis;
+
 using worker.Resources;
 using worker.Utilities;
-
-using StackExchange.Redis;
 
 namespace worker.Services
 {

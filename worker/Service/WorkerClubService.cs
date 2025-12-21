@@ -5,19 +5,19 @@ using worker.Mappers;
 using worker.Models;
 using worker.Utilities;
 
-namespace worker.Services
+namespace backend.Services
 {
-    public class ClubCacheService : IClubService
+    public class WorkerClubService
     {
         private readonly IClubRepository _clubRepository;
         private readonly ICacheService _cache;
-
         private static readonly TimeSpan ClubTTL = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan ClubListTTL = TimeSpan.FromSeconds(60);
-
+        private static string LockKey(string key) => $"lock:{key}";
+        private const int LockSeconds = 10;
         private const string ClubListVersionKey = "clubs:version";
 
-        public ClubCacheService(
+        public WorkerClubService(
             IClubRepository clubRepository,
             ICacheService cache)
         {
@@ -25,79 +25,144 @@ namespace worker.Services
             _cache = cache;
         }
 
-        // ----------------------------------------------------
-        // Revalidate individual club entries
-        // ----------------------------------------------------
-        public async Task RevalidateClubCacheAsync(int batchSize = 100)
+        public async Task WarmAsync(
+            int maxPages = 3,
+            int pageSize = 20)
         {
-            var page = 1;
+            var version = await EnsureClubListVersionAsync();
 
-            while (true)
+            for (var page = 1; page <= maxPages; page++)
             {
-                var clubs = await _clubRepository.FetchBatchAsync(page, batchSize);
-                if (clubs.Count == 0) break;
+                var warmed = await WarmClubListPageAsync(version, page, pageSize);
 
-                foreach (var club in clubs)
-                {
-                    await _cache.SetValueAsync(
-                        CacheKeys.Club(club.Id),
-                        JsonSerializer.Serialize(
-                            ClubCacheMapper.ToDto(club)
-                        ),
-                        WithJitter(ClubTTL)
-                    );
-                }
+                if (!warmed)
+                    break;
+            }
 
-                page++;
+            var clubs = await _clubRepository.SearchAsync(
+                search: null,
+                page: 1,
+                pageSize: maxPages * pageSize
+            );
+
+            foreach (var club in clubs)
+            {
+                await CacheClubAsync(club);
             }
         }
 
-        // ----------------------------------------------------
-        // Revalidate club list caches
-        // ----------------------------------------------------
-        public async Task RevalidateClubListsAsync(
-            int[] pages,
-            int pageSize = 20)
+        public async Task WarmClubAndInvalidateListsAsync(int clubId)
         {
-            var version = await GetVersionAsync();
+            await WarmClubAsync(clubId);
+            await _cache.IncrementAsync(ClubListVersionKey);
+        }
 
-            foreach (var page in pages)
+        public async Task WarmClubAsync(int clubId)
+        {
+            var key = $"club:{clubId}";
+            var ttl = await _cache.GetTTLAsync(key);
+
+            if (!CacheRefreshPolicy.ShouldRefresh(
+                    ttl,
+                    refreshAhead: TimeSpan.FromSeconds(30)))
+            {
+                return;
+            }
+
+            if (!await TryAcquireLockAsync(key))
+                return;
+
+            try
+            {
+                var club = await _clubRepository.GetByIdAsync(clubId);
+                if (club == null)
+                    return;
+
+                await _cache.SetValueAsync(
+                    key,
+                    JsonSerializer.Serialize(ClubCacheMapper.ToDto(club)),
+                    WithJitter(ClubTTL)
+                );
+            }
+            finally
+            {
+                await ReleaseLockAsync(key);
+            }
+        }
+
+        private async Task<bool> WarmClubListPageAsync(
+            long version,
+            int page,
+            int pageSize)
+        {
+            var key = $"clubs:list:v{version}:p{page}:s{pageSize}";
+            var ttl = await _cache.GetTTLAsync(key);
+
+            if (!CacheRefreshPolicy.ShouldRefresh(
+                    ttl,
+                    refreshAhead: TimeSpan.FromSeconds(30)))
+            {
+                return true;
+            }
+
+            if (!await TryAcquireLockAsync(key))
+                return true;
+
+            try
             {
                 var clubs = await _clubRepository.SearchAsync(
                     search: null,
                     page: page,
-                    pageSize: pageSize);
+                    pageSize: pageSize
+                );
+
+                if (clubs.Count == 0)
+                    return false; // 🛑 stop paging
+
+                var dtoList = clubs
+                    .Select(ClubCacheMapper.ToDto)
+                    .ToList();
 
                 await _cache.SetValueAsync(
-                    CacheKeys.ClubList(
-                        version,
-                        null,
-                        page,
-                        pageSize),
-                    JsonSerializer.Serialize(
-                        clubs.Select(ClubCacheMapper.ToDto)
-                    ),
+                    key,
+                    JsonSerializer.Serialize(dtoList),
                     WithJitter(ClubListTTL)
                 );
+
+                return true;
+            }
+            finally
+            {
+                await ReleaseLockAsync(key);
             }
         }
-
-        // ----------------------------------------------------
-        // Full revalidation entrypoint
-        // ----------------------------------------------------
-        public async Task RevalidateAllAsync()
+        private async Task CacheClubAsync(Club club)
         {
-            await RevalidateClubCacheAsync();
-            await RevalidateClubListsAsync(pages: new[] { 1, 2, 3 });
-        }
+            var key = $"club:{club.Id}";
+            var ttl = await _cache.GetTTLAsync(key);
 
-        // ----------------------------------------------------
-        // Helpers
-        // ----------------------------------------------------
-        private async Task<long> GetVersionAsync()
+            if (!CacheRefreshPolicy.ShouldRefresh(
+                    ttl,
+                    refreshAhead: TimeSpan.FromSeconds(30)))
+            {
+                return;
+            }
+
+            await _cache.SetValueAsync(
+                key,
+                JsonSerializer.Serialize(ClubCacheMapper.ToDto(club)),
+                WithJitter(ClubTTL)
+            );
+        }
+        private async Task<long> EnsureClubListVersionAsync()
         {
             var v = await _cache.GetValueAsync(ClubListVersionKey);
-            return long.TryParse(v, out var n) ? n : 1;
+
+            if (v != null && long.TryParse(v, out var parsed))
+                return parsed;
+
+            await _cache.SetValueAsync(ClubListVersionKey, "1");
+            return 1;
         }
 
         private static TimeSpan WithJitter(TimeSpan baseTtl, int percent = 20)
@@ -105,6 +170,23 @@ namespace worker.Services
             var delta = Random.Shared.Next(-percent, percent + 1);
             return baseTtl + TimeSpan.FromMilliseconds(
                 baseTtl.TotalMilliseconds * delta / 100.0
+            );
+        }
+
+        private async Task<bool> TryAcquireLockAsync(string key)
+        {
+            return await _cache.AcquireLockAsync(
+                LockKey(key),
+                Environment.MachineName,
+                TimeSpan.FromSeconds(LockSeconds)
+            );
+        }
+
+        private async Task ReleaseLockAsync(string key)
+        {
+            await _cache.ReleaseLockAsync(
+                LockKey(key),
+                Environment.MachineName
             );
         }
     }

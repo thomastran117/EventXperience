@@ -1,6 +1,6 @@
-using worker.Models;
-
 using Microsoft.EntityFrameworkCore;
+
+using worker.Models;
 
 namespace worker.Resources
 {

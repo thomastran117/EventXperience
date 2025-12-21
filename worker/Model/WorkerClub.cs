@@ -14,7 +14,6 @@ namespace worker.Models
         public double? Rating { get; set; }
         public string? WebsiteUrl { get; set; }
         public string? Location { get; set; }
-        public bool IsVerified { get; set; } = false;
         public int MemberCount { get; set; } = 0;
         public int UserId { get; set; }
     }

@@ -1,15 +1,15 @@
+using System.Linq.Expressions;
+
+using Microsoft.EntityFrameworkCore;
+
 using worker.Interfaces;
 using worker.Models;
 using worker.Resources;
 
-using Microsoft.EntityFrameworkCore;
-
-using System.Linq.Expressions;
-
 namespace worker.Repositories
 {
-public class ClubRepository : IClubRepository
-{
+    public class ClubRepository : IClubRepository
+    {
         private readonly WorkerDatabaseContext _context;
 
         public ClubRepository(WorkerDatabaseContext context)
@@ -51,7 +51,6 @@ public class ClubRepository : IClubRepository
             }
 
             return await query
-                .OrderByDescending(c => c.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

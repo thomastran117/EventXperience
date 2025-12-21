@@ -1,12 +1,12 @@
 using System.Data.Common;
 
-using worker.Resources;
-
 using Microsoft.EntityFrameworkCore;
 
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
+
+using worker.Resources;
 
 namespace worker.Repositories
 {

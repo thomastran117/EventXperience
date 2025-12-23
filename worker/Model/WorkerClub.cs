@@ -1,6 +1,6 @@
-using backend.Common;
+using worker.Common;
 
-namespace backend.Models
+namespace worker.Models
 {
     public class Club
     {
@@ -16,7 +16,5 @@ namespace backend.Models
         public string? Location { get; set; }
         public int MemberCount { get; set; } = 0;
         public int UserId { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

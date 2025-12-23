@@ -3,8 +3,17 @@ param(
     [string]$Command = "--help"
 )
 
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$ScriptsDir = Join-Path $ScriptDir "bin"
+$ErrorActionPreference = "Stop"
+
+$ScriptDir =
+    if ($PSScriptRoot) {
+        $PSScriptRoot
+    } else {
+        Split-Path -Parent $MyInvocation.MyCommand.Definition
+    }
+
+$RepoRoot = Resolve-Path $ScriptDir
+$ScriptsDir = Join-Path $RepoRoot "bin\powershell"
 
 function Write-Header {
     param([string]$Text)
@@ -26,7 +35,8 @@ function Invoke-Script {
     $Path = Join-Path $ScriptsDir $ScriptName
 
     if (-not (Test-Path $Path)) {
-        Write-Host "`nScript not found: $ScriptName`n" -ForegroundColor Red
+        Write-Host "`nScript not found: $ScriptName" -ForegroundColor Red
+        Write-Host "Expected location: $Path`n" -ForegroundColor DarkGray
         exit 1
     }
 

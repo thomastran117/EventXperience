@@ -1,8 +1,8 @@
-
-using backend.Interfaces;
-using backend.Resources;
-
 using StackExchange.Redis;
+
+using worker.Interfaces;
+using worker.Resources;
+using worker.Services;
 
 namespace backend.Services
 {
@@ -13,7 +13,7 @@ namespace backend.Services
         ) : base(redisResource) { }
 
         public Task<bool> SetValueAsync(string key, string value, TimeSpan? expiry = null) =>
-            ExecuteAsync(() => _db.StringSetAsync(key, value, expiry), false);
+            ExecuteAsync(() => _db.StringSetAsync(key, value, (Expiration)expiry), false);
 
         public Task<string?> GetValueAsync(string key) =>
             ExecuteAsync(async () =>

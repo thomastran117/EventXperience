@@ -46,8 +46,6 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 return await _context.Clubs
-                    .Include(c => c.User)
-                    .Include(c => c.EventClubs)
                     .AsNoTracking()
                     .OrderByDescending(c => c.CreatedAt)
                     .Skip((page - 1) * pageSize)
@@ -61,8 +59,6 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 return await _context.Clubs
-                    .Include(c => c.User)
-                    .Include(c => c.EventClubs)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.Id == id);
             });
@@ -73,7 +69,6 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 return await _context.Clubs
-                    .Include(c => c.EventClubs)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.UserId == userId);
             });
@@ -95,7 +90,6 @@ namespace backend.Repositories
                 existing.WebsiteUrl = updatedClub.WebsiteUrl;
                 existing.Location = updatedClub.Location;
                 existing.Rating = updatedClub.Rating;
-                existing.IsVerified = updatedClub.IsVerified;
                 existing.MemberCount = updatedClub.MemberCount;
                 existing.UpdatedAt = DateTime.UtcNow;
 
@@ -116,6 +110,34 @@ namespace backend.Repositories
 
                 await _context.SaveChangesAsync();
                 return true;
+            })!;
+        }
+
+        public async Task<List<Club>> SearchAsync(
+            string? search,
+            int page = 1,
+            int pageSize = 20)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                IQueryable<Club> query = _context.Clubs
+                    .AsNoTracking();
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var term = search.Trim();
+
+                    query = query.Where(c =>
+                        EF.Functions.Like(c.Name, $"%{term}%") ||
+                        EF.Functions.Like(c.Description, $"%{term}%")
+                    );
+                }
+
+                return await query
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
             })!;
         }
     }

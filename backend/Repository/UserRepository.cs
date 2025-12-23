@@ -95,7 +95,6 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 return await _context.Users
-                    .Include(u => u.Clubs)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Id == id);
             });
@@ -146,7 +145,6 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var query = _context.Users
-                    .Include(u => u.Clubs)
                     .AsNoTracking()
                     .AsQueryable();
 

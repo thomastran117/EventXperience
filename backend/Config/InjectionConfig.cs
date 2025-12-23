@@ -23,8 +23,6 @@ namespace backend.Config
             services.AddScoped<IClubService, ClubService>();
             services.AddScoped<IFileUploadService, FileUploadService>();
 
-            services.AddSingleton<IEmailService, EmailService>();
-
             services.AddSingleton<ICacheService>(sp =>
             {
                 var redisHealth = sp.GetRequiredService<RedisHealth>();

@@ -1,4 +1,4 @@
-namespace backend.DTOs
+namespace worker.DTOs
 {
     public record ClubCacheDto(
         int Id,

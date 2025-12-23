@@ -19,8 +19,12 @@ namespace backend.Services
 
         private static readonly TimeSpan ClubTTL = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan ClubListTTL = TimeSpan.FromSeconds(60);
-
+        private static readonly TimeSpan NotFoundTTL = TimeSpan.FromSeconds(15);
+        private const int HotThreshold = 5;
+        private static readonly TimeSpan HotWindow = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan HotCooldown = TimeSpan.FromMinutes(2);
         private const string ClubListVersionKey = "clubs:version";
+        private const string NullSentinel = "__null__";
 
         public ClubService(
             IClubRepository clubRepository,
@@ -59,8 +63,6 @@ namespace backend.Services
                 Email = email,
                 UserId = userId,
                 MemberCount = 0,
-                IsVerified = false,
-                User = user
             };
 
             var created = await _clubRepository.CreateAsync(club);
@@ -75,22 +77,47 @@ namespace backend.Services
         {
             var key = $"club:{clubId}";
 
-            var dto = await CacheHelpers.GetOrSetAsync(
-                _cache,
-                key,
-                async () =>
+            var cached = await _cache.GetValueAsync(key);
+
+            if (cached == NullSentinel)
+                throw new NotFoundException($"Club {clubId} not found");
+
+            Club club;
+
+            if (cached != null)
+            {
+                var dto = JsonSerializer.Deserialize<ClubCacheDto>(cached)!;
+                club = ClubCacheMapper.ToEntity(dto);
+            }
+            else
+            {
+                var fetchedClub = await _clubRepository.GetByIdAsync(clubId);
+                if (fetchedClub == null)
                 {
-                    var club = await _clubRepository.GetByIdAsync(clubId)
-                        ?? throw new NotFoundException($"Club {clubId} not found");
+                    await _cache.SetValueAsync(key, NullSentinel, NotFoundTTL);
+                    throw new NotFoundException($"Club {clubId} not found");
+                }
 
-                    return ClubCacheMapper.ToDto(club);
-                },
-                ClubTTL
-            );
+                club = fetchedClub;
+                await CacheClubAsync(club);
+            }
 
-            return dto is null
-                ? throw new InternalServerException()
-                : ClubCacheMapper.ToEntity(dto);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await TrackClubAccessAsync(clubId);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(
+                        ex,
+                        "Failed to track club access for club"
+                    );
+                }
+            });
+
+            return club;
         }
 
         public async Task<List<Club>> GetAllClubs(
@@ -100,31 +127,34 @@ namespace backend.Services
         {
             var version = await GetClubListVersionAsync();
 
-            var key = string.IsNullOrWhiteSpace(search)
-                ? $"clubs:list:v{version}:page:{page}:size:{pageSize}"
-                : $"clubs:list:v{version}:search:{search.ToLower()}:page:{page}:size:{pageSize}";
+            var normalizedSearch = search?.Trim().ToLowerInvariant();
 
-            var dtos = await CacheHelpers.GetOrSetAsync(
-                _cache,
-                key,
-                async () =>
-                {
-                    var clubs = await _clubRepository.GetAllAsync(page, pageSize);
+            var key = normalizedSearch == null
+                ? $"clubs:list:v{version}:p{page}:s{pageSize}"
+                : $"clubs:list:v{version}:q:{normalizedSearch}:p{page}:s{pageSize}";
 
-                    if (!string.IsNullOrWhiteSpace(search))
-                    {
-                        clubs = clubs.Where(c =>
-                            c.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                            c.Description.Contains(search, StringComparison.OrdinalIgnoreCase)
-                        ).ToList();
-                    }
+            var cached = await _cache.GetValueAsync(key);
+            if (cached != null)
+            {
+                var dtos = JsonSerializer.Deserialize<List<ClubCacheDto>>(cached)!;
+                return dtos.Select(ClubCacheMapper.ToEntity).ToList();
+            }
 
-                    return clubs.Select(ClubCacheMapper.ToDto).ToList();
-                },
-                ClubListTTL
+            var clubs = await _clubRepository.SearchAsync(
+                normalizedSearch,
+                page,
+                pageSize
             );
 
-            return dtos?.Select(ClubCacheMapper.ToEntity).ToList() ?? [];
+            var dtoList = clubs.Select(ClubCacheMapper.ToDto).ToList();
+
+            await _cache.SetValueAsync(
+                key,
+                JsonSerializer.Serialize(dtoList),
+                WithJitter(ClubListTTL)
+            );
+
+            return clubs;
         }
 
         public async Task<Club> UpdateClub(
@@ -139,23 +169,19 @@ namespace backend.Services
         {
             var existing = await GetClub(clubId);
 
-            if (existing.UserId != userId)
-                throw new ForbiddenException("Not allowed");
-
-            var newImage = await _fileUploadService.UploadImageAsync(clubimage, "clubs");
+            var newImage = await _fileUploadService.UploadImageAsync(clubimage, "clubs")
+                ?? throw new InternalServerException("Image upload failed");
 
             var updated = await _clubRepository.UpdateAsync(clubId, new Club
             {
                 Name = name,
                 Description = description,
                 Clubtype = Enum.Parse<ClubType>(clubtype, true),
-                ClubImage = newImage!,
+                ClubImage = newImage,
                 Phone = phone,
                 Email = email,
                 MemberCount = existing.MemberCount,
-                IsVerified = existing.IsVerified,
                 UserId = userId,
-                User = existing.User
             }) ?? throw new InternalServerException("Update failed");
 
             await CacheClubAsync(updated);
@@ -188,19 +214,62 @@ namespace backend.Services
             await _cache.SetValueAsync(
                 $"club:{club.Id}",
                 JsonSerializer.Serialize(ClubCacheMapper.ToDto(club)),
-                ClubTTL
+                WithJitter(ClubTTL)
             );
         }
 
         private async Task<long> GetClubListVersionAsync()
         {
             var v = await _cache.GetValueAsync(ClubListVersionKey);
-            return long.TryParse(v, out var version) ? version : 1;
+
+            if (v == null)
+            {
+                await _cache.SetValueAsync(ClubListVersionKey, "1");
+                return 1;
+            }
+
+            return long.Parse(v);
         }
 
         private async Task BumpClubListVersionAsync()
         {
             await _cache.IncrementAsync(ClubListVersionKey);
         }
+
+        private static TimeSpan WithJitter(TimeSpan baseTtl, int percent = 20)
+        {
+            var delta = Random.Shared.Next(-percent, percent + 1);
+            return baseTtl + TimeSpan.FromMilliseconds(
+                baseTtl.TotalMilliseconds * delta / 100.0
+            );
+        }
+
+        private async Task TrackClubAccessAsync(int clubId)
+        {
+            var counterKey = $"club:hot:count:{clubId}";
+            var hotFlagKey = $"club:hot:{clubId}";
+
+            if (await _cache.KeyExistsAsync(hotFlagKey))
+                return;
+
+            var count = await _cache.IncrementAsync(counterKey);
+
+            if (count == 1)
+            {
+                await _cache.SetExpiryAsync(counterKey, HotWindow);
+            }
+
+            if (count >= HotThreshold)
+            {
+                await _cache.SetValueAsync(
+                    hotFlagKey,
+                    "1",
+                    HotCooldown
+                );
+
+                Console.WriteLine("hot");
+            }
+        }
+
     }
 }

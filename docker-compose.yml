@@ -73,6 +73,26 @@ services:
     networks:
       - event-network
 
+  postgresql:
+    image: postgres:16
+    container_name: event-psql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    networks:
+      - event-network
+
   redis:
     container_name: event-redis
     image: redis:7-alpine
@@ -110,3 +130,4 @@ networks:
 volumes:
   mysql_data:
   redis_data:
+  pgdata:

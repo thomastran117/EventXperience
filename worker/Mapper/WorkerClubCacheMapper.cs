@@ -1,8 +1,8 @@
-using backend.Common;
-using backend.DTOs;
-using backend.Models;
+using worker.Common;
+using worker.DTOs;
+using worker.Models;
 
-namespace backend.Mappers
+namespace worker.Mappers
 {
     public static class ClubCacheMapper
     {

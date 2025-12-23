@@ -13,7 +13,7 @@ $ScriptDir =
     }
 
 $RepoRoot = Resolve-Path $ScriptDir
-$ScriptsDir = Join-Path $RepoRoot "scripts\powershell"
+$ScriptsDir = Join-Path $RepoRoot "bin\powershell"
 
 function Write-Header {
     param([string]$Text)

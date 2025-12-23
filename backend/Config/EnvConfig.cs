@@ -7,7 +7,6 @@ namespace backend.Config
     public static class EnvManager
     {
         private static readonly string _dbConnectionString;
-        private static readonly string _mongoConnection;
         private static readonly string _redisConnection;
         private static readonly string _rabbitConnection;
         private static readonly string _jwtSecretKeyAccess;
@@ -26,11 +25,6 @@ namespace backend.Config
             _dbConnectionString = GetOrDefault(
                 "DB_CONNECTION_STRING",
                 "Server=localhost;Port=3306;Database=database;User=root;Password=password123"
-            );
-
-            _mongoConnection = GetOrDefault(
-                "MONGO_CONNECTION",
-                "mongodb://localhost:27017/eventxperience"
             );
 
             _redisConnection = GetOrDefault(
@@ -105,7 +99,6 @@ namespace backend.Config
 
         public static string DbConnectionString => _dbConnectionString;
         public static string RedisConnection => _redisConnection;
-        public static string MongoConnection => _mongoConnection;
         public static string RabbitConnection => _rabbitConnection;
         public static string JwtSecretKeyAccess => _jwtSecretKeyAccess;
         public static string? Email => _email;

@@ -37,7 +37,6 @@ PORT=8090
 
 DB_CONNECTION_STRING="Server=localhost;Port=3306;Database=database;User=root;Password=password"
 REDIS_CONNECTION="localhost:6379"
-MONGO_URL="mongodb://localhost:27017/app"
 
 ##############################################
 # CORS Configuration

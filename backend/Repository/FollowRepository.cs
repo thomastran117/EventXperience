@@ -39,12 +39,13 @@ namespace backend.Repositories
             });
         }
 
-        public async Task<IEnumerable<FollowClub>> GetFollowsAsync(int userId, int page = 1, int pageSize = 20)
+        public async Task<IEnumerable<FollowClub>> GetFollowsAsync(int page = 1, int pageSize = 20)
         {
             return await ExecuteAsync(async () =>
             {
                 return await _context.FollowClubs
                     .AsNoTracking()
+                    .OrderByDescending(f => f.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
@@ -60,7 +61,7 @@ namespace backend.Repositories
                 _context.FollowClubs
                     .AsNoTracking()
                     .Where(f => f.ClubId == clubId)
-                    .OrderBy(f => f.UserId)
+                    .OrderByDescending(f => f.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync()
@@ -76,7 +77,7 @@ namespace backend.Repositories
                 _context.FollowClubs
                     .AsNoTracking()
                     .Where(f => f.UserId == userId)
-                    .OrderBy(f => f.ClubId)
+                    .OrderByDescending(f => f.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync()

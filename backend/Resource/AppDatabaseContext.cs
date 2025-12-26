@@ -9,6 +9,7 @@ namespace backend.Resources
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Club> Clubs { get; set; } = null!;
         public DbSet<EventClub> EventClubs { get; set; } = null!;
+        public DbSet<FollowClub> FollowClubs { get; set; } = null!;
         public AppDatabaseContext(DbContextOptions<AppDatabaseContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,6 +45,26 @@ namespace backend.Resources
 
             modelBuilder.Entity<Club>()
                 .HasIndex(c => c.UserId);
+
+            modelBuilder.Entity<FollowClub>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(f => f.UserId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FollowClub>()
+                .HasOne<Club>()
+                .WithMany()
+                .HasForeignKey(f => f.ClubId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FollowClub>()
+                .HasIndex(f => f.ClubId);
+
+            modelBuilder.Entity<FollowClub>()
+                .HasIndex(f => f.UserId);
 
             modelBuilder.Entity<EventClub>()
                 .HasOne(c => c.Club)

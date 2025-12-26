@@ -5,6 +5,7 @@ using backend.Common;
 using backend.Config;
 using backend.Exceptions;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 namespace backend.Middlewares
@@ -29,9 +30,56 @@ namespace backend.Middlewares
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(EnvManager.JwtSecretKeyAccess))
                     };
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnChallenge = async context =>
+                        {
+                            context.HandleResponse();
+
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            context.Response.ContentType = "application/json";
+
+                            var message = context.ErrorDescription switch
+                            {
+                                null => "Missing access token",
+                                _ => "Invalid or expired access token"
+                            };
+
+                            var payload = new
+                            {
+                                status = 401,
+                                error = "Unauthorized",
+                                message
+                            };
+
+                            await context.Response.WriteAsJsonAsync(payload);
+                        },
+
+                        OnForbidden = async context =>
+                        {
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            context.Response.ContentType = "application/json";
+
+                            await context.Response.WriteAsJsonAsync(new
+                            {
+                                status = 403,
+                                error = "Forbidden",
+                                message = "You do not have permission to access this resource"
+                            });
+                        }
+                    };
                 });
 
-            services.AddAuthorization();
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("AdminOnly", p =>
+                    p.RequireRole("Admin"));
+
+                options.AddPolicy("OrganizerOnly", p =>
+                    p.RequireRole("Organizer"));
+            });
             return services;
         }
     }

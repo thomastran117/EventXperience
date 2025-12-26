@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace backend.Repositories
 {
-    public class FollowRepository: BaseRepository, IFollowRepository
+    public class FollowRepository : BaseRepository, IFollowRepository
     {
         public FollowRepository(AppDatabaseContext context) : base(context) { }
 

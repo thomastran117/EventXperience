@@ -36,6 +36,7 @@ namespace backend.Services
 
         public async Task<Events> CreateEvent(
             int clubId,
+            int userId,
             string name,
             string description,
             string location,
@@ -62,7 +63,7 @@ namespace backend.Services
                     StartTime = startTime,
                     EndTime = endTime,
                     isPrivate = isPrivate,
-                    maxPartipcants = maxParticipants,
+                    maxParticipants = maxParticipants,
                     registerCost = registerCost,
                     ClubId = clubId
                 };
@@ -78,7 +79,7 @@ namespace backend.Services
             {
                 if (e is AppException) throw;
 
-                Logger.Error($"[EventsService] GetFollowsAsync failed: {e}");
+                Logger.Error($"[EventsService] CreateEvent failed: {e}");
                 throw new InternalServerException();
             }
         }
@@ -110,7 +111,7 @@ namespace backend.Services
             {
                 if (e is AppException) throw;
 
-                Logger.Error($"[EventsService] GetFollowsAsync failed: {e}");
+                Logger.Error($"[EventsService] GetEvent failed: {e}");
                 throw new InternalServerException();
             }
         }
@@ -156,7 +157,7 @@ namespace backend.Services
             {
                 if (e is AppException) throw;
 
-                Logger.Error($"[EventsService] GetFollowsAsync failed: {e}");
+                Logger.Error($"[EventsService] GetEvents failed: {e}");
                 throw new InternalServerException();
             }
         }
@@ -184,14 +185,14 @@ namespace backend.Services
             {
                 if (e is AppException) throw;
 
-                Logger.Error($"[EventsService] GetFollowsAsync failed: {e}");
+                Logger.Error($"[EventsService] GetEventsByClub failed: {e}");
                 throw new InternalServerException();
             }
         }
 
         public async Task<Events> UpdateEvent(
             int eventId,
-            int clubId,
+            int userId,
             string name,
             string description,
             string location,
@@ -204,9 +205,15 @@ namespace backend.Services
         {
             try
             {
-                var existing = await GetEvent(eventId);
+                var evTask = GetEvent(eventId);
+                var clubTask = _clubService.GetClubByUser(userId);
 
-                if (existing.ClubId != clubId)
+                await Task.WhenAll(evTask, clubTask);
+
+                var existing = await evTask;
+                var club = await clubTask;
+
+                if (existing.ClubId != club.Id)
                     throw new ForbiddenException("Not allowed");
 
                 var newImage = await _fileUploadService.UploadImageAsync(image, "events")
@@ -221,9 +228,9 @@ namespace backend.Services
                     StartTime = startTime,
                     EndTime = endTime,
                     isPrivate = isPrivate,
-                    maxPartipcants = maxParticipants,
+                    maxParticipants = maxParticipants,
                     registerCost = registerCost,
-                    ClubId = clubId
+                    ClubId = club.Id
                 }) ?? throw new InternalServerException("Update failed");
 
                 await CacheEventAsync(updated);
@@ -238,18 +245,24 @@ namespace backend.Services
             {
                 if (e is AppException) throw;
 
-                Logger.Error($"[EventsService] GetFollowsAsync failed: {e}");
+                Logger.Error($"[EventsService] UpdateEvent failed: {e}");
                 throw new InternalServerException();
             }
         }
 
-        public async Task DeleteEvent(int eventId, int clubId)
+        public async Task DeleteEvent(int eventId, int userId)
         {
             try
             {
-                var ev = await GetEvent(eventId);
+                var evTask = GetEvent(eventId);
+                var clubTask = _clubService.GetClubByUser(userId);
 
-                if (ev.ClubId != clubId)
+                await Task.WhenAll(evTask, clubTask);
+
+                var ev = await evTask;
+                var club = await clubTask;
+
+                if (ev.ClubId != club.Id)
                     throw new ForbiddenException("Not allowed");
 
                 if (!await _eventsRepository.DeleteAsync(eventId))
@@ -263,7 +276,7 @@ namespace backend.Services
             {
                 if (e is AppException) throw;
 
-                Logger.Error($"[EventsService] GetFollowsAsync failed: {e}");
+                Logger.Error($"[EventsService] DeleteEvent failed: {e}");
                 throw new InternalServerException();
             }
         }

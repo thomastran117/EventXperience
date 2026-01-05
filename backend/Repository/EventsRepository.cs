@@ -65,7 +65,7 @@ namespace backend.Repositories
                 existing.Location = updated.Location;
                 existing.ImageUrl = updated.ImageUrl;
                 existing.isPrivate = updated.isPrivate;
-                existing.maxPartipcants = updated.maxPartipcants;
+                existing.maxParticipants = updated.maxParticipants;
                 existing.registerCost = updated.registerCost;
                 existing.StartTime = updated.StartTime;
                 existing.EndTime = updated.EndTime;

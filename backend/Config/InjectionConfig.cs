@@ -14,6 +14,7 @@ namespace backend.Config
             services.AddScoped<IFollowRepository, FollowRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IClubRepository, ClubRepository>();
+            services.AddScoped<IEventsRepository, EventsRepository>();
 
             services.AddSingleton<IPublisher, Publisher>();
 
@@ -23,6 +24,7 @@ namespace backend.Config
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IClubService, ClubService>();
             services.AddScoped<IFollowService, FollowService>();
+            services.AddScoped<IEventsService, EventsService>();
             services.AddScoped<IFileUploadService, FileUploadService>();
 
             services.AddSingleton<ICacheService>(sp =>

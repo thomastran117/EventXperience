@@ -6,6 +6,7 @@ namespace backend.Interfaces
     {
         Task<Events> CreateEvent(
             int clubId,
+            int userId,
             string name,
             string description,
             string location,
@@ -37,7 +38,7 @@ namespace backend.Interfaces
 
         Task<Events> UpdateEvent(
             int eventId,
-            int clubId,
+            int userId,
             string name,
             string description,
             string location,
@@ -49,6 +50,6 @@ namespace backend.Interfaces
             int registerCost
         );
 
-        Task DeleteEvent(int eventId, int clubId);
+        Task DeleteEvent(int eventId, int userId);
     }
 }

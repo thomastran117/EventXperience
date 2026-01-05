@@ -8,7 +8,7 @@ public class Events
     public required string Location { get; set; }
     public required string ImageUrl { get; set; }
     public bool isPrivate { get; set; } = false;
-    public int maxPartipcants { get; set; } = 100;
+    public int maxParticipants { get; set; } = 100;
     public int registerCost { get; set; } = 0;
     public required DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }

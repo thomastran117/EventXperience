@@ -8,7 +8,7 @@ namespace backend.Resources
     {
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Club> Clubs { get; set; } = null!;
-        public DbSet<EventClub> EventClubs { get; set; } = null!;
+        public DbSet<Events> Events { get; set; } = null!;
         public DbSet<FollowClub> FollowClubs { get; set; } = null!;
         public AppDatabaseContext(DbContextOptions<AppDatabaseContext> options) : base(options) { }
 
@@ -66,8 +66,8 @@ namespace backend.Resources
             modelBuilder.Entity<FollowClub>()
                 .HasIndex(f => f.UserId);
 
-            modelBuilder.Entity<EventClub>()
-                .HasOne(c => c.Club)
+            modelBuilder.Entity<Events>()
+                .HasOne<Club>()
                 .WithMany()
                 .HasForeignKey(c => c.ClubId)
                 .IsRequired()

@@ -120,6 +120,54 @@ namespace backend.Services
             return club;
         }
 
+
+        public async Task<Club> GetClubByUser(int userId)
+        {
+            var key = $"club:{userId}";
+
+            var cached = await _cache.GetValueAsync(key);
+
+            if (cached == NullSentinel)
+                throw new NotFoundException($"Club {userId} not found");
+
+            Club club;
+
+            if (cached != null)
+            {
+                var dto = JsonSerializer.Deserialize<ClubCacheDto>(cached)!;
+                club = ClubCacheMapper.ToEntity(dto);
+            }
+            else
+            {
+                var fetchedClub = await _clubRepository.GetByIdAsync(userId);
+                if (fetchedClub == null)
+                {
+                    await _cache.SetValueAsync(key, NullSentinel, NotFoundTTL);
+                    throw new NotFoundException($"Club {userId} not found");
+                }
+
+                club = fetchedClub;
+                await CacheClubAsync(club);
+            }
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await TrackClubAccessAsync(userId);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(
+                        ex,
+                        "Failed to track club access for club"
+                    );
+                }
+            });
+
+            return club;
+        }
+
         public async Task<List<Club>> GetAllClubs(
             string? search = null,
             int page = 1,
@@ -270,6 +318,5 @@ namespace backend.Services
                 Console.WriteLine("hot");
             }
         }
-
     }
 }

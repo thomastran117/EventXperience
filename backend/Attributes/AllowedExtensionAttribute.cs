@@ -13,7 +13,8 @@ namespace backend.Attribute
 
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
-            if (value is not IFormFile file) return ValidationResult.Success;
+            if (value is not IFormFile file)
+                return ValidationResult.Success;
 
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
 

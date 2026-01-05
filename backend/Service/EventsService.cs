@@ -77,7 +77,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[EventsService] CreateEvent failed: {e}");
                 throw new InternalServerException();
@@ -109,7 +110,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[EventsService] GetEvent failed: {e}");
                 throw new InternalServerException();
@@ -155,7 +157,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[EventsService] GetEvents failed: {e}");
                 throw new InternalServerException();
@@ -183,7 +186,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[EventsService] GetEventsByClub failed: {e}");
                 throw new InternalServerException();
@@ -243,7 +247,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[EventsService] UpdateEvent failed: {e}");
                 throw new InternalServerException();
@@ -274,7 +279,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[EventsService] DeleteEvent failed: {e}");
                 throw new InternalServerException();

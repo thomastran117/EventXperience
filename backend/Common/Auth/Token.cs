@@ -4,8 +4,14 @@ namespace backend.Common
 {
     public class Token
     {
-        public string AccessToken { get; set; }
-        public string RefreshToken { get; set; }
+        public string AccessToken
+        {
+            get; set;
+        }
+        public string RefreshToken
+        {
+            get; set;
+        }
 
         public Token(string accessToken, string refreshToken)
         {
@@ -16,8 +22,14 @@ namespace backend.Common
 
     public class UserToken
     {
-        public Token token { get; set; }
-        public User user { get; set; }
+        public Token token
+        {
+            get; set;
+        }
+        public User user
+        {
+            get; set;
+        }
         public UserToken(Token token, User user)
         {
             this.token = token;

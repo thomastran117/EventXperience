@@ -26,7 +26,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var user = await _context.Users.FindAsync(id);
-                if (user == null) return null;
+                if (user == null)
+                    return null;
 
                 user.Password = updated.Password ?? user.Password;
                 user.Usertype = updated.Usertype ?? user.Usertype;
@@ -46,16 +47,25 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var existing = await _context.Users.FindAsync(updated.Id);
-                if (existing == null) return null;
+                if (existing == null)
+                    return null;
 
-                if (updated.Email != null) existing.Email = updated.Email;
-                if (updated.Password != null) existing.Password = updated.Password;
-                if (updated.Usertype != null) existing.Usertype = updated.Usertype;
-                if (updated.Name != null) existing.Name = updated.Name;
-                if (updated.Username != null) existing.Username = updated.Username;
-                if (updated.Avatar != null) existing.Avatar = updated.Avatar;
-                if (updated.Address != null) existing.Address = updated.Address;
-                if (updated.Phone != null) existing.Phone = updated.Phone;
+                if (updated.Email != null)
+                    existing.Email = updated.Email;
+                if (updated.Password != null)
+                    existing.Password = updated.Password;
+                if (updated.Usertype != null)
+                    existing.Usertype = updated.Usertype;
+                if (updated.Name != null)
+                    existing.Name = updated.Name;
+                if (updated.Username != null)
+                    existing.Username = updated.Username;
+                if (updated.Avatar != null)
+                    existing.Avatar = updated.Avatar;
+                if (updated.Address != null)
+                    existing.Address = updated.Address;
+                if (updated.Phone != null)
+                    existing.Phone = updated.Phone;
 
                 await _context.SaveChangesAsync();
                 return existing;
@@ -67,10 +77,13 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var user = await _context.Users.FindAsync(id);
-                if (user == null) return null;
+                if (user == null)
+                    return null;
 
-                if (googleId != null) user.GoogleID = googleId;
-                if (microsoftId != null) user.MicrosoftID = microsoftId;
+                if (googleId != null)
+                    user.GoogleID = googleId;
+                if (microsoftId != null)
+                    user.MicrosoftID = microsoftId;
 
                 await _context.SaveChangesAsync();
                 return user;
@@ -82,7 +95,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var user = await _context.Users.FindAsync(id);
-                if (user == null) return false;
+                if (user == null)
+                    return false;
 
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();

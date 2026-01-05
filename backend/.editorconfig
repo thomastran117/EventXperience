@@ -6,9 +6,17 @@ indent_size = 4
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
+max_line_length = 150
 
 csharp_new_line_before_open_brace = all
 csharp_indent_switch_labels = true
+csharp_wrap_before_binary_operators = true
+csharp_preserve_single_line_blocks = false
+csharp_preserve_single_line_statements = false
+csharp_new_line_before_open_brace = all
+csharp_new_line_between_query_expression_clauses = true
+csharp_indent_method_chain = true
 
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = true
+dotnet_diagnostic.IDE0055.severity = warning

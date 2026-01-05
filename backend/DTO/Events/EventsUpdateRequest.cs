@@ -19,7 +19,10 @@ namespace backend.DTOs
         [MaxFileSize(5 * 1024 * 1024)]
         public IFormFile EventImage { get; set; } = null!;
 
-        public bool IsPrivate { get; set; }
+        public bool IsPrivate
+        {
+            get; set;
+        }
 
         [Range(1, 10_000, ErrorMessage = "Max participants must be between 1 and 10,000.")]
         public int MaxParticipants { get; set; } = 100;
@@ -28,9 +31,15 @@ namespace backend.DTOs
         public int RegisterCost { get; set; } = 0;
 
         [Required]
-        public DateTime StartTime { get; set; }
+        public DateTime StartTime
+        {
+            get; set;
+        }
 
-        public DateTime? EndTime { get; set; }
+        public DateTime? EndTime
+        {
+            get; set;
+        }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {

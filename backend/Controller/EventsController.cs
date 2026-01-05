@@ -53,7 +53,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[EventsController] CreateEvent failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -90,7 +91,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[EventsController] UpdateEvent failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -114,7 +116,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[EventsController] DeleteEvent failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -137,7 +140,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[EventsController] GetEventsByClub failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -160,7 +164,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[EventsController] GetEvent failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -186,7 +191,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[EventsController] GetEvents failed: {e}");
                 return ErrorUtility.HandleError(e);

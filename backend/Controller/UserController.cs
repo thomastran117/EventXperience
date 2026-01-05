@@ -49,7 +49,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[UserController] DeleteUser failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -70,7 +71,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[UserController] UpdateAvatar failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -91,7 +93,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[UserController] PartialUpdateUser failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -126,7 +129,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[UserController] GetUsers failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -162,7 +166,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[UserController] GetUser failed: {e}");
                 return ErrorUtility.HandleError(e);

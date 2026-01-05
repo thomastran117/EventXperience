@@ -40,7 +40,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] LoginAsync failed: {e}");
                 throw new InternalServerException();
@@ -52,7 +53,8 @@ namespace backend.Services
             try
             {
                 var result = await _tokenService.VerificationTokenExist(email);
-                if (result is not null) return;
+                if (result is not null)
+                    return;
 
                 if (await _userRepository.EmailExistsAsync(email))
                     throw new ConflictException($"An account is already registered with the email: {email}");
@@ -80,7 +82,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] SignUpAsync failed: {e}");
                 throw new InternalServerException();
@@ -99,7 +102,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] VerifyAsync failed: {e}");
                 throw new InternalServerException();
@@ -111,7 +115,8 @@ namespace backend.Services
             try
             {
                 var existingEmail = await _userRepository.EmailExistsAsync(email);
-                if (!existingEmail) return;
+                if (!existingEmail)
+                    return;
 
                 User user = new User
                 {
@@ -134,7 +139,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] ForgotPasswordAsync failed: {e}");
                 throw new InternalServerException();
@@ -160,7 +166,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] ChangePasswordAsync failed: {e}");
                 throw new InternalServerException();
@@ -193,7 +200,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] GoogleAsync failed: {e}");
                 throw new InternalServerException();
@@ -226,7 +234,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] MicrosoftAsync failed: {e}");
                 throw new InternalServerException();
@@ -239,13 +248,15 @@ namespace backend.Services
             {
                 var userId = await _tokenService.ValidateRefreshToken(oldRefreshToken);
                 var user = await _userRepository.GetUserAsync(userId);
-                if (user == null) throw new NotFoundException($"User with ID {userId} is not found");
+                if (user == null)
+                    throw new NotFoundException($"User with ID {userId} is not found");
 
                 return await GenerateTokenPair(user);
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] HandleTokensAsync failed: {e}");
                 throw new InternalServerException();
@@ -261,7 +272,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] HashPassword failed: {e}");
                 throw new InternalServerException();
@@ -276,7 +288,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] HashPassword failed: {e}");
                 throw new InternalServerException();
@@ -291,7 +304,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] VerifyPassword failed: {e}");
                 throw new InternalServerException();
@@ -312,7 +326,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[AuthService] GenerateTokenPair failed: {e}");
                 throw new InternalServerException();

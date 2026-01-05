@@ -64,7 +64,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] FollowClubAsync failed: {e}");
                 throw new InternalServerException();
@@ -90,7 +91,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] GetFollowAsync failed: {e}");
                 throw new InternalServerException();
@@ -116,7 +118,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] GetFollowsByUserAsync failed: {e}");
                 throw new InternalServerException();
@@ -142,7 +145,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] GetFollowsByClubAsync failed: {e}");
                 throw new InternalServerException();
@@ -168,7 +172,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] IsFollowingClubAsync failed: {e}");
                 throw new InternalServerException();
@@ -192,7 +197,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] UnfollowClubAsync failed: {e}");
                 throw new InternalServerException();
@@ -216,7 +222,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] UnfollowClubAsync(id) failed: {e}");
                 throw new InternalServerException();
@@ -240,7 +247,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[FollowService] GetFollowsAsync failed: {e}");
                 throw new InternalServerException();

@@ -16,7 +16,10 @@ namespace backend.Utilities
 
         public LogLevel MinFileLevel { get; set; } = LogLevel.Warn;
 
-        public string? LogDirectory { get; set; }
+        public string? LogDirectory
+        {
+            get; set;
+        }
 
         public string FileNamePattern { get; set; } = "log_{date}.txt";
 

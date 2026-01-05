@@ -8,7 +8,10 @@ namespace backend.Config
 
     public class RateLimitOptions
     {
-        public RateLimitStrategy Strategy { get; set; }
+        public RateLimitStrategy Strategy
+        {
+            get; set;
+        }
 
         public int PermitLimit { get; set; } = 50;
         public TimeSpan Window { get; set; } = TimeSpan.FromSeconds(30);

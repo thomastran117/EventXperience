@@ -14,7 +14,10 @@ namespace backend.DTOs
         }
 
         [Required]
-        public int Id { get; set; }
+        public int Id
+        {
+            get; set;
+        }
 
         [Required]
         public string Name { get; set; } = string.Empty;
@@ -28,8 +31,17 @@ namespace backend.DTOs
         [Required]
         public string ClubImage { get; set; } = string.Empty;
 
-        public string? Phone { get; set; }
-        public string? Email { get; set; }
-        public double? Rating { get; set; }
+        public string? Phone
+        {
+            get; set;
+        }
+        public string? Email
+        {
+            get; set;
+        }
+        public double? Rating
+        {
+            get; set;
+        }
     }
 }

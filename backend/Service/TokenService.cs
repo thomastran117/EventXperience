@@ -59,7 +59,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[TokenService] GenerateAccessToken failed: {e}");
                 throw new InternalServerException();
@@ -90,13 +91,15 @@ namespace backend.Services
                     expiry: REFRESH_TTL
                 );
 
-                if (!result) throw new NotAvaliableException();
+                if (!result)
+                    throw new NotAvaliableException();
 
                 return token;
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[TokenService] GenerateRefreshToken failed: {e}");
                 throw new InternalServerException();
@@ -135,13 +138,15 @@ namespace backend.Services
 
 
                 var result = await _cacheService.DeleteKeyAsync($"refresh:{refreshToken}");
-                if (!result) throw new NotAvaliableException();
+                if (!result)
+                    throw new NotAvaliableException();
 
                 return userId;
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[TokenService] ValidateRefreshToken failed: {e}");
                 throw new InternalServerException();
@@ -153,7 +158,8 @@ namespace backend.Services
             try
             {
                 var existingToken = await _cacheService.GetValueAsync($"verify:email:{user.Email}");
-                if (existingToken is not null) return existingToken;
+                if (existingToken is not null)
+                    return existingToken;
 
                 string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
@@ -176,13 +182,15 @@ namespace backend.Services
                     expiry: VERIFY_TTL
                 );
 
-                if (!result) throw new NotAvaliableException();
+                if (!result)
+                    throw new NotAvaliableException();
 
                 return token;
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[TokenService] GenerateVerificationToken failed: {e}");
                 throw new InternalServerException();
@@ -208,7 +216,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[TokenService] VerifyVerificationToken failed: {e}");
                 throw new InternalServerException();
@@ -231,7 +240,8 @@ namespace backend.Services
             }
             catch (Exception e)
             {
-                if (e is AppException) throw;
+                if (e is AppException)
+                    throw;
 
                 Logger.Error($"[TokenService] VerificationTokenExist failed: {e}");
                 throw new InternalServerException();

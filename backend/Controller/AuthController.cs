@@ -49,7 +49,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] LocalAuthenticate failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -70,7 +71,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] LocalSignup failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -105,7 +107,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] LocalVerify failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -141,7 +144,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] GoogleAuthenticate failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -177,7 +181,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] ChangePassword failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -204,7 +209,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] Refresh failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -232,7 +238,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] Logout failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -253,7 +260,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] ForgotPassword failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -274,7 +282,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[AuthController] ChangePassword failed: {e}");
                 return ErrorUtility.HandleError(e);

@@ -147,8 +147,12 @@ namespace backend.Services
 
         public Task<bool> SetExpiryAsync(string key, TimeSpan expiry)
         {
-            if (!TryGet(key, out var e)) return Task.FromResult(false);
-            _store[key] = e with { Expiry = DateTime.UtcNow.Add(expiry) };
+            if (!TryGet(key, out var e))
+                return Task.FromResult(false);
+            _store[key] = e with
+            {
+                Expiry = DateTime.UtcNow.Add(expiry)
+            };
             return Task.FromResult(true);
         }
 
@@ -163,7 +167,8 @@ namespace backend.Services
         public Task<bool> ReleaseLockAsync(string key, string value)
         {
             var existing = GetValueAsync(key).Result;
-            if (existing != value) return Task.FromResult(false);
+            if (existing != value)
+                return Task.FromResult(false);
             return DeleteKeyAsync(key);
         }
 

@@ -41,7 +41,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[FollowController] FollowClub failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -68,7 +69,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[FollowController] UnfollowClub failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -86,7 +88,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[FollowController] GetAllFollows failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -104,7 +107,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[FollowController] GetClubFollows failed: {e}");
                 return ErrorUtility.HandleError(e);
@@ -123,7 +127,8 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                if (e is AppException) return ErrorUtility.HandleError(e);
+                if (e is AppException)
+                    return ErrorUtility.HandleError(e);
 
                 Logger.Error($"[FollowController] GetUserFollows failed: {e}");
                 return ErrorUtility.HandleError(e);

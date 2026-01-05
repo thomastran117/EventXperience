@@ -11,10 +11,25 @@ namespace backend.DTOs
             Avatar = "placeholder";
         }
 
-        public int Id { get; set; }
-        public string Username { get; set; }
-        public string Usertype { get; set; }
-        public string Token { get; set; }
-        public string Avatar { get; set; }
+        public int Id
+        {
+            get; set;
+        }
+        public string Username
+        {
+            get; set;
+        }
+        public string Usertype
+        {
+            get; set;
+        }
+        public string Token
+        {
+            get; set;
+        }
+        public string Avatar
+        {
+            get; set;
+        }
     }
 }

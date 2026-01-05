@@ -58,7 +58,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var existing = await _context.Events.FindAsync(id);
-                if (existing == null) return null;
+                if (existing == null)
+                    return null;
 
                 existing.Name = updated.Name;
                 existing.Description = updated.Description;
@@ -82,7 +83,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var events = await _context.Events.FindAsync(id);
-                if (events == null) return false;
+                if (events == null)
+                    return false;
 
                 patch(events);
                 events.UpdatedAt = DateTime.UtcNow;
@@ -97,7 +99,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var events = await _context.Events.FindAsync(id);
-                if (events == null) return false;
+                if (events == null)
+                    return false;
 
                 _context.Events.Remove(events);
                 await _context.SaveChangesAsync();

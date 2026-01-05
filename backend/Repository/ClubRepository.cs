@@ -25,7 +25,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var club = await _context.Clubs.FindAsync(id);
-                if (club == null) return false;
+                if (club == null)
+                    return false;
 
                 _context.Clubs.Remove(club);
                 await _context.SaveChangesAsync();
@@ -79,7 +80,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var existing = await _context.Clubs.FindAsync(id);
-                if (existing == null) return null;
+                if (existing == null)
+                    return null;
 
                 existing.Name = updatedClub.Name;
                 existing.Description = updatedClub.Description;
@@ -103,7 +105,8 @@ namespace backend.Repositories
             return await ExecuteAsync(async () =>
             {
                 var club = await _context.Clubs.FindAsync(id);
-                if (club == null) return false;
+                if (club == null)
+                    return false;
 
                 patch(club);
                 club.UpdatedAt = DateTime.UtcNow;

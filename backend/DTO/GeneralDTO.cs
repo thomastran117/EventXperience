@@ -11,7 +11,10 @@ namespace backend.DTOs
     public class ApiResponse<T>
     {
         public string Message { get; set; } = string.Empty;
-        public T? Data { get; set; }
+        public T? Data
+        {
+            get; set;
+        }
 
         public ApiResponse(string message, T data)
         {

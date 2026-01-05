@@ -8,6 +8,9 @@ namespace backend.DTOs
         [Required]
         [RegularExpression("^(participant|organizer|volunteer)$",
         ErrorMessage = "Usertype must be 'participant', 'organizer' or 'volunteer'.")]
-        public required string Usertype { get; set; }
+        public required string Usertype
+        {
+            get; set;
+        }
     }
 }

@@ -123,5 +123,27 @@ namespace backend.Services
             foreach (var key in server.Keys(pattern: pattern))
                 yield return key.ToString();
         }
+
+        public Task<Dictionary<string, string?>> GetManyAsync(IEnumerable<string> keys) =>
+            ExecuteAsync(async () =>
+            {
+                var keyArr = keys.Select(k => (RedisKey)k).ToArray();
+
+                if (keyArr.Length == 0)
+                    return new Dictionary<string, string?>();
+
+                var values = await _db.StringGetAsync(keyArr);
+
+                var result = new Dictionary<string, string?>(keyArr.Length);
+
+                for (int i = 0; i < keyArr.Length; i++)
+                {
+                    result[keyArr[i]!] = values[i].HasValue
+                        ? values[i].ToString()
+                        : null;
+                }
+
+                return result;
+            }, new Dictionary<string, string?>());
     }
 }

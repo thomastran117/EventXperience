@@ -154,5 +154,21 @@ namespace backend.Repositories
                     .ToListAsync();
             })!;
         }
+
+        public async Task<List<Events>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                var idList = ids.Distinct().ToList();
+
+                if (idList.Count == 0)
+                    return new List<Events>();
+
+                return await _context.Events
+                    .AsNoTracking()
+                    .Where(e => idList.Contains(e.Id))
+                    .ToListAsync();
+            })!;
+        }
     }
 }

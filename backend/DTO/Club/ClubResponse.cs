@@ -4,32 +4,25 @@ namespace backend.DTOs
 {
     public class ClubResponse
     {
-        public ClubResponse(int id, string name, string description, string clubtype, string clubimage)
-        {
-            Id = id;
-            Name = name;
-            Description = description;
-            Clubtype = clubtype;
-            ClubImage = clubimage;
-        }
-
-        [Required]
         public int Id
         {
             get; set;
         }
 
-        [Required]
+        public int OwnerId
+        {
+            get; set;
+        }
+
         public string Name { get; set; } = string.Empty;
-
-        [Required]
         public string Description { get; set; } = string.Empty;
-
-        [Required]
         public string Clubtype { get; set; } = string.Empty;
-
-        [Required]
         public string ClubImage { get; set; } = string.Empty;
+        public int MemberCount { get; set; } = 0;
+        public int EventCount { get; set; } = 0;
+        public int AvaliableEventCount { get; set; } = 0;
+        public int MaxMemberCount { get; set; } = 0;
+        public bool IsPrivate { get; set; } = false;
 
         public string? Phone
         {
@@ -42,6 +35,20 @@ namespace backend.DTOs
         public double? Rating
         {
             get; set;
+        }
+        public ClubResponse(int id, int userId, string name, string description, string clubtype, string clubimage, int memberCount, int eventCount, int avaliableEventCount, int maxMemberCount, bool isPrivate)
+        {
+            Id = id;
+            OwnerId = userId;
+            Name = name;
+            Description = description;
+            Clubtype = clubtype;
+            ClubImage = clubimage;
+            MemberCount = memberCount;
+            EventCount = eventCount;
+            AvaliableEventCount = avaliableEventCount;
+            MaxMemberCount = maxMemberCount;
+            IsPrivate = isPrivate;
         }
     }
 }

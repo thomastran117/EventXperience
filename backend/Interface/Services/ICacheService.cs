@@ -27,5 +27,6 @@ namespace backend.Interfaces
         Task<bool> AcquireLockAsync(string key, string value, TimeSpan expiry);
         Task<bool> ReleaseLockAsync(string key, string value);
         IServer GetServer();
+        Task<Dictionary<string, string?>> GetManyAsync(IEnumerable<string> keys);
     }
 }

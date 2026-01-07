@@ -16,5 +16,6 @@ namespace backend.Interfaces
         Task<User?> GetUserByUsernameAsync(string username);
         Task<IEnumerable<User>> GetUsersAsync(string? role = null);
         Task<bool> EmailExistsAsync(string email);
+        Task<List<User>> GetByIdsAsync(IEnumerable<int> ids);
     }
 }

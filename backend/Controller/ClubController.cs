@@ -21,6 +21,41 @@ namespace backend.Controllers
             _clubService = clubService;
         }
 
+
+        [Authorize]
+        [HttpPost("{clubId}/join")]
+        public async Task<IActionResult> JoinClub(int clubId)
+        {
+            UserPayload userPayload = User.GetUserPayload();
+            ValidateUtility.ValidatePositiveId(clubId);
+
+            await _clubService.JoinClubAsync(clubId, userPayload.Id);
+
+            return StatusCode(
+                200,
+                new MessageResponse(
+                    $"The club with ID `{clubId}` has been followed successfully."
+                )
+            );
+        }
+
+        [Authorize]
+        [HttpDelete("{clubId}/join")]
+        public async Task<IActionResult> LeaveClub(int clubId)
+        {
+            UserPayload userPayload = User.GetUserPayload();
+            ValidateUtility.ValidatePositiveId(clubId);
+
+            await _clubService.LeaveClubAsync(clubId, userPayload.Id);
+
+            return StatusCode(
+                200,
+                new MessageResponse(
+                    $"The club with ID `{clubId}` has been unfollowed successfully."
+                )
+            );
+        }
+
         [Authorize]
         [HttpPost("")]
         public async Task<IActionResult> CreateClub([FromForm] ClubCreateRequest request)
@@ -136,10 +171,16 @@ namespace backend.Controllers
         {
             return new ClubResponse(
                 club.Id,
+                club.UserId,
                 club.Name,
                 club.Description,
                 club.Clubtype.ToString(),
-                club.ClubImage
+                club.ClubImage,
+                club.MemberCount,
+                club.EventCount,
+                club.AvaliableEventCount,
+                club.MaxMemberCount,
+                club.isPrivate
             )
             {
                 Phone = club.Phone,

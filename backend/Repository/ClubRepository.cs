@@ -143,5 +143,21 @@ namespace backend.Repositories
                     .ToListAsync();
             })!;
         }
+
+        public async Task<List<Club>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                var idList = ids.Distinct().ToList();
+
+                if (idList.Count == 0)
+                    return new List<Club>();
+
+                return await _context.Clubs
+                    .AsNoTracking()
+                    .Where(c => idList.Contains(c.Id))
+                    .ToListAsync();
+            })!;
+        }
     }
 }

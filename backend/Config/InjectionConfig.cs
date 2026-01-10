@@ -27,21 +27,7 @@ namespace backend.Config
             services.AddScoped<IEventsService, EventsService>();
             services.AddScoped<IFileUploadService, FileUploadService>();
 
-            services.AddSingleton<ICacheService>(sp =>
-            {
-                var redisHealth = sp.GetRequiredService<RedisHealth>();
-
-                if (redisHealth.IsAvailable)
-                {
-                    Logger.Info("Using Redis-backed CacheService.");
-                    var redis = sp.GetRequiredService<RedisResource>();
-                    return new CacheService(redis);
-                }
-
-                Logger.Warn("Using InMemoryCacheService (Redis unavailable).");
-                return new InMemoryCacheService();
-            });
-
+            services.AddSingleton<ICacheService, CacheService>();
             return services;
         }
     }

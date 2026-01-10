@@ -14,6 +14,7 @@ namespace backend.Services
     {
         private readonly IClubRepository _clubRepository;
         private readonly IUserService _userService;
+        private readonly IFollowService _followService;
         private readonly IFileUploadService _fileUploadService;
         private readonly ICacheService _cache;
 
@@ -61,8 +62,7 @@ namespace backend.Services
                 ClubImage = imageUrl,
                 Phone = phone,
                 Email = email,
-                UserId = userId,
-                MemberCount = 0,
+                UserId = userId
             };
 
             var created = await _clubRepository.CreateAsync(club);
@@ -205,6 +205,43 @@ namespace backend.Services
             return clubs;
         }
 
+        public async Task<List<Club>> GetClubsByIdsAsync(IEnumerable<int> clubIds)
+        {
+            var ids = clubIds.Distinct().ToList();
+
+            var cacheKeys = ids.Select(id => $"club:{id}").ToList();
+            var cached = await _cache.GetManyAsync(cacheKeys);
+
+            var results = new List<Club>();
+            var missingIds = new List<int>();
+
+            foreach (var id in ids)
+            {
+                var key = $"club:{id}";
+                if (cached.TryGetValue(key, out var value) && value != null)
+                {
+                    var dto = JsonSerializer.Deserialize<ClubCacheDto>(value)!;
+                    results.Add(ClubCacheMapper.ToEntity(dto));
+                }
+                else
+                {
+                    missingIds.Add(id);
+                }
+            }
+
+            if (missingIds.Any())
+            {
+                var fetched = await _clubRepository.GetByIdsAsync(missingIds);
+
+                foreach (var club in fetched)
+                    await CacheClubAsync(club);
+
+                results.AddRange(fetched);
+            }
+
+            return results;
+        }
+
         public async Task<Club> UpdateClub(
             int clubId,
             int userId,
@@ -255,6 +292,49 @@ namespace backend.Services
 
             await _cache.DeleteKeyAsync($"club:{clubId}");
             await BumpClubListVersionAsync();
+        }
+
+        public async Task JoinClubAsync(int clubId, int userId)
+        {
+            var club = await _clubRepository.GetByIdAsync(clubId)
+                ?? throw new NotFoundException("Club not found");
+
+            if (await _followService.IsMemberAsync(clubId, userId))
+                throw new ConflictException("Already a member");
+
+            await _followService.AddMembershipAsync(clubId, userId);
+
+            club.MemberCount++;
+            await _clubRepository.UpdateAsync(clubId, club);
+
+            await CacheClubAsync(club);
+            await BumpClubListVersionAsync();
+        }
+
+        public async Task LeaveClubAsync(int clubId, int userId)
+        {
+            var club = await _clubRepository.GetByIdAsync(clubId)
+                ?? throw new NotFoundException("Club not found");
+
+            if (!await _followService.IsMemberAsync(clubId, userId))
+                throw new ConflictException("Not a member");
+
+            await _followService.RemoveMembershipAsync(clubId, userId);
+
+            club.MemberCount--;
+            await _clubRepository.UpdateAsync(clubId, club);
+
+            await CacheClubAsync(club);
+            await BumpClubListVersionAsync();
+        }
+        public async Task EventCreatedAsync(int clubId, int eventId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task EventDeletedAsync(int clubId, int eventId)
+        {
+            throw new NotImplementedException();
         }
 
         private async Task CacheClubAsync(Club club)

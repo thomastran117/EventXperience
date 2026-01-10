@@ -16,5 +16,6 @@ namespace backend.Interfaces
             string? search,
             int page = 1,
             int pageSize = 20);
+        Task<List<Club>> GetByIdsAsync(IEnumerable<int> ids);
     }
 }

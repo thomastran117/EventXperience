@@ -16,4 +16,5 @@ public interface IEventsRepository
         bool isAvaliable,
         int page = 1,
         int pageSize = 20);
+    Task<List<Events>> GetByIdsAsync(IEnumerable<int> ids);
 }

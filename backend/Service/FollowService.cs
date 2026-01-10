@@ -10,7 +10,6 @@ namespace backend.Services
     public class FollowService : IFollowService
     {
         private readonly IUserService _userService;
-        private readonly IClubService _clubService;
         private readonly IFollowRepository _followRepository;
         private readonly ICacheService _cache;
 
@@ -19,12 +18,10 @@ namespace backend.Services
         private static readonly TimeSpan ListTTL = TimeSpan.FromMinutes(3);
 
         public FollowService(
-            IClubService clubService,
             IUserService userService,
             IFollowRepository followRepository,
             ICacheService cache)
         {
-            _clubService = clubService;
             _userService = userService;
             _followRepository = followRepository;
             _cache = cache;
@@ -41,36 +38,6 @@ namespace backend.Services
 
         private string ClubFollowsKey(int clubId, int page, int size)
             => $"follow:list:c:{clubId}:{page}:{size}";
-
-        public async Task<FollowClub> FollowClubAsync(int clubId, int userId)
-        {
-            try
-            {
-                var userTask = _userService.GetUserByIdAsync(userId);
-                var clubTask = _clubService.GetClub(clubId);
-                await Task.WhenAll(userTask, clubTask);
-
-                var follow = await _followRepository.FollowClubAsync(userId, clubId);
-
-                var payload = JsonSerializer.Serialize(follow);
-
-                await _cache.SetValueAsync(FollowKey(userId, clubId), payload, FollowTTL);
-                await _cache.SetValueAsync(FollowIdKey(follow.Id), payload, FollowIdTTL);
-
-                await _cache.DeleteKeyAsync(UserFollowsKey(userId, 1, 20));
-                await _cache.DeleteKeyAsync(ClubFollowsKey(clubId, 1, 20));
-
-                return follow;
-            }
-            catch (Exception e)
-            {
-                if (e is AppException)
-                    throw;
-
-                Logger.Error($"[FollowService] FollowClubAsync failed: {e}");
-                throw new InternalServerException();
-            }
-        }
 
         public async Task<FollowClub> GetFollowAsync(int id)
         {
@@ -136,8 +103,6 @@ namespace backend.Services
                 if (cached != null)
                     return JsonSerializer.Deserialize<List<FollowClub>>(cached)!;
 
-                await _clubService.GetClub(clubId);
-
                 var follows = (await _followRepository.GetFollowsByClubAsync(clubId, page, pageSize)).ToList();
 
                 await _cache.SetValueAsync(key, JsonSerializer.Serialize(follows), ListTTL);
@@ -149,83 +114,6 @@ namespace backend.Services
                     throw;
 
                 Logger.Error($"[FollowService] GetFollowsByClubAsync failed: {e}");
-                throw new InternalServerException();
-            }
-        }
-
-        public async Task<FollowClub> IsFollowingClubAsync(int clubId, int userId)
-        {
-            try
-            {
-                var key = FollowKey(userId, clubId);
-                var cached = await _cache.GetValueAsync(key);
-
-                if (cached != null)
-                    return JsonSerializer.Deserialize<FollowClub>(cached)!;
-
-                var follow = await _followRepository.IsFollowingClubAsync(clubId, userId);
-                if (follow == null)
-                    throw new NotFoundException($"User {userId} does not follow club {clubId}");
-
-                await _cache.SetValueAsync(key, JsonSerializer.Serialize(follow), FollowTTL);
-                return follow;
-            }
-            catch (Exception e)
-            {
-                if (e is AppException)
-                    throw;
-
-                Logger.Error($"[FollowService] IsFollowingClubAsync failed: {e}");
-                throw new InternalServerException();
-            }
-        }
-
-        public async Task<bool> UnfollowClubAsync(int clubId, int userId)
-        {
-            try
-            {
-                var follow = await IsFollowingClubAsync(clubId, userId);
-
-                await _followRepository.UnfollowClubAsync(clubId, userId);
-
-                await _cache.DeleteKeyAsync(FollowKey(userId, clubId));
-                await _cache.DeleteKeyAsync(FollowIdKey(follow.Id));
-                await _cache.DeleteKeyAsync(UserFollowsKey(userId, 1, 20));
-                await _cache.DeleteKeyAsync(ClubFollowsKey(clubId, 1, 20));
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                if (e is AppException)
-                    throw;
-
-                Logger.Error($"[FollowService] UnfollowClubAsync failed: {e}");
-                throw new InternalServerException();
-            }
-        }
-
-        public async Task<bool> UnfollowClubAsync(int id)
-        {
-            try
-            {
-                var follow = await GetFollowAsync(id);
-
-                await _followRepository.UnfollowClubAsync(id);
-
-                await _cache.DeleteKeyAsync(FollowIdKey(id));
-                await _cache.DeleteKeyAsync(FollowKey(follow.UserId, follow.ClubId));
-                await _cache.DeleteKeyAsync(UserFollowsKey(follow.UserId, 1, 20));
-                await _cache.DeleteKeyAsync(ClubFollowsKey(follow.ClubId, 1, 20));
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                if (e is AppException)
-                    throw;
-
-                Logger.Error($"[FollowService] UnfollowClubAsync(id) failed: {e}");
                 throw new InternalServerException();
             }
         }
@@ -254,5 +142,22 @@ namespace backend.Services
                 throw new InternalServerException();
             }
         }
+
+        public async Task<bool> IsMemberAsync(int clubId, int userId)
+        {
+            return await _followRepository.IsFollowingClubAsync(clubId, userId) != null;
+        }
+
+        public async Task AddMembershipAsync(int clubId, int userId)
+        {
+            await _followRepository.FollowClubAsync(userId, clubId);
+        }
+
+        public async Task RemoveMembershipAsync(int clubId, int userId)
+        {
+            await _followRepository.UnfollowClubAsync(clubId, userId);
+        }
+
+
     }
 }

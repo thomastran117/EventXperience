@@ -178,5 +178,21 @@ namespace backend.Repositories
                     .AnyAsync(u => u.Email == email);
             });
         }
+
+        public async Task<List<User>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            return await ExecuteAsync(async () =>
+            {
+                var idList = ids.Distinct().ToList();
+
+                if (idList.Count == 0)
+                    return new List<User>();
+
+                return await _context.Users
+                    .AsNoTracking()
+                    .Where(u => idList.Contains(u.Id))
+                    .ToListAsync();
+            })!;
+        }
     }
 }

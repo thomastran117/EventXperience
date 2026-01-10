@@ -8,10 +8,12 @@ namespace backend.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IFileUploadService _fileService;
-        public UserService(IUserRepository userRepository, IFileUploadService fileService)
+        private readonly IFollowService _followService;
+        public UserService(IUserRepository userRepository, IFileUploadService fileService, IFollowService followService)
         {
             _userRepository = userRepository;
             _fileService = fileService;
+            _followService = followService;
         }
 
         public async Task<List<User>> GetAllUsersAsync()
@@ -59,6 +61,11 @@ namespace backend.Services
                 ?? throw new NotFoundException($"User with the id {id} is not found");
 
             return updatedUser;
+        }
+
+        public async Task<IEnumerable<FollowClub>> GetUserFollowingsAsync(int id, int page = 1, int pageSize = 20)
+        {
+            return await _followService.GetFollowsByUserAsync(id, page, pageSize);
         }
     }
 }

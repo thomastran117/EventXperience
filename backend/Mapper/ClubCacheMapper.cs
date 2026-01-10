@@ -15,6 +15,10 @@ namespace backend.Mappers
             club.Phone,
             club.Email,
             club.MemberCount,
+            club.EventCount,
+            club.AvaliableEventCount,
+            club.MaxMemberCount,
+            club.isPrivate,
             club.UserId
         );
 
@@ -28,6 +32,10 @@ namespace backend.Mappers
             Phone = dto.Phone,
             Email = dto.Email,
             MemberCount = dto.MemberCount,
+            EventCount = dto.EventCount,
+            AvaliableEventCount = dto.AvaliableEventCount,
+            MaxMemberCount = dto.MaxMemberCount,
+            isPrivate = dto.isPrivate,
             UserId = dto.UserId,
         };
     }

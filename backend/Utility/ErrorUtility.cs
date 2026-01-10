@@ -24,7 +24,7 @@ namespace backend.Utilities
 
         private static IActionResult HandleAppException(AppException ex)
         {
-            var response = new MessageResponse(ex.Message);
+            var response = new MessageResponse(ex.Message, ex.Details);
 
             return new ObjectResult(response)
             {

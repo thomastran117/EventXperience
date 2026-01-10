@@ -2,7 +2,16 @@ namespace backend.Exceptions
 {
     public class NotAvaliableException : AppException
     {
-        public NotAvaliableException(string message = "The service is not avaliable")
-            : base(message, StatusCodes.Status503ServiceUnavailable) { }
+        private const string DefaultMessage = "The service is not avaliable";
+        private const int code = StatusCodes.Status503ServiceUnavailable;
+
+        public NotAvaliableException()
+            : base(DefaultMessage, code) { }
+
+        public NotAvaliableException(string message)
+            : base(message, code) { }
+
+        public NotAvaliableException(string message, string details)
+            : base(message, code, details) { }
     }
 }

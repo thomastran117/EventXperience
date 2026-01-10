@@ -2,7 +2,16 @@ namespace backend.Exceptions
 {
     public class BadRequestException : AppException
     {
-        public BadRequestException(string message = "Bad request")
-            : base(message, StatusCodes.Status400BadRequest) { }
+        private const string DefaultMessage = "Bad request";
+        private const int code = StatusCodes.Status400BadRequest;
+
+        public BadRequestException()
+            : base(DefaultMessage, code) { }
+
+        public BadRequestException(string message)
+            : base(message, code) { }
+
+        public BadRequestException(string message, string details)
+            : base(message, code, details) { }
     }
 }

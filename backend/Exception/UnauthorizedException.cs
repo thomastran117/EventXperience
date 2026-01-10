@@ -2,7 +2,16 @@ namespace backend.Exceptions
 {
     public class UnauthorizedException : AppException
     {
-        public UnauthorizedException(string message = "Unauthorized")
-            : base(message, StatusCodes.Status401Unauthorized) { }
+        private const string DefaultMessage = "Unauthorized";
+        private const int code = StatusCodes.Status401Unauthorized;
+
+        public UnauthorizedException()
+            : base(DefaultMessage, code) { }
+
+        public UnauthorizedException(string message)
+            : base(message, code) { }
+
+        public UnauthorizedException(string message, string details)
+            : base(message, code, details) { }
     }
 }

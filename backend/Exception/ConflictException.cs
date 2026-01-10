@@ -2,7 +2,16 @@ namespace backend.Exceptions
 {
     public class ConflictException : AppException
     {
-        public ConflictException(string message = "The requested action causes a conflcit with an existing resource")
-            : base(message, StatusCodes.Status409Conflict) { }
+        private const string DefaultMessage = "Conflict";
+        private const int code = StatusCodes.Status409Conflict;
+
+        public ConflictException()
+            : base(DefaultMessage, code) { }
+
+        public ConflictException(string message)
+            : base(message, code) { }
+
+        public ConflictException(string message, string details)
+            : base(message, code, details) { }
     }
 }

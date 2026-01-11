@@ -9,7 +9,6 @@ namespace backend.Services
 {
     public class FollowService : IFollowService
     {
-        private readonly IUserService _userService;
         private readonly IFollowRepository _followRepository;
         private readonly ICacheService _cache;
 
@@ -18,11 +17,9 @@ namespace backend.Services
         private static readonly TimeSpan ListTTL = TimeSpan.FromMinutes(3);
 
         public FollowService(
-            IUserService userService,
             IFollowRepository followRepository,
             ICacheService cache)
         {
-            _userService = userService;
             _followRepository = followRepository;
             _cache = cache;
         }
@@ -75,8 +72,6 @@ namespace backend.Services
 
                 if (cached != null)
                     return JsonSerializer.Deserialize<List<FollowClub>>(cached)!;
-
-                await _userService.GetUserByIdAsync(userId);
 
                 var follows = (await _followRepository.GetFollowsByUserAsync(userId, page, pageSize)).ToList();
 

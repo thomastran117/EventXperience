@@ -2,7 +2,16 @@ namespace backend.Exceptions
 {
     public class ForbiddenException : AppException
     {
-        public ForbiddenException(string message = "Unable to access or modify the requested resource")
-            : base(message, StatusCodes.Status403Forbidden) { }
+        private const string DefaultMessage = "Forbidden";
+        private const int code = StatusCodes.Status403Forbidden;
+
+        public ForbiddenException()
+            : base(DefaultMessage, code) { }
+
+        public ForbiddenException(string message)
+            : base(message, code) { }
+
+        public ForbiddenException(string message, string details)
+            : base(message, code, details) { }
     }
 }

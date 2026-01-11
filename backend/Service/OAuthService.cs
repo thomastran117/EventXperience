@@ -27,7 +27,7 @@ namespace backend.Services
 
         public Task<OAuthUser> VerifyAppleTokenAsync(string appleToken)
         {
-            throw new NotImplementedException();
+            throw new  backend.Exceptions.NotImplementedException();
         }
 
         public async Task<OAuthUser> VerifyGoogleTokenAsync(string googleToken)

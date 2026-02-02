@@ -3,7 +3,10 @@ namespace backend.DTOs
     public class MessageResponse
     {
         public string Message { get; set; } = string.Empty;
-        public string? Details { get; set; }
+        public string? Details
+        {
+            get; set;
+        }
 
         public MessageResponse(string message, string? details = null)
         {

@@ -334,7 +334,7 @@ namespace backend.Services
 
         public async Task EventDeletedAsync(int clubId, int eventId)
         {
-            throw new  backend.Exceptions.NotImplementedException();
+            throw new backend.Exceptions.NotImplementedException();
         }
 
         private async Task CacheClubAsync(Club club)

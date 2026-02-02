@@ -94,19 +94,17 @@ namespace backend.Middlewares
         }
 
         public async Task InvokeAsync(
-    HttpContext context,
-    RedisHealth redisHealth,
-    RedisRateLimiter redisLimiter,
-    RateLimitOptions options)
+            HttpContext context,
+            RedisHealth redisHealth,
+            RedisRateLimiter redisLimiter,
+            RateLimitOptions options)
         {
-            // If Redis is DOWN → skip and let ASP.NET limiter handle it
             if (!redisHealth.IsAvailable)
             {
                 await _next(context);
                 return;
             }
 
-            // Redis-backed limiting
             var key =
                 context.User.Identity?.IsAuthenticated == true
                     ? $"rl:user:{context.User.FindFirst("sub")?.Value}"

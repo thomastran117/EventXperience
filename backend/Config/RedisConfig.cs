@@ -57,7 +57,7 @@ namespace backend.Config
 
                 Logger.Warn(
                     ex,
-                    "Redis unavailable after retries — falling back to in-memory cache."
+                    "Redis unavailable after retries."
                 );
             }
 

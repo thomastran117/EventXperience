@@ -1,5 +1,8 @@
 # EventXperience
 
+> [!NOTE]
+> EventXperience is not active development.
+
 A full stack event and club application, similar to [TicketMaster](https://www.ticketmaster.ca/). Users may create clubs and then events for other users to register it. Users may follow clubs to get notification about upcoming plans.
 
 Additonal upcoming features beyond [MVP](https://en.wikipedia.org/wiki/Minimum_viable_product) includes:

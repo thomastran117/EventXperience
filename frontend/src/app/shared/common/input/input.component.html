@@ -1,0 +1,23 @@
+<div [class]="wrapperClass">
+  <label *ngIf="label" class="text-xs font-semibold text-white/80">
+    {{ label }}
+  </label>
+
+  <div [class]="fieldWrapClass">
+    <span *ngIf="prefix" class="text-white/50 text-sm">{{ prefix }}</span>
+
+    <input
+      [attr.type]="type"
+      [attr.placeholder]="placeholder"
+      [attr.autocomplete]="autocomplete"
+      [attr.inputmode]="inputmode"
+      [disabled]="disabled"
+      [class]="inputClass"
+    />
+
+    <span *ngIf="suffix" class="text-white/50 text-sm">{{ suffix }}</span>
+  </div>
+
+  <p *ngIf="error" class="text-xs text-red-200/90">{{ error }}</p>
+  <p *ngIf="!error && hint" class="text-xs text-white/55">{{ hint }}</p>
+</div>

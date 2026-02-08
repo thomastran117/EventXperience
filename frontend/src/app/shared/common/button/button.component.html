@@ -1,0 +1,16 @@
+<ng-container *ngIf="href; else nativeBtn">
+  <a
+    [routerLink]="href"
+    [class]="classes"
+    [attr.aria-disabled]="disabled ? true : null"
+    (click)="disabled ? $event.preventDefault() : null"
+  >
+    <ng-content></ng-content>
+  </a>
+</ng-container>
+
+<ng-template #nativeBtn>
+  <button type="button" [disabled]="disabled" [class]="classes" (click)="clicked.emit()">
+    <ng-content></ng-content>
+  </button>
+</ng-template>

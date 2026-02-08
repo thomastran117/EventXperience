@@ -8,7 +8,7 @@ import { UserState } from '@stores/user.reducer';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
-import { RecaptchaV3Service } from '../../services/recaptcha.service'; 
+import { RecaptchaV3Service } from '../../services/recaptcha.service';
 import { GoogleButtonComponent } from '../../components/google-button/google-button.component';
 import { MicrosoftButtonComponent } from '../../components/microsoft-button/microsoft-button.component';
 import { environment } from '@environments/environment';

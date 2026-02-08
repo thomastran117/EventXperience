@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { RecaptchaLoaderService } from './recaptcha-loader.service';
 
 declare global {
-  interface Window { grecaptcha?: any; }
+  interface Window {
+    grecaptcha?: any;
+  }
 }
 
 @Injectable({ providedIn: 'root' })

@@ -1,0 +1,16 @@
+<section class="relative" [class]="className">
+  <div class="flex items-end justify-between gap-6" *ngIf="title || subtitle">
+    <div>
+      <h2 *ngIf="title" class="text-xl sm:text-2xl font-bold">{{ title }}</h2>
+      <p *ngIf="subtitle" class="mt-1 text-sm text-white/60">{{ subtitle }}</p>
+    </div>
+
+    <div class="shrink-0">
+      <ng-content select="[slot=actions]"></ng-content>
+    </div>
+  </div>
+
+  <div [class]="contentClass">
+    <ng-content></ng-content>
+  </div>
+</section>

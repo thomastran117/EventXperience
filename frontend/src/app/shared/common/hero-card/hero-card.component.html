@@ -1,0 +1,24 @@
+<div
+  class="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-8"
+  [class]="className"
+>
+  <div
+    class="pointer-events-none absolute inset-0 bg-gradient-to-br from-purple-500/15 via-transparent to-fuchsia-500/15"
+  ></div>
+
+  <div class="relative">
+    <pill *ngIf="pill" tone="accent">{{ pill }}</pill>
+
+    <h3 class="mt-4 text-2xl sm:text-3xl font-extrabold tracking-tight">
+      {{ title }}
+    </h3>
+    <p class="mt-2 text-sm sm:text-base text-white/70 max-w-2xl">
+      {{ subtitle }}
+    </p>
+
+    <div class="mt-6 flex flex-col sm:flex-row gap-3">
+      <app-button variant="primary" [href]="primaryHref">{{ primaryLabel }} →</app-button>
+      <app-button variant="ghost" [href]="secondaryHref">{{ secondaryLabel }}</app-button>
+    </div>
+  </div>
+</div>

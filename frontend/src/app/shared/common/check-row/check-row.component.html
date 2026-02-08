@@ -1,0 +1,14 @@
+<div class="flex items-start gap-3" [class]="className">
+  <span
+    class="mt-0.5 h-6 w-6 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center"
+    aria-hidden="true"
+  >
+    <span class="text-xs">✓</span>
+  </span>
+  <div class="min-w-0">
+    <div class="text-sm font-semibold text-white/85" *ngIf="title">{{ title }}</div>
+    <div class="text-sm text-white/65 leading-relaxed">
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

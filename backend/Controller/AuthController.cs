@@ -190,6 +190,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("refresh")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Refresh()
         {
             try
@@ -218,6 +219,7 @@ namespace backend.Controllers
         }
 
         [HttpPost("logout")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             try
@@ -289,5 +291,6 @@ namespace backend.Controllers
                 return ErrorUtility.HandleError(e);
             }
         }
+        
     }
 }

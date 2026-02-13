@@ -5,6 +5,7 @@ using backend.Middlewares;
 using backend.Resources;
 using backend.Utilities;
 
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.RateLimiting;
 
 using Serilog;
@@ -70,6 +71,12 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             });
     });
+});
+
+builder.Services.AddAntiforgery(o =>
+{
+    o.HeaderName = "X-CSRF-TOKEN";
+    o.Cookie.Name = "__Host-CSRF";
 });
 
 var app = builder.Build();
@@ -141,6 +148,12 @@ app.MapGet("/health", () =>
         status = "Healthy",
         timestamp = DateTime.UtcNow
     });
+});
+
+app.MapGet("/auth/csrf", (IAntiforgery antiforgery, HttpContext ctx) =>
+{
+    var tokens = antiforgery.GetAndStoreTokens(ctx);
+    return Results.Ok(new { token = tokens.RequestToken });
 });
 
 app.Use(async (context, next) =>

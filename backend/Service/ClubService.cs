@@ -31,9 +31,11 @@ namespace backend.Services
             IClubRepository clubRepository,
             IUserService userService,
             IFileUploadService fileUploadService,
+            IFollowService followService,
             ICacheService cache)
         {
             _clubRepository = clubRepository;
+            _followService = followService;
             _userService = userService;
             _fileUploadService = fileUploadService;
             _cache = cache;
@@ -327,6 +329,7 @@ namespace backend.Services
             await CacheClubAsync(club);
             await BumpClubListVersionAsync();
         }
+
         public async Task EventCreatedAsync(int clubId, int eventId)
         {
             throw new backend.Exceptions.NotImplementedException();

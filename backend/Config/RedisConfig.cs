@@ -21,7 +21,7 @@ namespace backend.Config
                     onRetry: (ex, delay, attempt, _) =>
                     {
                         Logger.Warn(
-                            $"Redis connection attempt {attempt} failed. Retrying in {delay.TotalMilliseconds} ms. Error: {ex.Message}"
+                            $"Redis connection attempt {attempt} failed. Retrying in {delay.TotalMilliseconds} ms."
                         );
                     });
 

@@ -3,7 +3,7 @@ namespace backend.Exceptions
     public class GatewayTimeoutException : AppException
     {
         private const string DefaultMessage = "Gateway timeout";
-        private const int code = StatusCodes.Status502BadGateway;
+        private const int code = StatusCodes.Status504GatewayTimeout;
 
         public GatewayTimeoutException()
             : base(DefaultMessage, code) { }

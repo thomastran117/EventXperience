@@ -36,7 +36,7 @@ export class RefreshTokenInterceptor implements HttpInterceptor {
             }),
             catchError((innerErr) => {
               this.refreshing = false;
-              this.auth.logout();
+              this.auth.logoutLocal();
               return throwError(() => innerErr);
             }),
           );

@@ -5,7 +5,6 @@ using backend.Middlewares;
 using backend.Resources;
 using backend.Utilities;
 
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.RateLimiting;
 
 using Serilog;
@@ -28,7 +27,7 @@ var port =
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Host.UseMinimalSerilog();
-builder.Services.AddControllers(options =>
+builder.Services.AddControllersWithViews(options =>
 {
     options.Conventions.Insert(0, new RoutePrefixConvention("api"));
 });
@@ -76,12 +75,13 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddAntiforgery(o =>
 {
     o.HeaderName = "X-CSRF-TOKEN";
-    o.Cookie.Name = "__Host-CSRF";
 });
 
 var app = builder.Build();
 
 await DatabaseConfig.VerifyDatabaseConnectionAsync(app.Services);
+
+// app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseRouting();
 app.UseCors("AllowFrontend");
 
@@ -148,12 +148,6 @@ app.MapGet("/health", () =>
         status = "Healthy",
         timestamp = DateTime.UtcNow
     });
-});
-
-app.MapGet("/auth/csrf", (IAntiforgery antiforgery, HttpContext ctx) =>
-{
-    var tokens = antiforgery.GetAndStoreTokens(ctx);
-    return Results.Ok(new { token = tokens.RequestToken });
 });
 
 app.Use(async (context, next) =>

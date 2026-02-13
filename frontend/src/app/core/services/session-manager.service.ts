@@ -1,39 +1,47 @@
 import { environment } from '../../../environments/environment';
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Store } from '@ngrx/store';
 import { setUser, clearUser } from '../stores/user.actions';
 import { AuthResponse } from '../models/auth-response.model';
+import { firstValueFrom } from 'rxjs';
+import { AuthTokenService } from '../api/services/auth-token.service';
 
 @Injectable({ providedIn: 'root' })
 export class SessionManagerService {
   private http = inject(HttpClient);
   private store = inject(Store);
+  private auth = inject(AuthTokenService);
 
   loading = signal(true);
 
   async restoreSession(): Promise<void> {
     try {
-      const res = await this.http
-        .post<AuthResponse>(`${environment.backendUrl}/auth/refresh`, { withCredentials: true })
-        .toPromise();
+      await this.auth.ensureCsrfToken();
+
+      const headers = this.auth.csrfToken
+        ? new HttpHeaders({ 'X-CSRF-TOKEN': this.auth.csrfToken })
+        : undefined;
+
+      const res = await firstValueFrom(
+        this.http.post<AuthResponse>(
+          `${environment.backendUrl}/auth/refresh`,
+          {},
+          {
+            withCredentials: true,
+            headers,
+          },
+        ),
+      );
 
       if (res?.Token) {
-        localStorage.setItem('access_token', res.Token);
-
-        this.store.dispatch(
-          setUser({
-            user: res,
-          }),
-        );
+        this.store.dispatch(setUser({ user: res }));
       } else {
         this.store.dispatch(clearUser());
-        localStorage.removeItem('access_token');
       }
     } catch (err) {
       console.warn('Session restore failed:', err);
       this.store.dispatch(clearUser());
-      localStorage.removeItem('access_token');
     } finally {
       this.loading.set(false);
     }

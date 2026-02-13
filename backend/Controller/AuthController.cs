@@ -5,6 +5,7 @@ using backend.Interfaces;
 using backend.Models;
 using backend.Utilities;
 
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers
@@ -14,10 +15,12 @@ namespace backend.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IAntiforgery _antiforgery;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IAntiforgery antiforgery)
         {
             _authService = authService;
+            _antiforgery = antiforgery;
         }
 
         [HttpPost("login")]
@@ -218,6 +221,16 @@ namespace backend.Controllers
             }
         }
 
+        [HttpGet("csrf")]
+        public IActionResult Csrf()
+        {
+            var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+            return Ok(new
+            {
+                token = tokens.RequestToken
+            });
+        }
+
         [HttpPost("logout")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
@@ -291,6 +304,6 @@ namespace backend.Controllers
                 return ErrorUtility.HandleError(e);
             }
         }
-        
+
     }
 }

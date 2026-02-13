@@ -27,7 +27,7 @@ var port =
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Host.UseMinimalSerilog();
-builder.Services.AddControllers(options =>
+builder.Services.AddControllersWithViews(options =>
 {
     options.Conventions.Insert(0, new RoutePrefixConvention("api"));
 });
@@ -72,9 +72,16 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+builder.Services.AddAntiforgery(o =>
+{
+    o.HeaderName = "X-CSRF-TOKEN";
+});
+
 var app = builder.Build();
 
 await DatabaseConfig.VerifyDatabaseConnectionAsync(app.Services);
+
+// app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseRouting();
 app.UseCors("AllowFrontend");
 

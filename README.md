@@ -1,6 +1,9 @@
 # 🎟️ EventXperience
 
-> A full-stack event discovery and club management platform - think Ticketmaster meets Meetup.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+
+> A full-stack event discovery and club management platform
 
 Users can create and manage clubs, host events, and follow their favourite organizations to stay notified about upcoming plans. Whether you're organizing a local meetup or a large-scale conference, EventXperience has you covered.
 
@@ -86,6 +89,17 @@ dotnet run
 ```
 
 > See the `docs/` folder for environment variable setup and full configuration instructions.
+
+---
+## Contributing
+
+Contributions are welcome! Please open an issue first to discuss any changes you'd like to make, then submit a pull request.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'Add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
 
 ---
 

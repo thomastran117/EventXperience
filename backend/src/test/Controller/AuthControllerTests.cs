@@ -1,22 +1,24 @@
-using backend.Controllers;
-using backend.Common;
-using backend.DTOs;
-using backend.Exceptions;
-using backend.Interfaces;
-using backend.Models;
-using backend.Utilities;
+using backend.main.Controllers;
+using backend.main.Common;
+using backend.main.DTOs;
+using backend.main.Exceptions;
+using backend.main.Interfaces;
+using backend.main.Models;
+using backend.main.Utilities;
 
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
+using Microsoft.AspNetCore.Antiforgery;
 
 namespace Backend.Tests.Controllers
 {
     public class AuthControllerTests
     {
         private readonly Mock<IAuthService> _authService;
+        private readonly Mock<IAntiforgery> _antiForgery;
         private readonly AuthController _controller;
 
         private readonly User _user = new User
@@ -32,8 +34,9 @@ namespace Backend.Tests.Controllers
         public AuthControllerTests()
         {
             _authService = new Mock<IAuthService>();
+            _antiForgery = new Mock<IAntiforgery>();
 
-            _controller = new AuthController(_authService.Object)
+            _controller = new AuthController(_authService.Object, _antiForgery.Object)
             {
                 ControllerContext = new ControllerContext()
                 {

@@ -3,10 +3,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
-using backend.Exceptions;
-using backend.Interfaces;
-using backend.Models;
-using backend.Services;
+using backend.main.Exceptions;
+using backend.main.Interfaces;
+using backend.main.Models;
+using backend.main.Services;
 
 using FluentAssertions;
 using Moq;

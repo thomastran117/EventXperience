@@ -107,6 +107,7 @@ Contributions are welcome! Please open an issue first to discuss any changes you
 
 - [@thomastran117](https://www.github.com/thomastran117)
 - [@sanjeeveasparan](https://www.github.com/sanjeeveasparan)
+- [@btran0014](https://www.github.com/btran0014)
 
 ---
 

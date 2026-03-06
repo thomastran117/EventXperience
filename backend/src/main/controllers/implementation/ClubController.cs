@@ -25,7 +25,7 @@ namespace backend.main.implementation.controllers
 
 
         [Authorize]
-        [HttpPost("{clubId:id}/join")]
+        [HttpPost("{clubId}/join")]
         public async Task<IActionResult> JoinClub(int clubId)
         {
             var userPayload = User.GetUserPayload();

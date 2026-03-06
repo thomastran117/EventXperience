@@ -18,7 +18,7 @@ namespace backend.main.configurations.security
                     if (origins.Length == 0)
                     {
                         builder
-                            .WithOrigins("http://localhost:3040")
+                            .WithOrigins("http://localhost:3090")
                             .AllowAnyHeader()
                             .AllowAnyMethod()
                             .AllowCredentials();

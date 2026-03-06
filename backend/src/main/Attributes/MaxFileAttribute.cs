@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace backend.main.Attribute
+namespace backend.main.attributes
 {
     public class MaxFileSizeAttribute : ValidationAttribute
     {

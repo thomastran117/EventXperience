@@ -1,32 +1,30 @@
-using System.Threading.RateLimiting;
-
-using backend.main.Config;
-using backend.main.Middlewares;
-using backend.main.Resources;
-using backend.main.Utilities;
-
-using Microsoft.AspNetCore.RateLimiting;
+using backend.main.utilities.implementation;
+using backend.main.utilities.interfaces;
+using backend.main.configurations.security;
+using backend.main.configurations.resource.database;
+using backend.main.configurations.resource.redis;
+using backend.main.configurations.application;
 
 using Serilog;
 
 Logger.Configure(o =>
 {
     o.EnableFileLogging = true;
-    o.MinFileLevel = backend.main.Utilities.LogLevel.Warn;
+    o.MinFileLevel = backend.main.utilities.interfaces.LogLevel.Warn;
     o.LogDirectory = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "logs"));
 });
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddEnvironmentVariables();
-var port =
-    Environment.GetEnvironmentVariable("PORT") ??
-    Environment.GetEnvironmentVariable("ASPNETCORE_PORT") ??
-    "8090";
+builder.Services.AddSingleton(Logger.GetOptions());
 
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
+var port = builder.ConfigureServerUrls();
+
 builder.Host.UseMinimalSerilog();
+
 builder.Services.AddControllersWithViews(options =>
 {
     options.Conventions.Insert(0, new RoutePrefixConvention("api"));
@@ -39,81 +37,29 @@ builder.Services.AddAppDatabase(builder.Configuration);
 builder.Services.AddAppRedis(builder.Configuration);
 
 builder.Services.AddJwtAuth(builder.Configuration);
-builder.Services.AddCustomCors();
-builder.Services.AddAppRateLimiter(new RateLimitOptions
-{
-    Strategy = RateLimitStrategy.TokenBucket,
-    TokenLimit = 10,
-    TokensPerPeriod = 10,
-    ReplenishmentPeriod = TimeSpan.FromSeconds(30)
-});
+builder.Services.AddCustomCors(builder.Configuration);
+builder.Services.AddCustomCsrf();
+builder.Services.AddInMemoryRateLimiter();
 
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    options.AddPolicy("local-fallback", context =>
-    {
-        var key =
-            context.User.Identity?.IsAuthenticated == true
-                ? context.User.FindFirst("sub")?.Value ?? "anon"
-                : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-        return RateLimitPartition.GetTokenBucketLimiter(
-            key,
-            _ => new TokenBucketRateLimiterOptions
-            {
-                TokenLimit = 10,
-                TokensPerPeriod = 10,
-                ReplenishmentPeriod = TimeSpan.FromSeconds(30),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 0
-            });
-    });
-});
-
-builder.Services.AddAntiforgery(o =>
-{
-    o.HeaderName = "X-CSRF-TOKEN";
-});
+builder.Services.AddWebConfiguration(builder.Configuration);
 
 var app = builder.Build();
 
+Logger.SetInstance(app.Services.GetRequiredService<ICustomLogger>());
+
 await DatabaseConfig.VerifyDatabaseConnectionAsync(app.Services);
 
-// app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
 app.UseRouting();
-app.UseCors("AllowFrontend");
 
-app.UseWhen(
-    ctx => !ctx.RequestServices.GetRequiredService<RedisHealth>().IsAvailable,
-    branch =>
-    {
-        branch.UseRateLimiter(new RateLimiterOptions
-        {
-            GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-            {
-                var key =
-                    httpContext.User.Identity?.IsAuthenticated == true
-                        ? httpContext.User.FindFirst("sub")?.Value ?? "anon"
-                        : httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+app.UseRateLimiter();
 
-                return RateLimitPartition.GetTokenBucketLimiter(
-                    key,
-                    _ => new TokenBucketRateLimiterOptions
-                    {
-                        TokenLimit = 10,
-                        TokensPerPeriod = 10,
-                        ReplenishmentPeriod = TimeSpan.FromSeconds(30),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0
-                    });
-            })
-        });
-    }
-);
+app.UseSecurityHeaders();
+app.UseHttpsEnforcement();
 
-app.UseMiddleware<RedisRateLimitMiddleware>();
+app.UseCors(CorsConfiguration.DefaultPolicyName);
+
 app.UseSerilogRequestLogging(opts =>
 {
     opts.MessageTemplate =
@@ -127,45 +73,17 @@ app.UseSerilogRequestLogging(opts =>
     };
 });
 
+app.UseRefreshCsrfCookie();
+app.UseRefreshCsrfValidation();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.UseStaticFiles();
+
 app.MapControllers();
 
-app.MapGet("/api", () =>
-{
-    return Results.Json(new
-    {
-        status = "Healthy",
-        timestamp = DateTime.UtcNow
-    });
-});
-
-app.MapGet("/health", () =>
-{
-    return Results.Json(new
-    {
-        status = "Healthy",
-        timestamp = DateTime.UtcNow
-    });
-});
-
-app.Use(async (context, next) =>
-{
-    await next();
-
-    if (context.Response.StatusCode == StatusCodes.Status404NotFound &&
-        !context.Response.HasStarted)
-    {
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new
-        {
-            error = "Resource not found",
-            code = 404,
-            path = context.Request.Path
-        });
-    }
-});
+app.UseJsonNotFound();
 
 var redisHealth = app.Services.GetRequiredService<RedisHealth>();
 

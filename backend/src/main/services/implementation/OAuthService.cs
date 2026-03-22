@@ -17,17 +17,61 @@ namespace backend.main.services.implementation
     {
         private readonly string? _googleClientId;
         private readonly string? _microsoftClientId;
+        private readonly string? _appleClientId;
 
         public OAuthService(HttpClient? httpClient = null)
             : base(httpClient)
         {
             _googleClientId = EnvironmentSetting.GoogleClientId;
             _microsoftClientId = EnvironmentSetting.MicrosoftClientId;
+            _appleClientId = EnvironmentSetting.AppleClientId;
         }
 
-        public Task<OAuthUser> VerifyAppleTokenAsync(string appleToken)
+        public async Task<OAuthUser> VerifyAppleTokenAsync(string appleToken)
         {
-            throw new backend.main.exceptions.http.NotImplementedException();
+            if (_appleClientId == null)
+                throw new NotAvaliableException("Apple OAuth is not available");
+
+            var configManager =
+                new ConfigurationManager<OpenIdConnectConfiguration>(
+                    "https://appleid.apple.com/.well-known/openid-configuration",
+                    new OpenIdConnectConfigurationRetriever()
+                );
+
+            var validationParams = new TokenValidationParameters
+            {
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                RequireSignedTokens = true,
+
+                ValidAudience = _appleClientId,
+                ConfigurationManager = configManager,
+
+                ValidateIssuer = true,
+                ValidIssuer = "https://appleid.apple.com",
+
+                ClockSkew = TimeSpan.FromMinutes(2)
+            };
+
+            var handler = new JwtSecurityTokenHandler
+            {
+                MapInboundClaims = false
+            };
+
+            var principal = handler.ValidateToken(
+                appleToken,
+                validationParams,
+                out _
+            );
+
+            var sub =
+                principal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ??
+                throw new UnauthorizedException("Missing Apple sub claim");
+
+            var email =
+                principal.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? sub;
+
+            return new OAuthUser(sub, email, email, "apple");
         }
 
         public async Task<OAuthUser> VerifyGoogleTokenAsync(string googleToken)

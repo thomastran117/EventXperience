@@ -11,6 +11,7 @@ namespace backend.main.configurations.resource.database
         public DbSet<Events> Events { get; set; } = null!;
         public DbSet<FollowClub> FollowClubs { get; set; } = null!;
         public DbSet<Payment> Payments { get; set; } = null!;
+        public DbSet<ClubReview> ClubReviews { get; set; } = null!;
         public AppDatabaseContext(DbContextOptions<AppDatabaseContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -98,6 +99,26 @@ namespace backend.main.configurations.resource.database
             modelBuilder.Entity<Payment>()
                 .HasIndex(p => p.IdempotencyKey)
                 .IsUnique();
+
+            modelBuilder.Entity<ClubReview>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ClubReview>()
+                .HasOne<Club>()
+                .WithMany()
+                .HasForeignKey(r => r.ClubId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ClubReview>()
+                .HasIndex(r => r.ClubId);
+
+            modelBuilder.Entity<ClubReview>()
+                .HasIndex(r => r.UserId);
         }
     }
 }

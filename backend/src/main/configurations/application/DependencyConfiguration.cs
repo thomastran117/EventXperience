@@ -22,6 +22,7 @@ namespace backend.main.configurations.application
             services.AddScoped<IClubRepository, ClubRepository>();
             services.AddScoped<IEventsRepository, EventsRepository>();
             services.AddScoped<IPaymentRepository, PaymentRepository>();
+            services.AddScoped<IClubReviewRepository, ClubReviewRepository>();
 
             services.AddSingleton<IPublisher, Publisher>();
 
@@ -33,6 +34,7 @@ namespace backend.main.configurations.application
             services.AddScoped<IFollowService, FollowService>();
             services.AddScoped<IEventsService, EventsService>();
             services.AddScoped<IPaymentService, StripePaymentService>();
+            services.AddScoped<IClubReviewService, ClubReviewService>();
             services.AddScoped<IFileUploadService, FileUploadService>();
 
             services.AddSingleton<ICustomLogger, FileLogger>();

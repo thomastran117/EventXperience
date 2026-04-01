@@ -6,46 +6,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace backend.main.repositories.implementation
 {
-    public class DeviceRepository : BaseRepository, IDeviceRepository
+    public class DeviceRepository : IDeviceRepository
     {
-        public DeviceRepository(AppDatabaseContext context)
-            : base(context) { }
+        private readonly AppDatabaseContext _context;
+
+        public DeviceRepository(AppDatabaseContext context) => _context = context;
 
         public async Task<Device?> GetDeviceAsync(int userId, string deviceType, string clientName)
         {
-            return await ExecuteAsync(async () =>
-            {
-                return await _context.Devices
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(d =>
-                        d.UserId == userId &&
-                        d.DeviceType == deviceType &&
-                        d.ClientName == clientName);
-            });
+            return await _context.Devices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d =>
+                    d.UserId == userId &&
+                    d.DeviceType == deviceType &&
+                    d.ClientName == clientName);
         }
 
         public async Task<Device> CreateDeviceAsync(Device device)
         {
-            return await ExecuteAsync(async () =>
-            {
-                await _context.Devices.AddAsync(device);
-                await _context.SaveChangesAsync();
-                return device;
-            });
+            await _context.Devices.AddAsync(device);
+            await _context.SaveChangesAsync();
+            return device;
         }
 
         public async Task UpdateLastSeenAsync(Device device)
         {
-            await ExecuteAsync(async () =>
-            {
-                var existing = await _context.Devices.FindAsync(device.Id);
-                if (existing == null)
-                    return;
+            var existing = await _context.Devices.FindAsync(device.Id);
+            if (existing == null)
+                return;
 
-                existing.LastSeenAt = DateTime.UtcNow;
-                existing.IpAddress = device.IpAddress;
-                await _context.SaveChangesAsync();
-            });
+            existing.LastSeenAt = DateTime.UtcNow;
+            existing.IpAddress = device.IpAddress;
+            await _context.SaveChangesAsync();
         }
     }
 }

@@ -6,114 +6,92 @@ using Microsoft.EntityFrameworkCore;
 
 namespace backend.main.repositories.implementation
 {
-    public class ClubRepository : BaseRepository, IClubRepository
+    public class ClubRepository : IClubRepository
     {
-        public ClubRepository(AppDatabaseContext context) : base(context) { }
+        private readonly AppDatabaseContext _context;
+
+        public ClubRepository(AppDatabaseContext context) => _context = context;
 
         public async Task<Club> CreateAsync(Club club)
         {
-            return await ExecuteAsync(async () =>
-            {
-                _context.Clubs.Add(club);
-                await _context.SaveChangesAsync();
-                return club;
-            })!;
+            _context.Clubs.Add(club);
+            await _context.SaveChangesAsync();
+            return club;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            return await ExecuteAsync(async () =>
-            {
-                var club = await _context.Clubs.FindAsync(id);
-                if (club == null)
-                    return false;
+            var club = await _context.Clubs.FindAsync(id);
+            if (club == null)
+                return false;
 
-                _context.Clubs.Remove(club);
-                await _context.SaveChangesAsync();
-                return true;
-            })!;
+            _context.Clubs.Remove(club);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> ExistsAsync(int id)
         {
-            return await ExecuteAsync(async () =>
-            {
-                return await _context.Clubs.AnyAsync(c => c.Id == id);
-            })!;
+            return await _context.Clubs.AnyAsync(c => c.Id == id);
         }
 
         public async Task<IEnumerable<Club>> GetAllAsync(int page = 1, int pageSize = 20)
         {
-            return await ExecuteAsync(async () =>
-            {
-                return await _context.Clubs
-                    .AsNoTracking()
-                    .OrderByDescending(c => c.CreatedAt)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
-            })!;
+            return await _context.Clubs
+                .AsNoTracking()
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
 
         public async Task<Club?> GetByIdAsync(int id)
         {
-            return await ExecuteAsync(async () =>
-            {
-                return await _context.Clubs
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == id);
-            });
+            return await _context.Clubs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == id);
         }
 
         public async Task<Club?> GetByUserIdAsync(int userId)
         {
-            return await ExecuteAsync(async () =>
-            {
-                return await _context.Clubs
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.UserId == userId);
-            });
+            return await _context.Clubs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.UserId == userId);
         }
 
         public async Task<Club?> UpdateAsync(int id, Club updatedClub)
         {
-            return await ExecuteAsync(async () =>
-            {
-                var existing = await _context.Clubs.FindAsync(id);
-                if (existing == null)
-                    return null;
+            var existing = await _context.Clubs.FindAsync(id);
+            if (existing == null)
+                return null;
 
-                existing.Name = updatedClub.Name;
-                existing.Description = updatedClub.Description;
-                existing.Clubtype = updatedClub.Clubtype;
-                existing.ClubImage = updatedClub.ClubImage;
-                existing.Phone = updatedClub.Phone;
-                existing.Email = updatedClub.Email;
-                existing.WebsiteUrl = updatedClub.WebsiteUrl;
-                existing.Location = updatedClub.Location;
-                existing.Rating = updatedClub.Rating;
-                existing.MemberCount = updatedClub.MemberCount;
-                existing.UpdatedAt = DateTime.UtcNow;
+            existing.Name = updatedClub.Name;
+            existing.Description = updatedClub.Description;
+            existing.Clubtype = updatedClub.Clubtype;
+            existing.ClubImage = updatedClub.ClubImage;
+            existing.Phone = updatedClub.Phone;
+            existing.Email = updatedClub.Email;
+            existing.WebsiteUrl = updatedClub.WebsiteUrl;
+            existing.Location = updatedClub.Location;
+            existing.Rating = updatedClub.Rating;
+            existing.MemberCount = updatedClub.MemberCount;
+            existing.UpdatedAt = DateTime.UtcNow;
 
-                await _context.SaveChangesAsync();
-                return existing;
-            });
+            await _context.SaveChangesAsync();
+            return existing;
         }
 
         public async Task<bool> UpdatePartialAsync(int id, Action<Club> patch)
         {
-            return await ExecuteAsync(async () =>
-            {
-                var club = await _context.Clubs.FindAsync(id);
-                if (club == null)
-                    return false;
+            var club = await _context.Clubs.FindAsync(id);
+            if (club == null)
+                return false;
 
-                patch(club);
-                club.UpdatedAt = DateTime.UtcNow;
+            patch(club);
+            club.UpdatedAt = DateTime.UtcNow;
 
-                await _context.SaveChangesAsync();
-                return true;
-            })!;
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<List<Club>> SearchAsync(
@@ -121,43 +99,37 @@ namespace backend.main.repositories.implementation
             int page = 1,
             int pageSize = 20)
         {
-            return await ExecuteAsync(async () =>
+            IQueryable<Club> query = _context.Clubs
+                .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                IQueryable<Club> query = _context.Clubs
-                    .AsNoTracking();
+                var term = search.Trim();
 
-                if (!string.IsNullOrWhiteSpace(search))
-                {
-                    var term = search.Trim();
+                query = query.Where(c =>
+                    EF.Functions.Like(c.Name, $"%{term}%") ||
+                    EF.Functions.Like(c.Description, $"%{term}%")
+                );
+            }
 
-                    query = query.Where(c =>
-                        EF.Functions.Like(c.Name, $"%{term}%") ||
-                        EF.Functions.Like(c.Description, $"%{term}%")
-                    );
-                }
-
-                return await query
-                    .OrderByDescending(c => c.CreatedAt)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
-            })!;
+            return await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
 
         public async Task<List<Club>> GetByIdsAsync(IEnumerable<int> ids)
         {
-            return await ExecuteAsync(async () =>
-            {
-                var idList = ids.Distinct().ToList();
+            var idList = ids.Distinct().ToList();
 
-                if (idList.Count == 0)
-                    return new List<Club>();
+            if (idList.Count == 0)
+                return new List<Club>();
 
-                return await _context.Clubs
-                    .AsNoTracking()
-                    .Where(c => idList.Contains(c.Id))
-                    .ToListAsync();
-            })!;
+            return await _context.Clubs
+                .AsNoTracking()
+                .Where(c => idList.Contains(c.Id))
+                .ToListAsync();
         }
     }
 }

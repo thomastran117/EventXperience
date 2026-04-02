@@ -13,6 +13,7 @@ namespace backend.main.configurations.resource.database
         public DbSet<Payment> Payments { get; set; } = null!;
         public DbSet<ClubReview> ClubReviews { get; set; } = null!;
         public DbSet<Device> Devices { get; set; } = null!;
+        public DbSet<ClubAnnouncement> ClubAnnouncements { get; set; } = null!;
         public AppDatabaseContext(DbContextOptions<AppDatabaseContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -134,6 +135,26 @@ namespace backend.main.configurations.resource.database
 
             modelBuilder.Entity<Device>()
                 .HasIndex(d => d.UserId);
+
+            modelBuilder.Entity<ClubAnnouncement>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ClubAnnouncement>()
+                .HasOne<Club>()
+                .WithMany()
+                .HasForeignKey(a => a.ClubId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ClubAnnouncement>()
+                .HasIndex(a => a.ClubId);
+
+            modelBuilder.Entity<ClubAnnouncement>()
+                .HasIndex(a => a.UserId);
         }
     }
 }

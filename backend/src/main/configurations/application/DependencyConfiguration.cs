@@ -26,6 +26,7 @@ namespace backend.main.configurations.application
             services.AddRepositoryWithProxy<IClubReviewRepository, ClubReviewRepository>();
             services.AddRepositoryWithProxy<IDeviceRepository, DeviceRepository>();
             services.AddRepositoryWithProxy<IClubAnnouncementRepository, ClubAnnouncementRepository>();
+            services.AddRepositoryWithProxy<IEventRegistrationRepository, EventRegistrationRepository>();
 
             services.AddSingleton<IPublisher, Publisher>();
 
@@ -40,6 +41,7 @@ namespace backend.main.configurations.application
             services.AddScoped<IClubReviewService, ClubReviewService>();
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IClubAnnouncementService, ClubAnnouncementService>();
+            services.AddScoped<IEventRegistrationService, EventRegistrationService>();
             services.AddScoped<IFileUploadService, FileUploadService>();
 
             services.AddSingleton<ICustomLogger, FileLogger>();

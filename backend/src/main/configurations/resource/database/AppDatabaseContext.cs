@@ -14,6 +14,7 @@ namespace backend.main.configurations.resource.database
         public DbSet<ClubReview> ClubReviews { get; set; } = null!;
         public DbSet<Device> Devices { get; set; } = null!;
         public DbSet<ClubAnnouncement> ClubAnnouncements { get; set; } = null!;
+        public DbSet<EventRegistration> EventRegistrations { get; set; } = null!;
         public AppDatabaseContext(DbContextOptions<AppDatabaseContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -155,6 +156,30 @@ namespace backend.main.configurations.resource.database
 
             modelBuilder.Entity<ClubAnnouncement>()
                 .HasIndex(a => a.UserId);
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasOne<Events>()
+                .WithMany()
+                .HasForeignKey(r => r.EventId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasIndex(r => r.EventId);
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasIndex(r => r.UserId);
+
+            modelBuilder.Entity<EventRegistration>()
+                .HasIndex(r => new { r.EventId, r.UserId })
+                .IsUnique();
         }
     }
 }

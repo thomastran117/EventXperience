@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using backend.main.models.enums;
 
-namespace backend.main.dtos.requests.clubannouncement
+namespace backend.main.dtos.requests.clubpost
 {
-    public class ClubAnnouncementUpdateRequest
+    public class ClubPostCreateRequest
     {
         [Required]
         [StringLength(150)]
@@ -11,5 +12,9 @@ namespace backend.main.dtos.requests.clubannouncement
         [Required]
         [StringLength(2000)]
         public string Content { get; set; } = string.Empty;
+
+        public PostType PostType { get; set; } = PostType.General;
+
+        public bool IsPinned { get; set; } = false;
     }
 }

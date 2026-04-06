@@ -13,7 +13,7 @@ namespace backend.main.configurations.resource.database
         public DbSet<Payment> Payments { get; set; } = null!;
         public DbSet<ClubReview> ClubReviews { get; set; } = null!;
         public DbSet<Device> Devices { get; set; } = null!;
-        public DbSet<ClubAnnouncement> ClubAnnouncements { get; set; } = null!;
+        public DbSet<ClubPost> ClubPosts { get; set; } = null!;
         public DbSet<EventRegistration> EventRegistrations { get; set; } = null!;
         public AppDatabaseContext(DbContextOptions<AppDatabaseContext> options) : base(options) { }
 
@@ -137,25 +137,25 @@ namespace backend.main.configurations.resource.database
             modelBuilder.Entity<Device>()
                 .HasIndex(d => d.UserId);
 
-            modelBuilder.Entity<ClubAnnouncement>()
+            modelBuilder.Entity<ClubPost>()
                 .HasOne<User>()
                 .WithMany()
-                .HasForeignKey(a => a.UserId)
+                .HasForeignKey(p => p.UserId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<ClubAnnouncement>()
+            modelBuilder.Entity<ClubPost>()
                 .HasOne<Club>()
                 .WithMany()
-                .HasForeignKey(a => a.ClubId)
+                .HasForeignKey(p => p.ClubId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<ClubAnnouncement>()
-                .HasIndex(a => a.ClubId);
+            modelBuilder.Entity<ClubPost>()
+                .HasIndex(p => p.ClubId);
 
-            modelBuilder.Entity<ClubAnnouncement>()
-                .HasIndex(a => a.UserId);
+            modelBuilder.Entity<ClubPost>()
+                .HasIndex(p => p.UserId);
 
             modelBuilder.Entity<EventRegistration>()
                 .HasOne<User>()

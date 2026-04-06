@@ -44,7 +44,7 @@ namespace backend.main.services.implementation
         }
 
         public async Task<(List<ClubPost> Items, int TotalCount)> GetByClubIdAsync(
-            int clubId, int? requestingUserId, string? search, int page, int pageSize)
+            int clubId, int? requestingUserId, string? search, PostSortBy sortBy, int page, int pageSize)
         {
             var club = await _clubRepository.GetByIdAsync(clubId)
                 ?? throw new ResourceNotFoundException($"Club with ID {clubId} was not found.");
@@ -63,7 +63,7 @@ namespace backend.main.services.implementation
                 }
             }
 
-            var itemsTask = _postRepository.GetByClubIdAsync(clubId, search, page, pageSize);
+            var itemsTask = _postRepository.GetByClubIdAsync(clubId, search, sortBy, page, pageSize);
             var countTask = _postRepository.CountByClubIdAsync(clubId, search);
             await Task.WhenAll(itemsTask, countTask);
 
@@ -109,9 +109,9 @@ namespace backend.main.services.implementation
         }
 
         public async Task<(List<ClubPost> Items, int TotalCount)> GetAllAdminAsync(
-            string? search, int page, int pageSize)
+            string? search, PostSortBy sortBy, int page, int pageSize)
         {
-            var itemsTask = _postRepository.GetAllAsync(search, page, pageSize);
+            var itemsTask = _postRepository.GetAllAsync(search, sortBy, page, pageSize);
             var countTask = _postRepository.CountAllAsync(search);
             await Task.WhenAll(itemsTask, countTask);
 

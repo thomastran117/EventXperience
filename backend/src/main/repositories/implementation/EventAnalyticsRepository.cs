@@ -109,7 +109,7 @@ namespace backend.main.repositories.implementation
                         : (Total: t.Result.Total, Pending: t.Result.Pending));
 
             // 4. 7-day registration trend
-            var trendRaw = clubEventIds.Count == 0
+            var regTrendRaw = clubEventIds.Count == 0
                 ? new List<(DateOnly, int)>()
                 : await _context.EventRegistrations
                     .AsNoTracking()
@@ -121,13 +121,57 @@ namespace backend.main.repositories.implementation
                         .Select(x => (Date: DateOnly.FromDateTime(x.Date), Count: x.Count))
                         .ToList());
 
-            // Backfill missing days with zero
-            var trendMap = trendRaw.ToDictionary(x => x.Item1, x => x.Item2);
-            var fullTrend = Enumerable.Range(0, 7)
+            // 5. 7-day revenue trend (succeeded payments)
+            var revTrendRaw = clubEventIds.Count == 0
+                ? new List<(DateOnly, long)>()
+                : await _context.Payments
+                    .AsNoTracking()
+                    .Where(p => clubEventIds.Contains(p.EventId)
+                        && p.Status == PaymentStatus.Succeeded
+                        && p.CreatedAt >= sevenDaysAgo)
+                    .GroupBy(p => p.CreatedAt.Date)
+                    .Select(g => new { Date = g.Key, Amount = g.Sum(p => (long?)p.Amount) ?? 0L })
+                    .ToListAsync()
+                    .ContinueWith(t => t.Result
+                        .Select(x => (Date: DateOnly.FromDateTime(x.Date), Amount: x.Amount))
+                        .ToList());
+
+            // 6. Unique and repeat attendees
+            var attendeeStats = clubEventIds.Count == 0
+                ? (Unique: 0, Repeat: 0)
+                : await _context.EventRegistrations
+                    .AsNoTracking()
+                    .Where(r => clubEventIds.Contains(r.EventId))
+                    .GroupBy(r => r.UserId)
+                    .Select(g => new { UserId = g.Key, EventCount = g.Count() })
+                    .GroupBy(_ => 1)
+                    .Select(g => new
+                    {
+                        Unique = g.Count(),
+                        Repeat = g.Count(u => u.EventCount > 1)
+                    })
+                    .FirstOrDefaultAsync()
+                    .ContinueWith(t => t.Result == null
+                        ? (Unique: 0, Repeat: 0)
+                        : (Unique: t.Result.Unique, Repeat: t.Result.Repeat));
+
+            // Backfill missing days with zero for both trends
+            var regTrendMap = regTrendRaw.ToDictionary(x => x.Item1, x => x.Item2);
+            var revTrendMap = revTrendRaw.ToDictionary(x => x.Item1, x => x.Item2);
+
+            var fullRegTrend = Enumerable.Range(0, 7)
                 .Select(i =>
                 {
                     var date = DateOnly.FromDateTime(sevenDaysAgo.AddDays(i));
-                    return (Date: date, Count: trendMap.GetValueOrDefault(date, 0));
+                    return (Date: date, Count: regTrendMap.GetValueOrDefault(date, 0));
+                })
+                .ToList();
+
+            var fullRevTrend = Enumerable.Range(0, 7)
+                .Select(i =>
+                {
+                    var date = DateOnly.FromDateTime(sevenDaysAgo.AddDays(i));
+                    return (Date: date, Amount: revTrendMap.GetValueOrDefault(date, 0L));
                 })
                 .ToList();
 
@@ -139,10 +183,13 @@ namespace backend.main.repositories.implementation
                 OngoingEvents: eventStats?.Ongoing ?? 0,
                 PastEvents: eventStats?.Past ?? 0,
                 TotalRegistrations: totalRegistrations,
+                UniqueAttendees: attendeeStats.Unique,
+                RepeatAttendees: attendeeStats.Repeat,
                 TotalRevenue: revenueTotals.Total,
                 PendingRevenue: revenueTotals.Pending,
                 PerEvent: perEvent,
-                DailyTrend: fullTrend
+                DailyTrend: fullRegTrend,
+                RevenueTrend: fullRevTrend
             );
         }
     }

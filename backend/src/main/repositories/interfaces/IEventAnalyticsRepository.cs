@@ -30,9 +30,12 @@ namespace backend.main.repositories.interfaces
         int OngoingEvents,
         int PastEvents,
         int TotalRegistrations,
+        int UniqueAttendees,
+        int RepeatAttendees,
         long TotalRevenue,
         long PendingRevenue,
         List<PerEventAnalytics> PerEvent,
-        List<(DateOnly Date, int Count)> DailyTrend
+        List<(DateOnly Date, int Count)> DailyTrend,
+        List<(DateOnly Date, long Amount)> RevenueTrend
     );
 }

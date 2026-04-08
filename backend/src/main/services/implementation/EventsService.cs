@@ -499,19 +499,35 @@ namespace backend.main.services.implementation
 
                 var data = await _analyticsRepository.GetClubAnalyticsAsync(clubId);
 
-                var topEvents = data.PerEvent
+                static TopEventEntry ToTopEntry(PerEventAnalytics e) => new()
+                {
+                    Id = e.EventId,
+                    Name = e.EventName,
+                    RegistrationCount = e.RegistrationCount,
+                    FillRate = e.MaxParticipants > 0
+                        ? Math.Round(e.RegistrationCount / (double)e.MaxParticipants * 100.0, 2)
+                        : 0.0,
+                    Revenue = e.Revenue
+                };
+
+                var topByRegistrations = data.PerEvent
                     .OrderByDescending(e => e.RegistrationCount)
                     .Take(5)
-                    .Select(e => new TopEventEntry
-                    {
-                        Id = e.EventId,
-                        Name = e.EventName,
-                        RegistrationCount = e.RegistrationCount,
-                        FillRate = e.MaxParticipants > 0
-                            ? Math.Round(e.RegistrationCount / (double)e.MaxParticipants * 100.0, 2)
-                            : 0.0,
-                        Revenue = e.Revenue
-                    })
+                    .Select(ToTopEntry)
+                    .ToList();
+
+                var topByRevenue = data.PerEvent
+                    .OrderByDescending(e => e.Revenue)
+                    .Take(5)
+                    .Select(ToTopEntry)
+                    .ToList();
+
+                var topByFillRate = data.PerEvent
+                    .OrderByDescending(e => e.MaxParticipants > 0
+                        ? e.RegistrationCount / (double)e.MaxParticipants
+                        : 0.0)
+                    .Take(5)
+                    .Select(ToTopEntry)
                     .ToList();
 
                 var avgFillRate = data.PerEvent.Count > 0
@@ -528,12 +544,19 @@ namespace backend.main.services.implementation
                     OngoingEvents = data.OngoingEvents,
                     PastEvents = data.PastEvents,
                     TotalRegistrations = data.TotalRegistrations,
+                    UniqueAttendees = data.UniqueAttendees,
+                    RepeatAttendees = data.RepeatAttendees,
                     TotalRevenue = data.TotalRevenue,
                     PendingRevenue = data.PendingRevenue,
                     AvgFillRate = avgFillRate,
-                    TopEventsByRegistrations = topEvents,
+                    TopEventsByRegistrations = topByRegistrations,
+                    TopEventsByRevenue = topByRevenue,
+                    TopEventsByFillRate = topByFillRate,
                     RegistrationTrend = data.DailyTrend
                         .Select(d => new DailyRegistrationEntry { Date = d.Date, Count = d.Count })
+                        .ToList(),
+                    RevenueTrend = data.RevenueTrend
+                        .Select(d => new DailyRevenueEntry { Date = d.Date, Amount = d.Amount })
                         .ToList()
                 };
             }

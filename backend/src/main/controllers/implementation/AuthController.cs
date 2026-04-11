@@ -1,4 +1,5 @@
 using backend.main.dtos.requests.auth;
+using backend.main.dtos.general;
 using backend.main.dtos.responses.auth;
 using backend.main.dtos.responses.general;
 using backend.main.exceptions.http;
@@ -18,11 +19,17 @@ namespace backend.main.implementation.controllers
     {
         private readonly IAuthService _authService;
         private readonly IAntiforgery _antiforgery;
+        private readonly ClientRequestInfo _requestInfo;
 
-        public AuthController(IAuthService authService, IAntiforgery antiforgery)
+        public AuthController(
+            IAuthService authService,
+            IAntiforgery antiforgery,
+            ClientRequestInfo requestInfo
+        )
         {
             _authService = authService;
             _antiforgery = antiforgery;
+            _requestInfo = requestInfo;
         }
 
         [HttpPost("login")]
@@ -36,14 +43,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    token.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, token);
 
                 return StatusCode(
                     200,
@@ -95,14 +95,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token authToken = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, authToken.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    authToken.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, authToken);
 
                 return StatusCode(
                     200,
@@ -133,14 +126,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    token.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, token);
 
                 return StatusCode(
                     200,
@@ -171,14 +157,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    token.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, token);
 
                 return StatusCode(
                     200,
@@ -200,11 +179,11 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("refresh")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Refresh()
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest? request)
         {
             try
             {
-                string? refreshToken = Request.Cookies["refreshToken"];
+                string? refreshToken = HttpUtility.ResolveRefreshToken(Request, request?.RefreshToken);
                 if (string.IsNullOrEmpty(refreshToken))
                     throw new UnauthorizedException("Missing refresh token");
 
@@ -213,13 +192,11 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
+                return Ok(CreateAuthResponse(user, token));
             }
             catch (Exception e)
             {
-                HttpUtility.ClearRefreshTokenCookie(Response);
+                HttpUtility.ClearRefreshToken(Response, _requestInfo);
 
                 if (e is AppException)
                     return HandleError.Resolve(e);
@@ -241,14 +218,14 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("logout")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest? request)
         {
             try
             {
-                string? refreshToken = Request.Cookies["refreshToken"];
+                string? refreshToken = HttpUtility.ResolveRefreshToken(Request, request?.RefreshToken);
                 if (string.IsNullOrEmpty(refreshToken))
                 {
-                    HttpUtility.ClearRefreshTokenCookie(Response);
+                    HttpUtility.ClearRefreshToken(Response, _requestInfo);
                     return StatusCode(
                         200,
                         new MessageResponse($"The user is already logged out.")
@@ -256,7 +233,7 @@ namespace backend.main.implementation.controllers
                 }
 
                 await _authService.HandleLogoutAsync(refreshToken);
-                HttpUtility.ClearRefreshTokenCookie(Response);
+                HttpUtility.ClearRefreshToken(Response, _requestInfo);
 
                 return StatusCode(
                     200,
@@ -265,7 +242,7 @@ namespace backend.main.implementation.controllers
             }
             catch (Exception e)
             {
-                HttpUtility.ClearRefreshTokenCookie(Response);
+                HttpUtility.ClearRefreshToken(Response, _requestInfo);
 
                 if (e is AppException)
                     return HandleError.Resolve(e);
@@ -284,14 +261,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token authToken = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, authToken.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    authToken.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, authToken);
 
                 return StatusCode(
                     200,
@@ -357,5 +327,10 @@ namespace backend.main.implementation.controllers
             }
         }
 
+        private AuthResponse CreateAuthResponse(User user, Token token)
+        {
+            var refreshToken = HttpUtility.ApplyRefreshToken(Response, _requestInfo, token.RefreshToken);
+            return new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken, refreshToken);
+        }
     }
 }

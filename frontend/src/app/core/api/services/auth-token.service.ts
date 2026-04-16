@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Store } from '@ngrx/store';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -49,17 +49,12 @@ export class AuthTokenService {
   async refreshAccessToken(): Promise<void> {
     await this.ensureCsrfToken();
 
-    const headers = this.csrfToken
-      ? new HttpHeaders({ 'X-CSRF-TOKEN': this.csrfToken })
-      : undefined;
-
     const res = await firstValueFrom(
       this.http.post<RefreshResponse>(
         `${environment.backendUrl}/auth/refresh`,
         {},
         {
           withCredentials: true,
-          headers,
         },
       ),
     );

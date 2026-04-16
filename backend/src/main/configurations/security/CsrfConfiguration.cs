@@ -35,38 +35,6 @@ namespace backend.main.configurations.security
 
             return services;
         }
-        public static void SetCsrfCookie(HttpContext httpContext, IAntiforgery antiforgery)
-        {
-            var tokens = antiforgery.GetAndStoreTokens(httpContext);
-            if (string.IsNullOrWhiteSpace(tokens.RequestToken))
-                return;
-
-            httpContext.Response.Cookies.Append(
-                CsrfCookieName,
-                tokens.RequestToken,
-                new CookieOptions
-                {
-                    HttpOnly = false,
-                    Secure = httpContext.Request.IsHttps,
-                    SameSite = SameSiteMode.Lax,
-                    Path = "/"
-                });
-        }
-
-        public static IApplicationBuilder UseRefreshCsrfCookie(this IApplicationBuilder app)
-        {
-            return app.Use(async (ctx, next) =>
-            {
-                if (IsRefreshEndpoint(ctx.Request))
-                {
-                    var antiforgery = ctx.RequestServices.GetRequiredService<IAntiforgery>();
-                    SetCsrfCookie(ctx, antiforgery);
-                }
-
-                await next();
-            });
-        }
-
         public static IApplicationBuilder UseRefreshCsrfValidation(this IApplicationBuilder app)
         {
             return app.Use(async (ctx, next) =>
@@ -79,11 +47,6 @@ namespace backend.main.configurations.security
 
                 await next();
             });
-        }
-
-        private static bool IsRefreshEndpoint(HttpRequest request)
-        {
-            return request.Path.StartsWithSegments("/api/auth/refresh", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsCsrfProtectedEndpoint(HttpRequest request)

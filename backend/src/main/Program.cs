@@ -86,7 +86,6 @@ app.UseSerilogRequestLogging(opts =>
     };
 });
 
-app.UseRefreshCsrfCookie();
 app.UseRefreshCsrfValidation();
 
 app.UseAuthentication();

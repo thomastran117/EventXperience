@@ -6,6 +6,7 @@ using backend.main.repositories.implementation;
 using backend.main.repositories.interfaces;
 using backend.main.repositories.resilience;
 using backend.main.services.implementation;
+using backend.main.services.implementations;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
 using backend.main.utilities.interfaces;
@@ -50,6 +51,9 @@ namespace backend.main.configurations.application
             services.AddScoped<IAzureBlobService, AzureBlobService>();
 
             services.AddSingleton<ICustomLogger, FileLogger>();
+
+            services.AddHttpClient<ICaptchaService, GoogleCaptchaService>();
+
             return services;
         }
     }

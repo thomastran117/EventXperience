@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { from, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -71,13 +71,8 @@ export class AuthService {
   private postWithCsrf<T>(url: string, body: unknown): Observable<T> {
     return from(this.authToken.ensureCsrfToken()).pipe(
       switchMap(() => {
-        const headers = this.authToken.csrfToken
-          ? new HttpHeaders({ 'X-CSRF-TOKEN': this.authToken.csrfToken })
-          : undefined;
-
         return this.http.post<T>(url, body, {
           withCredentials: true,
-          headers,
         });
       }),
     );

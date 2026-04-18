@@ -12,6 +12,10 @@ namespace backend.main.configurations.security
         private const int PermitLimit = 100;
         private static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
 
+        public const string AuthPolicyName = "auth";
+        private const int AuthPermitLimit = 10;
+        private static readonly TimeSpan AuthWindow = TimeSpan.FromMinutes(5);
+
         public static IServiceCollection AddInMemoryRateLimiter(this IServiceCollection services)
         {
             services.AddRateLimiter(options =>
@@ -52,6 +56,18 @@ namespace backend.main.configurations.security
                             QueueLimit = 0
                         });
                     }
+                });
+
+                options.AddPolicy(AuthPolicyName, context =>
+                {
+                    var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                    return RateLimitPartition.GetFixedWindowLimiter($"auth:{ip}", _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = AuthPermitLimit,
+                        Window = AuthWindow,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    });
                 });
             });
 

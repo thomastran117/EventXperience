@@ -2,12 +2,19 @@ namespace backend.main.dtos.responses.auth
 {
     public class AuthResponse
     {
-        public AuthResponse(int id, string username, string userType, string token)
+        public AuthResponse(
+            int id,
+            string username,
+            string userType,
+            string token,
+            string? refreshToken = null
+        )
         {
             Id = id;
             Username = username;
             Usertype = userType;
             Token = token;
+            RefreshToken = refreshToken;
             Avatar = "placeholder";
         }
 
@@ -24,6 +31,10 @@ namespace backend.main.dtos.responses.auth
             get; set;
         }
         public string Token
+        {
+            get; set;
+        }
+        public string? RefreshToken
         {
             get; set;
         }

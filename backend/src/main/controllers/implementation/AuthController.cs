@@ -1,4 +1,5 @@
 using backend.main.dtos.requests.auth;
+using backend.main.dtos.general;
 using backend.main.dtos.responses.auth;
 using backend.main.dtos.responses.general;
 using backend.main.exceptions.http;
@@ -7,8 +8,11 @@ using backend.main.models.other;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
 
+using backend.main.configurations.security;
+
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace backend.main.implementation.controllers
 {
@@ -18,32 +22,38 @@ namespace backend.main.implementation.controllers
     {
         private readonly IAuthService _authService;
         private readonly IAntiforgery _antiforgery;
+        private readonly ICaptchaService _captchaService;
+        private readonly ClientRequestInfo _requestInfo;
 
-        public AuthController(IAuthService authService, IAntiforgery antiforgery)
+        public AuthController(
+            IAuthService authService,
+            IAntiforgery antiforgery,
+            ICaptchaService captchaService,
+            ClientRequestInfo requestInfo
+        )
         {
             _authService = authService;
             _antiforgery = antiforgery;
+            _captchaService = captchaService;
+            _requestInfo = requestInfo;
         }
 
         [HttpPost("login")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> LocalAuthenticate([FromBody] LoginRequest request)
         {
             try
             {
+                if (!await _captchaService.VerifyCaptchaAsync(request.Captcha))
+                    throw new BadRequestException("Invalid captcha.");
+
                 UserToken userToken = await _authService.LoginAsync(request.Email, request.Password);
 
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    token.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, token);
 
                 return StatusCode(
                     200,
@@ -65,15 +75,30 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("signup")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> LocalSignup([FromBody] SignUpRequest request)
         {
             try
             {
-                await _authService.SignUpAsync(request.Email, request.Password, request.Usertype);
+                if (!await _captchaService.VerifyCaptchaAsync(request.Captcha))
+                    throw new BadRequestException("Invalid captcha.");
+
+                var challenge = await _authService.SignUpAsync(
+                    request.Email,
+                    request.Password,
+                    request.Usertype
+                );
 
                 return StatusCode(
                     200,
-                    new MessageResponse("Verification email sent.")
+                    new ApiResponse<VerificationChallengeResponse>(
+                        "Verification email sent.",
+                        new VerificationChallengeResponse
+                        {
+                            Challenge = challenge.Challenge,
+                            ExpiresAtUtc = challenge.ExpiresAtUtc,
+                        }
+                    )
                 );
             }
             catch (Exception e)
@@ -82,6 +107,39 @@ namespace backend.main.implementation.controllers
                     return HandleError.Resolve(e);
 
                 Logger.Error($"[AuthController] LocalSignup failed: {e}");
+                return HandleError.Resolve(e);
+            }
+        }
+
+        [HttpPost("verify/otp")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LocalVerifyOtp([FromBody] OtpVerificationRequest request)
+        {
+            try
+            {
+                UserToken userToken = await _authService.VerifyOtpAsync(
+                    request.Code,
+                    request.Challenge
+                );
+                User user = userToken.user;
+                Token authToken = userToken.token;
+
+                AuthResponse response = CreateAuthResponse(user, authToken);
+
+                return StatusCode(
+                    200,
+                    new ApiResponse<AuthResponse>(
+                        "Verification successful",
+                        response
+                    )
+                );
+            }
+            catch (Exception e)
+            {
+                if (e is AppException)
+                    return HandleError.Resolve(e);
+
+                Logger.Error($"[AuthController] LocalVerifyOtp failed: {e}");
                 return HandleError.Resolve(e);
             }
         }
@@ -95,14 +153,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token authToken = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, authToken.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    authToken.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, authToken);
 
                 return StatusCode(
                     200,
@@ -133,14 +184,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    token.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, token);
 
                 return StatusCode(
                     200,
@@ -171,14 +215,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    token.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, token);
 
                 return StatusCode(
                     200,
@@ -200,11 +237,11 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("refresh")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Refresh()
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest? request)
         {
             try
             {
-                string? refreshToken = Request.Cookies["refreshToken"];
+                string? refreshToken = HttpUtility.ResolveRefreshToken(Request, request?.RefreshToken);
                 if (string.IsNullOrEmpty(refreshToken))
                     throw new UnauthorizedException("Missing refresh token");
 
@@ -213,12 +250,12 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
-
-                return Ok(new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken));
+                return Ok(CreateAuthResponse(user, token));
             }
             catch (Exception e)
             {
+                HttpUtility.ClearRefreshToken(Response, _requestInfo);
+
                 if (e is AppException)
                     return HandleError.Resolve(e);
 
@@ -239,18 +276,22 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("logout")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest? request)
         {
             try
             {
-                string? refreshToken = Request.Cookies["refreshToken"];
+                string? refreshToken = HttpUtility.ResolveRefreshToken(Request, request?.RefreshToken);
                 if (string.IsNullOrEmpty(refreshToken))
+                {
+                    HttpUtility.ClearRefreshToken(Response, _requestInfo);
                     return StatusCode(
                         200,
                         new MessageResponse($"The user is already logged out.")
                     );
+                }
 
                 await _authService.HandleLogoutAsync(refreshToken);
+                HttpUtility.ClearRefreshToken(Response, _requestInfo);
 
                 return StatusCode(
                     200,
@@ -259,6 +300,8 @@ namespace backend.main.implementation.controllers
             }
             catch (Exception e)
             {
+                HttpUtility.ClearRefreshToken(Response, _requestInfo);
+
                 if (e is AppException)
                     return HandleError.Resolve(e);
 
@@ -276,14 +319,7 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token authToken = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, authToken.RefreshToken);
-
-                AuthResponse response = new(
-                    user.Id,
-                    user.Email,
-                    user.Usertype,
-                    authToken.AccessToken
-                );
+                AuthResponse response = CreateAuthResponse(user, authToken);
 
                 return StatusCode(
                     200,
@@ -309,11 +345,20 @@ namespace backend.main.implementation.controllers
         {
             try
             {
-                await _authService.ForgotPasswordAsync(request.Email);
+                var challenge = await _authService.ForgotPasswordAsync(request.Email);
 
                 return StatusCode(
                     200,
-                    new MessageResponse("If the account exist, we send a reset email")
+                    new ApiResponse<VerificationChallengeResponse?>(
+                        "If the account exist, we send a reset email",
+                        challenge == null
+                            ? null
+                            : new VerificationChallengeResponse
+                            {
+                                Challenge = challenge.Challenge,
+                                ExpiresAtUtc = challenge.ExpiresAtUtc,
+                            }
+                    )
                 );
             }
             catch (Exception e)
@@ -332,7 +377,23 @@ namespace backend.main.implementation.controllers
         {
             try
             {
-                await _authService.ChangePasswordAsync(token, request.Password);
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    await _authService.ChangePasswordAsync(token, request.Password);
+                }
+                else if (!string.IsNullOrWhiteSpace(request.Code)
+                    && !string.IsNullOrWhiteSpace(request.Challenge))
+                {
+                    await _authService.ChangePasswordWithOtpAsync(
+                        request.Code,
+                        request.Challenge,
+                        request.Password
+                    );
+                }
+                else
+                {
+                    throw new BadRequestException("Missing password reset token or OTP challenge.");
+                }
 
                 return StatusCode(
                     200,
@@ -349,5 +410,10 @@ namespace backend.main.implementation.controllers
             }
         }
 
+        private AuthResponse CreateAuthResponse(User user, Token token)
+        {
+            var refreshToken = HttpUtility.ApplyRefreshToken(Response, _requestInfo, token.RefreshToken);
+            return new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken, refreshToken);
+        }
     }
 }

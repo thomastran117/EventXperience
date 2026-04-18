@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using backend.main.attributes.validation;
 
 namespace backend.main.dtos.requests.auth
 {
@@ -12,7 +13,7 @@ namespace backend.main.dtos.requests.auth
         }
 
         [Required]
-        [StringLength(30, MinimumLength = 4, ErrorMessage = "Password must be between 4 and 30 characters.")]
+        [StrongPassword]
         public required string Password
         {
             get; set;

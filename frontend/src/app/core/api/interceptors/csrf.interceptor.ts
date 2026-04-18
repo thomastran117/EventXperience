@@ -19,9 +19,6 @@ export class CsrfInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    const needsCsrfEndpoint = req.url.includes('/auth/refresh') || req.url.includes('/auth/logout');
-    if (!needsCsrfEndpoint) return next.handle(req);
-
     return next.handle(
       req.clone({
         setHeaders: { 'X-CSRF-TOKEN': csrf },

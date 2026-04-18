@@ -363,7 +363,7 @@ namespace backend.main.services.implementation
         {
             try
             {
-                return BCrypt.Net.BCrypt.HashPassword(password);
+                return BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
             }
             catch (Exception e)
             {

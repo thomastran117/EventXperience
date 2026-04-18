@@ -28,7 +28,7 @@ namespace backend.main.configurations.security
                 // JS must read it and send it back in header
                 options.Cookie.HttpOnly = false;
 
-                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SameSite = SameSiteMode.Strict;
                 // SameAsRequest: secure over HTTPS (production), works over HTTP (local dev)
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             });

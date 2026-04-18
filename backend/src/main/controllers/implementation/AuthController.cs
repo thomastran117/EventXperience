@@ -8,8 +8,11 @@ using backend.main.models.other;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
 
+using backend.main.configurations.security;
+
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace backend.main.implementation.controllers
 {
@@ -19,25 +22,32 @@ namespace backend.main.implementation.controllers
     {
         private readonly IAuthService _authService;
         private readonly IAntiforgery _antiforgery;
+        private readonly ICaptchaService _captchaService;
         private readonly ClientRequestInfo _requestInfo;
 
         public AuthController(
             IAuthService authService,
             IAntiforgery antiforgery,
+            ICaptchaService captchaService,
             ClientRequestInfo requestInfo
         )
         {
             _authService = authService;
             _antiforgery = antiforgery;
+            _captchaService = captchaService;
             _requestInfo = requestInfo;
         }
 
         [HttpPost("login")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> LocalAuthenticate([FromBody] LoginRequest request)
         {
             try
             {
+                if (!await _captchaService.VerifyCaptchaAsync(request.Captcha))
+                    throw new BadRequestException("Invalid captcha.");
+
                 UserToken userToken = await _authService.LoginAsync(request.Email, request.Password);
 
                 User user = userToken.user;
@@ -65,10 +75,14 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("signup")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> LocalSignup([FromBody] SignUpRequest request)
         {
             try
             {
+                if (!await _captchaService.VerifyCaptchaAsync(request.Captcha))
+                    throw new BadRequestException("Invalid captcha.");
+
                 var challenge = await _authService.SignUpAsync(
                     request.Email,
                     request.Password,

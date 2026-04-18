@@ -39,6 +39,25 @@ namespace backend.main.publishers.implementation
                 exclusive: false,
                 autoDelete: false
             ).GetAwaiter().GetResult();
+
+            _channel.QueueDeclareAsync(
+                queue: "clubpost-es-index-dlq",
+                durable: true,
+                exclusive: false,
+                autoDelete: false
+            ).GetAwaiter().GetResult();
+
+            _channel.QueueDeclareAsync(
+                queue: "clubpost-es-index",
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: new Dictionary<string, object?>
+                {
+                    ["x-dead-letter-exchange"] = "",
+                    ["x-dead-letter-routing-key"] = "clubpost-es-index-dlq"
+                }
+            ).GetAwaiter().GetResult();
         }
 
         public async Task PublishAsync<T>(string queue, T message)

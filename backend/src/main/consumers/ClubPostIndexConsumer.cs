@@ -116,29 +116,27 @@ namespace backend.main.consumers
                     using var scope = _scopeFactory.CreateScope();
                     var searchService = scope.ServiceProvider.GetRequiredService<IClubPostSearchService>();
 
-                    if (evt.Operation == "delete")
+                    if (ElasticsearchIndexMessageValidator.IsDeleteOperation(evt.Operation))
                     {
-                        await searchService.DeleteAsync(evt.PostId);
+                        ElasticsearchIndexMessageValidator.ValidateDelete(evt);
+                        await searchService.DeleteAsync(evt.PostId, ct);
                     }
                     else
                     {
-                        await searchService.IndexAsync(new ClubPostDocument
-                        {
-                            Id = evt.PostId,
-                            ClubId = evt.ClubId ?? 0,
-                            UserId = evt.UserId ?? 0,
-                            Title = evt.Title ?? string.Empty,
-                            Content = evt.Content ?? string.Empty,
-                            PostType = evt.PostType ?? string.Empty,
-                            LikesCount = evt.LikesCount ?? 0,
-                            IsPinned = evt.IsPinned ?? false,
-                            CreatedAt = evt.CreatedAt ?? DateTime.UtcNow,
-                            UpdatedAt = evt.UpdatedAt ?? DateTime.UtcNow
-                        });
+                        var document = ElasticsearchIndexMessageValidator.ToClubPostDocument(evt);
+                        await searchService.IndexAsync(document, ct);
                     }
                 });
 
                 await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+            }
+            catch (ElasticsearchIndexMessageValidationException ex)
+            {
+                var postId = evt?.PostId.ToString() ?? "unknown";
+                Logger.Warn(
+                    ex,
+                    $"Invalid club post index payload for post {postId}. Message will be sent to DLQ without indexing.");
+                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (Exception ex)
             {

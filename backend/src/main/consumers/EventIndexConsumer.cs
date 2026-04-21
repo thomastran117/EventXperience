@@ -116,46 +116,27 @@ namespace backend.main.consumers
                     using var scope = _scopeFactory.CreateScope();
                     var searchService = scope.ServiceProvider.GetRequiredService<IEventSearchService>();
 
-                    if (evt.Operation == "delete")
+                    if (ElasticsearchIndexMessageValidator.IsDeleteOperation(evt.Operation))
                     {
-                        await searchService.DeleteAsync(evt.EventId);
+                        ElasticsearchIndexMessageValidator.ValidateDelete(evt);
+                        await searchService.DeleteAsync(evt.EventId, ct);
                     }
                     else
                     {
-                        Elastic.Clients.Elasticsearch.GeoLocation? geo = null;
-                        if (evt.Latitude.HasValue && evt.Longitude.HasValue)
-                        {
-                            geo = Elastic.Clients.Elasticsearch.GeoLocation.LatitudeLongitude(
-                                new Elastic.Clients.Elasticsearch.LatLonGeoLocation
-                                {
-                                    Lat = evt.Latitude.Value,
-                                    Lon = evt.Longitude.Value
-                                });
-                        }
-
-                        await searchService.IndexAsync(new EventDocument
-                        {
-                            Id = evt.EventId,
-                            ClubId = evt.ClubId ?? 0,
-                            Name = evt.Name ?? string.Empty,
-                            Description = evt.Description ?? string.Empty,
-                            Location = evt.Location ?? string.Empty,
-                            IsPrivate = evt.IsPrivate ?? false,
-                            StartTime = evt.StartTime ?? DateTime.UtcNow,
-                            EndTime = evt.EndTime,
-                            CreatedAt = evt.CreatedAt ?? DateTime.UtcNow,
-                            UpdatedAt = evt.UpdatedAt ?? DateTime.UtcNow,
-                            Category = (evt.Category ?? backend.main.models.enums.EventCategory.Other).ToString(),
-                            VenueName = evt.VenueName,
-                            City = evt.City,
-                            Tags = evt.Tags ?? new List<string>(),
-                            LocationGeo = geo,
-                            RegistrationCount = evt.RegistrationCount ?? 0
-                        });
+                        var document = ElasticsearchIndexMessageValidator.ToEventDocument(evt);
+                        await searchService.IndexAsync(document, ct);
                     }
                 });
 
                 await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+            }
+            catch (ElasticsearchIndexMessageValidationException ex)
+            {
+                var eventId = evt?.EventId.ToString() ?? "unknown";
+                Logger.Warn(
+                    ex,
+                    $"Invalid event index payload for event {eventId}. Message will be sent to DLQ without indexing.");
+                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
             }
             catch (Exception ex)
             {

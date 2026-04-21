@@ -14,12 +14,17 @@ namespace backend.main.services.implementation
         private const string IndexName = "club_posts";
 
         private readonly ElasticsearchClient? _client;
+        private readonly ElasticsearchCircuitBreaker _circuitBreaker;
         private readonly ElasticsearchHealth _health;
         private readonly SemaphoreSlim _indexLock = new(1, 1);
         private bool _indexEnsured;
 
-        public ClubPostSearchService(ElasticsearchHealth health, ElasticsearchClient? client = null)
+        public ClubPostSearchService(
+            ElasticsearchCircuitBreaker circuitBreaker,
+            ElasticsearchHealth health,
+            ElasticsearchClient? client = null)
         {
+            _circuitBreaker = circuitBreaker;
             _health = health;
             _client = client;
         }
@@ -39,32 +44,36 @@ namespace backend.main.services.implementation
                 if (_indexEnsured)
                     return;
 
-                var exists = await client.Indices.ExistsAsync(IndexName);
+                var exists = await _circuitBreaker.ExecuteAsync(
+                    () => client.Indices.ExistsAsync(IndexName),
+                    $"{IndexName} index existence check");
                 if (!exists.Exists)
                 {
-                    await client.Indices.CreateAsync(IndexName, c => c
-                        .Settings(s => s
-                            .NumberOfShards(1)
-                            .NumberOfReplicas(1)
-                        )
-                        .Mappings(m => m
-                            .Properties<ClubPostDocument>(p => p
-                                .IntegerNumber(f => f.Id)
-                                .IntegerNumber(f => f.ClubId)
-                                .IntegerNumber(f => f.UserId)
-                                .Text(f => f.Title, t => t
-                                    .Analyzer("english")
-                                    .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
-                                )
-                                .Text(f => f.Content, t => t.Analyzer("english"))
-                                .Keyword(f => f.PostType)
-                                .IntegerNumber(f => f.LikesCount)
-                                .Boolean(f => f.IsPinned)
-                                .Date(f => f.CreatedAt)
-                                .Date(f => f.UpdatedAt)
+                    await _circuitBreaker.ExecuteAsync(
+                        () => client.Indices.CreateAsync(IndexName, c => c
+                            .Settings(s => s
+                                .NumberOfShards(1)
+                                .NumberOfReplicas(1)
                             )
-                        )
-                    );
+                            .Mappings(m => m
+                                .Properties<ClubPostDocument>(p => p
+                                    .IntegerNumber(f => f.Id)
+                                    .IntegerNumber(f => f.ClubId)
+                                    .IntegerNumber(f => f.UserId)
+                                    .Text(f => f.Title, t => t
+                                        .Analyzer("english")
+                                        .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
+                                    )
+                                    .Text(f => f.Content, t => t.Analyzer("english"))
+                                    .Keyword(f => f.PostType)
+                                    .IntegerNumber(f => f.LikesCount)
+                                    .Boolean(f => f.IsPinned)
+                                    .Date(f => f.CreatedAt)
+                                    .Date(f => f.UpdatedAt)
+                                )
+                            )
+                        ),
+                        $"{IndexName} index creation");
 
                     Logger.Info("Elasticsearch index 'club_posts' created.");
                 }
@@ -96,7 +105,9 @@ namespace backend.main.services.implementation
 
             try
             {
-                await client.Indices.DeleteAsync(IndexName);
+                await _circuitBreaker.ExecuteAsync(
+                    () => client.Indices.DeleteAsync(IndexName),
+                    $"{IndexName} index deletion");
                 _indexEnsured = false;
             }
             catch (Exception ex)
@@ -118,7 +129,9 @@ namespace backend.main.services.implementation
 
             try
             {
-                await client.IndexAsync(document, i => i.Index(IndexName).Id(document.Id));
+                await _circuitBreaker.ExecuteAsync(
+                    () => client.IndexAsync(document, i => i.Index(IndexName).Id(document.Id)),
+                    $"{IndexName} document indexing");
             }
             catch (Exception ex)
             {
@@ -137,7 +150,9 @@ namespace backend.main.services.implementation
 
             try
             {
-                await client.DeleteAsync(IndexName, postId);
+                await _circuitBreaker.ExecuteAsync(
+                    () => client.DeleteAsync(IndexName, postId),
+                    $"{IndexName} document deletion");
             }
             catch (Exception ex)
             {
@@ -158,10 +173,12 @@ namespace backend.main.services.implementation
 
             try
             {
-                var response = await client.BulkAsync(b => b
-                    .Index(IndexName)
-                    .IndexMany(documents)
-                );
+                var response = await _circuitBreaker.ExecuteAsync(
+                    () => client.BulkAsync(b => b
+                        .Index(IndexName)
+                        .IndexMany(documents)
+                    ),
+                    $"{IndexName} bulk indexing");
 
                 if (response.Errors)
                     Logger.Warn($"Bulk index had errors: {response.ItemsWithErrors.Count()} items failed.");
@@ -185,23 +202,25 @@ namespace backend.main.services.implementation
 
             try
             {
-                var response = await client.SearchAsync<ClubPostDocument>(s => s
-                    .Index(IndexName)
-                    .From(from)
-                    .Size(pageSize)
-                    .Query(q => q
-                        .Bool(b => b
-                            .Filter(f => f.Term(t => t.Field(d => d.ClubId).Value(clubId)))
-                            .Must(m => m.MultiMatch(mm => mm
-                                .Query(search)
-                                .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
-                                .Type(TextQueryType.BestFields)
-                                .Fuzziness(new Fuzziness("AUTO"))
-                            ))
+                var response = await _circuitBreaker.ExecuteAsync(
+                    () => client.SearchAsync<ClubPostDocument>(s => s
+                        .Index(IndexName)
+                        .From(from)
+                        .Size(pageSize)
+                        .Query(q => q
+                            .Bool(b => b
+                                .Filter(f => f.Term(t => t.Field(d => d.ClubId).Value(clubId)))
+                                .Must(m => m.MultiMatch(mm => mm
+                                    .Query(search)
+                                    .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
+                                    .Type(TextQueryType.BestFields)
+                                    .Fuzziness(new Fuzziness("AUTO"))
+                                ))
+                            )
                         )
-                    )
-                    .Sort(BuildSort(sortBy))
-                );
+                        .Sort(BuildSort(sortBy))
+                    ),
+                    $"{IndexName} search by club");
 
                 var ids = response.Hits
                     .Where(h => h.Source != null)
@@ -232,20 +251,22 @@ namespace backend.main.services.implementation
 
             try
             {
-                var response = await client.SearchAsync<ClubPostDocument>(s => s
-                    .Index(IndexName)
-                    .From(from)
-                    .Size(pageSize)
-                    .Query(q => q
-                        .MultiMatch(mm => mm
-                            .Query(search)
-                            .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
-                            .Type(TextQueryType.BestFields)
-                            .Fuzziness(new Fuzziness("AUTO"))
+                var response = await _circuitBreaker.ExecuteAsync(
+                    () => client.SearchAsync<ClubPostDocument>(s => s
+                        .Index(IndexName)
+                        .From(from)
+                        .Size(pageSize)
+                        .Query(q => q
+                            .MultiMatch(mm => mm
+                                .Query(search)
+                                .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
+                                .Type(TextQueryType.BestFields)
+                                .Fuzziness(new Fuzziness("AUTO"))
+                            )
                         )
-                    )
-                    .Sort(BuildSort(sortBy))
-                );
+                        .Sort(BuildSort(sortBy))
+                    ),
+                    $"{IndexName} admin search");
 
                 var ids = response.Hits
                     .Where(h => h.Source != null)

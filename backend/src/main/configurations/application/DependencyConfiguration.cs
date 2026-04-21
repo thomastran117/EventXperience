@@ -20,6 +20,7 @@ namespace backend.main.configurations.application
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
             services.AddAppElasticsearch(config);
+            services.AddSingleton<ElasticsearchCircuitBreaker>();
             services.AddSingleton<IRepositoryResiliencePolicy, RepositoryResiliencePolicy>();
             services.AddSingleton<IRepositoryAttributeResolver, RepositoryAttributeResolver>();
             services.AddRepositoryWithProxy<IFollowRepository, FollowRepository>();
@@ -51,6 +52,7 @@ namespace backend.main.configurations.application
             services.AddScoped<IClubPostSearchService, ClubPostSearchService>();
             services.AddScoped<IClubPostReindexService, ClubPostReindexService>();
             services.AddHostedService<ElasticsearchIndexInitializationService>();
+            services.AddHostedService<ElasticsearchDlqMonitorService>();
             services.AddHostedService<ClubPostIndexConsumer>();
             services.AddScoped<IEventSearchService, EventSearchService>();
             services.AddScoped<IEventReindexService, EventReindexService>();

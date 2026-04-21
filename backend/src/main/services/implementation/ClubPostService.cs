@@ -1,4 +1,5 @@
 using backend.main.dtos.messages;
+using backend.main.configurations.resource.elasticsearch;
 using backend.main.exceptions.http;
 using backend.main.models.core;
 using backend.main.models.enums;
@@ -86,9 +87,18 @@ namespace backend.main.services.implementation
                         await _postRepository.IncrementViewCountAsync(posts.Select(p => p.Id));
                     return (posts, total);
                 }
+                catch (ElasticsearchDisabledException ex)
+                {
+                    Logger.Info($"Elasticsearch disabled for club post search. Falling back to MySQL LIKE search. {ex.Message}");
+                }
+                catch (ElasticsearchUnavailableException ex)
+                {
+                    Logger.Warn(ex, "Elasticsearch temporarily unavailable. Falling back to MySQL LIKE search.");
+                }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, "Elasticsearch unavailable. Falling back to MySQL LIKE search.");
+                    Logger.Error($"Club post Elasticsearch search failed with a non-fallback error: {ex}");
+                    throw;
                 }
             }
 
@@ -154,9 +164,18 @@ namespace backend.main.services.implementation
                         : [];
                     return (posts, total);
                 }
+                catch (ElasticsearchDisabledException ex)
+                {
+                    Logger.Info($"Elasticsearch disabled for admin club post search. Falling back to MySQL LIKE search. {ex.Message}");
+                }
+                catch (ElasticsearchUnavailableException ex)
+                {
+                    Logger.Warn(ex, "Elasticsearch temporarily unavailable for admin club post search. Falling back to MySQL LIKE search.");
+                }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, "Elasticsearch unavailable. Falling back to MySQL LIKE search.");
+                    Logger.Error($"Admin club post Elasticsearch search failed with a non-fallback error: {ex}");
+                    throw;
                 }
             }
 

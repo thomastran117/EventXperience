@@ -501,9 +501,9 @@ namespace backend.main.implementation.controllers
         }
 
         [HttpPost("reindex")]
-        public async Task<IActionResult> ReindexEvents()
+        public async Task<IActionResult> ReindexEvents(CancellationToken cancellationToken)
         {
-            var count = await _reindexService.ReindexAllAsync();
+            var count = await _reindexService.ReindexAllAsync(cancellationToken);
             return Ok(new { indexed = count });
         }
     }

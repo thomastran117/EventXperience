@@ -1,4 +1,5 @@
 using backend.main.models.documents;
+using backend.main.exceptions.http;
 using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
@@ -10,6 +11,7 @@ namespace backend.main.services.implementation
     public class EventReindexService : IEventReindexService
     {
         private const int BatchSize = 100;
+        private static readonly TimeSpan ReindexTimeout = TimeSpan.FromMinutes(10);
 
         private readonly IEventsRepository _eventsRepository;
         private readonly IEventSearchService _searchService;
@@ -20,54 +22,69 @@ namespace backend.main.services.implementation
             _searchService = searchService;
         }
 
-        public async Task<int> ReindexAllAsync()
+        public async Task<int> ReindexAllAsync(CancellationToken cancellationToken = default)
         {
-            await _searchService.DeleteIndexAsync();
-            await _searchService.EnsureIndexAsync();
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(ReindexTimeout);
+            var token = timeoutCts.Token;
 
-            int totalIndexed = 0;
-            int page = 1;
-
-            while (true)
+            try
             {
-                var events = await _eventsRepository.GetAllForReindexAsync(page, BatchSize);
-                if (events.Count == 0) break;
+                token.ThrowIfCancellationRequested();
+                await _searchService.DeleteIndexAsync(token);
+                await _searchService.EnsureIndexAsync(token);
 
-                var documents = events.Select(e => new EventDocument
+                int totalIndexed = 0;
+                int page = 1;
+
+                while (true)
                 {
-                    Id = e.Id,
-                    ClubId = e.ClubId,
-                    Name = e.Name,
-                    Description = e.Description,
-                    Location = e.Location,
-                    IsPrivate = e.isPrivate,
-                    StartTime = e.StartTime,
-                    EndTime = e.EndTime,
-                    CreatedAt = e.CreatedAt,
-                    UpdatedAt = e.UpdatedAt,
-                    Category = e.Category.ToString(),
-                    VenueName = e.VenueName,
-                    City = e.City,
-                    Tags = e.Tags ?? new List<string>(),
-                    LocationGeo = (e.Latitude.HasValue && e.Longitude.HasValue)
-                        ? GeoLocation.LatitudeLongitude(new LatLonGeoLocation
-                        {
-                            Lat = e.Latitude.Value,
-                            Lon = e.Longitude.Value
-                        })
-                        : null,
-                    RegistrationCount = e.RegistrationCount
-                });
+                    token.ThrowIfCancellationRequested();
 
-                await _searchService.BulkIndexAsync(documents);
-                totalIndexed += events.Count;
-                page++;
+                    var events = await _eventsRepository.GetAllForReindexAsync(page, BatchSize, token);
+                    if (events.Count == 0) break;
 
-                if (events.Count < BatchSize) break;
+                    var documents = events.Select(e => new EventDocument
+                    {
+                        Id = e.Id,
+                        ClubId = e.ClubId,
+                        Name = e.Name,
+                        Description = e.Description,
+                        Location = e.Location,
+                        IsPrivate = e.isPrivate,
+                        StartTime = e.StartTime,
+                        EndTime = e.EndTime,
+                        CreatedAt = e.CreatedAt,
+                        UpdatedAt = e.UpdatedAt,
+                        Category = e.Category.ToString(),
+                        VenueName = e.VenueName,
+                        City = e.City,
+                        Tags = e.Tags ?? new List<string>(),
+                        LocationGeo = (e.Latitude.HasValue && e.Longitude.HasValue)
+                            ? GeoLocation.LatitudeLongitude(new LatLonGeoLocation
+                            {
+                                Lat = e.Latitude.Value,
+                                Lon = e.Longitude.Value
+                            })
+                            : null,
+                        RegistrationCount = e.RegistrationCount
+                    });
+
+                    await _searchService.BulkIndexAsync(documents, token);
+                    totalIndexed += events.Count;
+                    page++;
+
+                    if (events.Count < BatchSize) break;
+                }
+
+                Logger.Info($"Reindex complete. {totalIndexed} events indexed.");
+                return totalIndexed;
             }
-
-            Logger.Info($"Reindex complete. {totalIndexed} events indexed.");
-            return totalIndexed;
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                Logger.Warn($"Event reindex exceeded the {ReindexTimeout.TotalMinutes:0} minute timeout.");
+                throw new GatewayTimeoutException("Event reindex timed out.");
+            }
         }
     }
 }

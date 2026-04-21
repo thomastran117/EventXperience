@@ -154,12 +154,12 @@ namespace backend.main.repositories.implementation
                 .ToList();
         }
 
-        public async Task<List<ClubPost>> GetAllForReindexAsync(int page, int pageSize) =>
+        public async Task<List<ClubPost>> GetAllForReindexAsync(int page, int pageSize, CancellationToken cancellationToken = default) =>
             await _context.ClubPosts
                 .AsNoTracking()
                 .OrderBy(p => p.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
     }
 }

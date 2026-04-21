@@ -2,6 +2,7 @@ using System.Text.Json;
 
 using backend.main.dtos;
 using backend.main.dtos.messages;
+using backend.main.configurations.resource.elasticsearch;
 using backend.main.dtos.requests.events;
 using backend.main.dtos.responses.events;
 using backend.main.exceptions.http;
@@ -186,9 +187,18 @@ namespace backend.main.services.implementation
 
                     return (ordered, distanceMap);
                 }
+                catch (ElasticsearchDisabledException ex)
+                {
+                    Logger.Info($"[EventsService] Elasticsearch disabled. Falling back to MySQL search. {ex.Message}");
+                }
+                catch (ElasticsearchUnavailableException ex)
+                {
+                    Logger.Warn(ex, "[EventsService] Elasticsearch temporarily unavailable. Falling back to MySQL search.");
+                }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, "[EventsService] Elasticsearch unavailable. Falling back to MySQL search.");
+                    Logger.Error($"[EventsService] Elasticsearch search failed with a non-fallback error: {ex}");
+                    throw;
                 }
 
                 var events = await _eventsRepository.SearchAsync(effective);

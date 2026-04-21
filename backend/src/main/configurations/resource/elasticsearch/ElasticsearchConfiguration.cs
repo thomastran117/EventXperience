@@ -12,10 +12,14 @@ namespace backend.main.configurations.resource.elasticsearch
             IConfiguration _)
         {
             var url = EnvironmentSetting.ElasticsearchUrl;
+            var health = new ElasticsearchHealth
+            {
+                IsConfigured = !string.IsNullOrWhiteSpace(url)
+            };
 
             if (string.IsNullOrWhiteSpace(url))
             {
-                services.AddSingleton(new ElasticsearchHealth { IsAvailable = false });
+                services.AddSingleton(health);
                 Logger.Warn("ELASTICSEARCH_URL not configured. Full-text search will fall back to MySQL LIKE.");
                 return services;
             }
@@ -26,13 +30,16 @@ namespace backend.main.configurations.resource.elasticsearch
 
                 var client = new ElasticsearchClient(settings);
                 services.AddSingleton(client);
-                services.AddSingleton(new ElasticsearchHealth { IsAvailable = true });
+                health.IsAvailable = true;
+                services.AddSingleton(health);
 
                 Logger.Info("Elasticsearch client registered.");
             }
             catch (Exception ex)
             {
-                services.AddSingleton(new ElasticsearchHealth { IsAvailable = false, Failure = ex });
+                health.IsAvailable = false;
+                health.Failure = ex;
+                services.AddSingleton(health);
                 Logger.Warn(ex, "Elasticsearch setup failed. Full-text search will fall back to MySQL LIKE.");
             }
 

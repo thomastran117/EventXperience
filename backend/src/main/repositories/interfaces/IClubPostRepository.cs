@@ -15,6 +15,6 @@ namespace backend.main.repositories.interfaces
         Task<bool> DeleteAsync(int id);
         Task IncrementViewCountAsync(IEnumerable<int> postIds);
         Task<List<ClubPost>> GetByIdsAsync(IEnumerable<int> ids);
-        Task<List<ClubPost>> GetAllForReindexAsync(int page, int pageSize);
+        Task<List<ClubPost>> GetAllForReindexAsync(int page, int pageSize, CancellationToken cancellationToken = default);
     }
 }

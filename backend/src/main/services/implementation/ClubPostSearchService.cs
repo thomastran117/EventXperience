@@ -15,6 +15,8 @@ namespace backend.main.services.implementation
 
         private readonly ElasticsearchClient? _client;
         private readonly ElasticsearchHealth _health;
+        private readonly SemaphoreSlim _indexLock = new(1, 1);
+        private bool _indexEnsured;
 
         public ClubPostSearchService(ElasticsearchHealth health, ElasticsearchClient? client = null)
         {
@@ -22,132 +24,278 @@ namespace backend.main.services.implementation
             _client = client;
         }
 
-        public async Task EnsureIndexAsync()
+        public async Task EnsureIndexAsync(CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var exists = await _client.Indices.ExistsAsync(IndexName);
-            if (exists.Exists) return;
+            if (_indexEnsured)
+                return;
 
-            await _client.Indices.CreateAsync(IndexName, c => c
-                .Settings(s => s
-                    .NumberOfShards(1)
-                    .NumberOfReplicas(1)
-                )
-                .Mappings(m => m
-                    .Properties<ClubPostDocument>(p => p
-                        .IntegerNumber(f => f.Id)
-                        .IntegerNumber(f => f.ClubId)
-                        .IntegerNumber(f => f.UserId)
-                        .Text(f => f.Title, t => t
-                            .Analyzer("english")
-                            .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
+            var client = GetRequiredClient();
+
+            await _indexLock.WaitAsync(cancellationToken);
+            try
+            {
+                if (_indexEnsured)
+                    return;
+
+                var exists = await client.Indices.ExistsAsync(IndexName);
+                if (!exists.Exists)
+                {
+                    await client.Indices.CreateAsync(IndexName, c => c
+                        .Settings(s => s
+                            .NumberOfShards(1)
+                            .NumberOfReplicas(1)
                         )
-                        .Text(f => f.Content, t => t.Analyzer("english"))
-                        .Keyword(f => f.PostType)
-                        .IntegerNumber(f => f.LikesCount)
-                        .Boolean(f => f.IsPinned)
-                        .Date(f => f.CreatedAt)
-                        .Date(f => f.UpdatedAt)
-                    )
-                )
-            );
+                        .Mappings(m => m
+                            .Properties<ClubPostDocument>(p => p
+                                .IntegerNumber(f => f.Id)
+                                .IntegerNumber(f => f.ClubId)
+                                .IntegerNumber(f => f.UserId)
+                                .Text(f => f.Title, t => t
+                                    .Analyzer("english")
+                                    .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
+                                )
+                                .Text(f => f.Content, t => t.Analyzer("english"))
+                                .Keyword(f => f.PostType)
+                                .IntegerNumber(f => f.LikesCount)
+                                .Boolean(f => f.IsPinned)
+                                .Date(f => f.CreatedAt)
+                                .Date(f => f.UpdatedAt)
+                            )
+                        )
+                    );
 
-            Logger.Info("Elasticsearch index 'club_posts' created.");
+                    Logger.Info("Elasticsearch index 'club_posts' created.");
+                }
+
+                _indexEnsured = true;
+            }
+            catch (ElasticsearchServiceException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Failed to verify the Elasticsearch club post index.",
+                    ex);
+            }
+            finally
+            {
+                _indexLock.Release();
+            }
         }
 
-        public async Task DeleteIndexAsync()
+        public async Task DeleteIndexAsync(CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
-            await _client.Indices.DeleteAsync(IndexName);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
+
+            try
+            {
+                await client.Indices.DeleteAsync(IndexName);
+                _indexEnsured = false;
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Failed to delete the Elasticsearch club post index.",
+                    ex);
+            }
         }
 
-        public async Task IndexAsync(ClubPostDocument document)
+        public async Task IndexAsync(ClubPostDocument document, CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
-            await _client.IndexAsync(document, i => i.Index(IndexName).Id(document.Id));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
+
+            await EnsureIndexAsync(cancellationToken);
+
+            try
+            {
+                await client.IndexAsync(document, i => i.Index(IndexName).Id(document.Id));
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    $"Failed to index club post document {document.Id}.",
+                    ex);
+            }
         }
 
-        public async Task DeleteAsync(int postId)
+        public async Task DeleteAsync(int postId, CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
-            await _client.DeleteAsync(IndexName, postId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
+
+            try
+            {
+                await client.DeleteAsync(IndexName, postId);
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    $"Failed to delete club post document {postId}.",
+                    ex);
+            }
         }
 
-        public async Task BulkIndexAsync(IEnumerable<ClubPostDocument> documents)
+        public async Task BulkIndexAsync(IEnumerable<ClubPostDocument> documents, CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var response = await _client.BulkAsync(b => b
-                .Index(IndexName)
-                .IndexMany(documents)
-            );
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
 
-            if (response.Errors)
-                Logger.Warn($"Bulk index had errors: {response.ItemsWithErrors.Count()} items failed.");
+            await EnsureIndexAsync(cancellationToken);
+
+            try
+            {
+                var response = await client.BulkAsync(b => b
+                    .Index(IndexName)
+                    .IndexMany(documents)
+                );
+
+                if (response.Errors)
+                    Logger.Warn($"Bulk index had errors: {response.ItemsWithErrors.Count()} items failed.");
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Failed to bulk index club post documents.",
+                    ex);
+            }
         }
 
         public async Task<(List<int> Ids, int TotalCount)> SearchByClubAsync(
             int clubId, string search, PostSortBy sortBy, int page, int pageSize)
         {
-            if (!_health.IsAvailable || _client == null)
-                throw new InvalidOperationException("Elasticsearch is not available.");
+            var client = GetRequiredClient();
+
+            await EnsureIndexAsync();
 
             var from = (page - 1) * pageSize;
 
-            var response = await _client.SearchAsync<ClubPostDocument>(s => s
-                .Index(IndexName)
-                .From(from)
-                .Size(pageSize)
-                .Query(q => q
-                    .Bool(b => b
-                        .Filter(f => f.Term(t => t.Field(d => d.ClubId).Value(clubId)))
-                        .Must(m => m.MultiMatch(mm => mm
-                            .Query(search)
-                            .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
-                            .Type(TextQueryType.BestFields)
-                            .Fuzziness(new Fuzziness("AUTO"))
-                        ))
+            try
+            {
+                var response = await client.SearchAsync<ClubPostDocument>(s => s
+                    .Index(IndexName)
+                    .From(from)
+                    .Size(pageSize)
+                    .Query(q => q
+                        .Bool(b => b
+                            .Filter(f => f.Term(t => t.Field(d => d.ClubId).Value(clubId)))
+                            .Must(m => m.MultiMatch(mm => mm
+                                .Query(search)
+                                .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
+                                .Type(TextQueryType.BestFields)
+                                .Fuzziness(new Fuzziness("AUTO"))
+                            ))
+                        )
                     )
-                )
-                .Sort(BuildSort(sortBy))
-            );
+                    .Sort(BuildSort(sortBy))
+                );
 
-            var ids = response.Hits
-                .Where(h => h.Source != null)
-                .Select(h => h.Source!.Id)
-                .ToList();
-            return (ids, (int)response.Total);
+                var ids = response.Hits
+                    .Where(h => h.Source != null)
+                    .Select(h => h.Source!.Id)
+                    .ToList();
+                return (ids, (int)response.Total);
+            }
+            catch (ElasticsearchServiceException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Elasticsearch search failed for club posts.",
+                    ex);
+            }
         }
 
         public async Task<(List<int> Ids, int TotalCount)> SearchAllAsync(
             string search, PostSortBy sortBy, int page, int pageSize)
         {
-            if (!_health.IsAvailable || _client == null)
-                throw new InvalidOperationException("Elasticsearch is not available.");
+            var client = GetRequiredClient();
+
+            await EnsureIndexAsync();
 
             var from = (page - 1) * pageSize;
 
-            var response = await _client.SearchAsync<ClubPostDocument>(s => s
-                .Index(IndexName)
-                .From(from)
-                .Size(pageSize)
-                .Query(q => q
-                    .MultiMatch(mm => mm
-                        .Query(search)
-                        .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
-                        .Type(TextQueryType.BestFields)
-                        .Fuzziness(new Fuzziness("AUTO"))
+            try
+            {
+                var response = await client.SearchAsync<ClubPostDocument>(s => s
+                    .Index(IndexName)
+                    .From(from)
+                    .Size(pageSize)
+                    .Query(q => q
+                        .MultiMatch(mm => mm
+                            .Query(search)
+                            .Fields((Fields)new Field[] { (Field)"title^3", (Field)"content" })
+                            .Type(TextQueryType.BestFields)
+                            .Fuzziness(new Fuzziness("AUTO"))
+                        )
                     )
-                )
-                .Sort(BuildSort(sortBy))
-            );
+                    .Sort(BuildSort(sortBy))
+                );
 
-            var ids = response.Hits
-                .Where(h => h.Source != null)
-                .Select(h => h.Source!.Id)
-                .ToList();
-            return (ids, (int)response.Total);
+                var ids = response.Hits
+                    .Where(h => h.Source != null)
+                    .Select(h => h.Source!.Id)
+                    .ToList();
+                return (ids, (int)response.Total);
+            }
+            catch (ElasticsearchServiceException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Elasticsearch search failed for admin club posts.",
+                    ex);
+            }
+        }
+
+        private ElasticsearchClient GetRequiredClient()
+        {
+            if (_client != null)
+                return _client;
+
+            if (!_health.IsConfigured)
+                throw new ElasticsearchDisabledException(
+                    "Elasticsearch is disabled because ELASTICSEARCH_URL is not configured.");
+
+            if (_health.Failure != null)
+                throw new ElasticsearchConfigurationException(
+                    "Elasticsearch is configured but failed to initialize.",
+                    _health.Failure);
+
+            throw new ElasticsearchUnavailableException("Elasticsearch client is unavailable.");
+        }
+
+        private ElasticsearchClient? GetWritableClientOrNull()
+        {
+            if (_client != null)
+                return _client;
+
+            if (!_health.IsConfigured)
+                return null;
+
+            if (_health.Failure != null)
+                throw new ElasticsearchConfigurationException(
+                    "Elasticsearch is configured but failed to initialize.",
+                    _health.Failure);
+
+            throw new ElasticsearchUnavailableException("Elasticsearch client is unavailable.");
         }
 
         private static Action<SortOptionsDescriptor<ClubPostDocument>> BuildSort(PostSortBy sortBy)

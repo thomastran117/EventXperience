@@ -1,4 +1,5 @@
 using backend.main.models.documents;
+using backend.main.exceptions.http;
 using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
@@ -8,6 +9,7 @@ namespace backend.main.services.implementation
     public class ClubPostReindexService : IClubPostReindexService
     {
         private const int BatchSize = 100;
+        private static readonly TimeSpan ReindexTimeout = TimeSpan.FromMinutes(10);
 
         private readonly IClubPostRepository _postRepository;
         private readonly IClubPostSearchService _searchService;
@@ -18,42 +20,57 @@ namespace backend.main.services.implementation
             _searchService = searchService;
         }
 
-        public async Task<int> ReindexAllAsync()
+        public async Task<int> ReindexAllAsync(CancellationToken cancellationToken = default)
         {
-            await _searchService.DeleteIndexAsync();
-            await _searchService.EnsureIndexAsync();
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(ReindexTimeout);
+            var token = timeoutCts.Token;
 
-            int totalIndexed = 0;
-            int page = 1;
-
-            while (true)
+            try
             {
-                var posts = await _postRepository.GetAllForReindexAsync(page, BatchSize);
-                if (posts.Count == 0) break;
+                token.ThrowIfCancellationRequested();
+                await _searchService.DeleteIndexAsync(token);
+                await _searchService.EnsureIndexAsync(token);
 
-                var documents = posts.Select(p => new ClubPostDocument
+                int totalIndexed = 0;
+                int page = 1;
+
+                while (true)
                 {
-                    Id = p.Id,
-                    ClubId = p.ClubId,
-                    UserId = p.UserId,
-                    Title = p.Title,
-                    Content = p.Content,
-                    PostType = p.PostType.ToString(),
-                    LikesCount = p.LikesCount,
-                    IsPinned = p.IsPinned,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
-                });
+                    token.ThrowIfCancellationRequested();
 
-                await _searchService.BulkIndexAsync(documents);
-                totalIndexed += posts.Count;
-                page++;
+                    var posts = await _postRepository.GetAllForReindexAsync(page, BatchSize, token);
+                    if (posts.Count == 0) break;
 
-                if (posts.Count < BatchSize) break;
+                    var documents = posts.Select(p => new ClubPostDocument
+                    {
+                        Id = p.Id,
+                        ClubId = p.ClubId,
+                        UserId = p.UserId,
+                        Title = p.Title,
+                        Content = p.Content,
+                        PostType = p.PostType.ToString(),
+                        LikesCount = p.LikesCount,
+                        IsPinned = p.IsPinned,
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt
+                    });
+
+                    await _searchService.BulkIndexAsync(documents, token);
+                    totalIndexed += posts.Count;
+                    page++;
+
+                    if (posts.Count < BatchSize) break;
+                }
+
+                Logger.Info($"Reindex complete. {totalIndexed} posts indexed.");
+                return totalIndexed;
             }
-
-            Logger.Info($"Reindex complete. {totalIndexed} posts indexed.");
-            return totalIndexed;
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                Logger.Warn($"Club post reindex exceeded the {ReindexTimeout.TotalMinutes:0} minute timeout.");
+                throw new GatewayTimeoutException("Club post reindex timed out.");
+            }
         }
     }
 }

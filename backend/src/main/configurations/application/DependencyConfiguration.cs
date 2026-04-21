@@ -50,6 +50,7 @@ namespace backend.main.configurations.application
             services.AddScoped<IClubPostService, ClubPostService>();
             services.AddScoped<IClubPostSearchService, ClubPostSearchService>();
             services.AddScoped<IClubPostReindexService, ClubPostReindexService>();
+            services.AddHostedService<ElasticsearchIndexInitializationService>();
             services.AddHostedService<ClubPostIndexConsumer>();
             services.AddScoped<IEventSearchService, EventSearchService>();
             services.AddScoped<IEventReindexService, EventReindexService>();

@@ -5,11 +5,11 @@ namespace backend.main.services.interfaces
 {
     public interface IEventSearchService
     {
-        Task EnsureIndexAsync();
-        Task DeleteIndexAsync();
-        Task IndexAsync(EventDocument document);
-        Task DeleteAsync(int eventId);
-        Task BulkIndexAsync(IEnumerable<EventDocument> documents);
+        Task EnsureIndexAsync(CancellationToken cancellationToken = default);
+        Task DeleteIndexAsync(CancellationToken cancellationToken = default);
+        Task IndexAsync(EventDocument document, CancellationToken cancellationToken = default);
+        Task DeleteAsync(int eventId, CancellationToken cancellationToken = default);
+        Task BulkIndexAsync(IEnumerable<EventDocument> documents, CancellationToken cancellationToken = default);
         Task<EventSearchResult> SearchAsync(EventSearchCriteria criteria);
     }
 

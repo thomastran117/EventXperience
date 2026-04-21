@@ -16,7 +16,7 @@ namespace backend.main.repositories.interfaces
         Task<bool> ExistsAsync(int id);
         Task<List<Events>> SearchAsync(EventSearchCriteria criteria);
         Task<List<Events>> GetByIdsAsync(IEnumerable<int> ids);
-        Task<List<Events>> GetAllForReindexAsync(int page, int pageSize);
+        Task<List<Events>> GetAllForReindexAsync(int page, int pageSize, CancellationToken cancellationToken = default);
         Task<List<Events>> CreateManyAsync(IEnumerable<Events> events);
         Task<int> UpdateManyAsync(IEnumerable<(int id, Action<Events> patch)> updates);
         Task<int> DeleteManyAsync(IEnumerable<int> ids);

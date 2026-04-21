@@ -17,6 +17,8 @@ namespace backend.main.services.implementation
 
         private readonly ElasticsearchClient? _client;
         private readonly ElasticsearchHealth _health;
+        private readonly SemaphoreSlim _indexLock = new(1, 1);
+        private bool _indexEnsured;
 
         public EventSearchService(ElasticsearchHealth health, ElasticsearchClient? client = null)
         {
@@ -24,87 +26,173 @@ namespace backend.main.services.implementation
             _client = client;
         }
 
-        public async Task EnsureIndexAsync()
+        public async Task EnsureIndexAsync(CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var exists = await _client.Indices.ExistsAsync(IndexName);
-            if (exists.Exists) return;
+            if (_indexEnsured)
+                return;
 
-            await _client.Indices.CreateAsync(IndexName, c => c
-                .Settings(s => s
-                    .NumberOfShards(1)
-                    .NumberOfReplicas(1)
-                )
-                .Mappings(m => m
-                    .Properties<EventDocument>(p => p
-                        .IntegerNumber(f => f.Id)
-                        .IntegerNumber(f => f.ClubId)
-                        .Text(f => f.Name, t => t
-                            .Analyzer("english")
-                            .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
+            var client = GetRequiredClient();
+
+            await _indexLock.WaitAsync(cancellationToken);
+            try
+            {
+                if (_indexEnsured)
+                    return;
+
+                var exists = await client.Indices.ExistsAsync(IndexName);
+                if (!exists.Exists)
+                {
+                    await client.Indices.CreateAsync(IndexName, c => c
+                        .Settings(s => s
+                            .NumberOfShards(1)
+                            .NumberOfReplicas(1)
                         )
-                        .Text(f => f.Description, t => t.Analyzer("english"))
-                        .Text(f => f.Location, t => t.Analyzer("english"))
-                        .Keyword(f => f.Category)
-                        .Text(f => f.VenueName, t => t
-                            .Analyzer("english")
-                            .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
+                        .Mappings(m => m
+                            .Properties<EventDocument>(p => p
+                                .IntegerNumber(f => f.Id)
+                                .IntegerNumber(f => f.ClubId)
+                                .Text(f => f.Name, t => t
+                                    .Analyzer("english")
+                                    .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
+                                )
+                                .Text(f => f.Description, t => t.Analyzer("english"))
+                                .Text(f => f.Location, t => t.Analyzer("english"))
+                                .Keyword(f => f.Category)
+                                .Text(f => f.VenueName, t => t
+                                    .Analyzer("english")
+                                    .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(256)))
+                                )
+                                .Text(f => f.City, t => t
+                                    .Analyzer("english")
+                                    .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(100)))
+                                )
+                                .Keyword(f => f.Tags)
+                                .GeoPoint(f => f.LocationGeo)
+                                .IntegerNumber(f => f.RegistrationCount)
+                                .Boolean(f => f.IsPrivate)
+                                .Date(f => f.StartTime)
+                                .Date(f => f.EndTime)
+                                .Date(f => f.CreatedAt)
+                                .Date(f => f.UpdatedAt)
+                            )
                         )
-                        .Text(f => f.City, t => t
-                            .Analyzer("english")
-                            .Fields(ff => ff.Keyword("keyword", k => k.IgnoreAbove(100)))
-                        )
-                        .Keyword(f => f.Tags)
-                        .GeoPoint(f => f.LocationGeo)
-                        .IntegerNumber(f => f.RegistrationCount)
-                        .Boolean(f => f.IsPrivate)
-                        .Date(f => f.StartTime)
-                        .Date(f => f.EndTime)
-                        .Date(f => f.CreatedAt)
-                        .Date(f => f.UpdatedAt)
-                    )
-                )
-            );
+                    );
 
-            Logger.Info("Elasticsearch index 'events' created.");
+                    Logger.Info("Elasticsearch index 'events' created.");
+                }
+
+                _indexEnsured = true;
+            }
+            catch (ElasticsearchServiceException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Failed to verify the Elasticsearch events index.",
+                    ex);
+            }
+            finally
+            {
+                _indexLock.Release();
+            }
         }
 
-        public async Task DeleteIndexAsync()
+        public async Task DeleteIndexAsync(CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
-            await _client.Indices.DeleteAsync(IndexName);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
+
+            try
+            {
+                await client.Indices.DeleteAsync(IndexName);
+                _indexEnsured = false;
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Failed to delete the Elasticsearch events index.",
+                    ex);
+            }
         }
 
-        public async Task IndexAsync(EventDocument document)
+        public async Task IndexAsync(EventDocument document, CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
-            await _client.IndexAsync(document, i => i.Index(IndexName).Id(document.Id));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
+
+            await EnsureIndexAsync(cancellationToken);
+
+            try
+            {
+                await client.IndexAsync(document, i => i.Index(IndexName).Id(document.Id));
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    $"Failed to index event document {document.Id}.",
+                    ex);
+            }
         }
 
-        public async Task DeleteAsync(int eventId)
+        public async Task DeleteAsync(int eventId, CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
-            await _client.DeleteAsync(IndexName, eventId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
+
+            try
+            {
+                await client.DeleteAsync(IndexName, eventId);
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    $"Failed to delete event document {eventId}.",
+                    ex);
+            }
         }
 
-        public async Task BulkIndexAsync(IEnumerable<EventDocument> documents)
+        public async Task BulkIndexAsync(IEnumerable<EventDocument> documents, CancellationToken cancellationToken = default)
         {
-            if (!_health.IsAvailable || _client == null) return;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var response = await _client.BulkAsync(b => b
-                .Index(IndexName)
-                .IndexMany(documents)
-            );
+            var client = GetWritableClientOrNull();
+            if (client == null) return;
 
-            if (response.Errors)
-                Logger.Warn($"Bulk index had errors: {response.ItemsWithErrors.Count()} items failed.");
+            await EnsureIndexAsync(cancellationToken);
+
+            try
+            {
+                var response = await client.BulkAsync(b => b
+                    .Index(IndexName)
+                    .IndexMany(documents)
+                );
+
+                if (response.Errors)
+                    Logger.Warn($"Bulk index had errors: {response.ItemsWithErrors.Count()} items failed.");
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Failed to bulk index event documents.",
+                    ex);
+            }
         }
 
         public async Task<EventSearchResult> SearchAsync(EventSearchCriteria criteria)
         {
-            if (!_health.IsAvailable || _client == null)
-                throw new InvalidOperationException("Elasticsearch is not available.");
+            var client = GetRequiredClient();
+
+            await EnsureIndexAsync();
 
             var from = (criteria.Page - 1) * criteria.PageSize;
             var now = DateTime.UtcNow;
@@ -112,34 +200,80 @@ namespace backend.main.services.implementation
             var sortByDistance = criteria.SortBy == EventSortBy.Distance
                 && criteria.Lat.HasValue && criteria.Lng.HasValue;
 
-            var response = await _client.SearchAsync<EventDocument>(s =>
+            try
             {
-                s.Index(IndexName)
-                    .From(from)
-                    .Size(criteria.PageSize)
-                    .Query(q => q
-                        .Bool(b =>
-                        {
-                            b.Filter(BuildFilters(criteria, now, hasGeo));
-
-                            if (!string.IsNullOrWhiteSpace(criteria.Query))
+                var response = await client.SearchAsync<EventDocument>(s =>
+                {
+                    s.Index(IndexName)
+                        .From(from)
+                        .Size(criteria.PageSize)
+                        .Query(q => q
+                            .Bool(b =>
                             {
-                                b.Must(m => BuildTextQuery(m, criteria.Query, criteria.SortBy));
-                            }
-                        })
-                    );
+                                b.Filter(BuildFilters(criteria, now, hasGeo));
 
-                ApplySort(s, criteria, sortByDistance);
-            });
+                                if (!string.IsNullOrWhiteSpace(criteria.Query))
+                                {
+                                    b.Must(m => BuildTextQuery(m, criteria.Query, criteria.SortBy));
+                                }
+                            })
+                        );
 
-            var hits = response.Hits
-                .Where(h => h.Source != null)
-                .Select(h => new EventSearchHit(
-                    h.Source!.Id,
-                    ExtractDistanceKm(h, sortByDistance)))
-                .ToList();
+                    ApplySort(s, criteria, sortByDistance);
+                });
 
-            return new EventSearchResult(hits, (int)response.Total);
+                var hits = response.Hits
+                    .Where(h => h.Source != null)
+                    .Select(h => new EventSearchHit(
+                        h.Source!.Id,
+                        ExtractDistanceKm(h, sortByDistance)))
+                    .ToList();
+
+                return new EventSearchResult(hits, (int)response.Total);
+            }
+            catch (ElasticsearchServiceException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ElasticsearchUnavailableException(
+                    "Elasticsearch search failed for events.",
+                    ex);
+            }
+        }
+
+        private ElasticsearchClient GetRequiredClient()
+        {
+            if (_client != null)
+                return _client;
+
+            if (!_health.IsConfigured)
+                throw new ElasticsearchDisabledException(
+                    "Elasticsearch is disabled because ELASTICSEARCH_URL is not configured.");
+
+            if (_health.Failure != null)
+                throw new ElasticsearchConfigurationException(
+                    "Elasticsearch is configured but failed to initialize.",
+                    _health.Failure);
+
+            throw new ElasticsearchUnavailableException("Elasticsearch client is unavailable.");
+        }
+
+        private ElasticsearchClient? GetWritableClientOrNull()
+        {
+            if (_client != null)
+                return _client;
+
+            if (!_health.IsConfigured)
+                return null;
+
+            if (_health.Failure != null)
+                throw new ElasticsearchConfigurationException(
+                    "Elasticsearch is configured but failed to initialize.",
+                    _health.Failure);
+
+            throw new ElasticsearchUnavailableException("Elasticsearch client is unavailable.");
         }
 
         private static double? ExtractDistanceKm(Elastic.Clients.Elasticsearch.Core.Search.Hit<EventDocument> hit, bool sortByDistance)

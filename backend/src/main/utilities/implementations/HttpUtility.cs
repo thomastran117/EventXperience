@@ -30,13 +30,14 @@ namespace backend.main.utilities.implementation
         public static string? ApplyRefreshToken(
             HttpResponse response,
             ClientRequestInfo requestInfo,
-            string refreshToken
+            string refreshToken,
+            TimeSpan? lifetime = null
         )
         {
             if (!ShouldUseRefreshCookie(requestInfo))
                 return refreshToken;
 
-            response.Cookies.Append(RefreshCookieName, refreshToken, BuildRefreshCookieOptions());
+            response.Cookies.Append(RefreshCookieName, refreshToken, BuildRefreshCookieOptions(lifetime));
             return null;
         }
 
@@ -48,9 +49,13 @@ namespace backend.main.utilities.implementation
             response.Cookies.Delete(RefreshCookieName, BuildRefreshCookieOptions());
         }
 
-        public static void SetRefreshTokenCookie(HttpResponse response, string refreshToken)
+        public static void SetRefreshTokenCookie(
+            HttpResponse response,
+            string refreshToken,
+            TimeSpan? lifetime = null
+        )
         {
-            response.Cookies.Append(RefreshCookieName, refreshToken, BuildRefreshCookieOptions());
+            response.Cookies.Append(RefreshCookieName, refreshToken, BuildRefreshCookieOptions(lifetime));
         }
 
         public static void ClearRefreshTokenCookie(HttpResponse response)
@@ -58,16 +63,18 @@ namespace backend.main.utilities.implementation
             response.Cookies.Delete(RefreshCookieName, BuildRefreshCookieOptions());
         }
 
-        private static CookieOptions BuildRefreshCookieOptions()
+        private static CookieOptions BuildRefreshCookieOptions(TimeSpan? lifetime = null)
         {
+            var refreshLifetime = lifetime ?? RefreshTokenLifetime;
+
             return new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
                 IsEssential = true,
-                MaxAge = RefreshTokenLifetime,
-                Expires = DateTime.UtcNow.Add(RefreshTokenLifetime),
+                MaxAge = refreshLifetime,
+                Expires = DateTime.UtcNow.Add(refreshLifetime),
                 Path = RefreshCookiePath
             };
         }

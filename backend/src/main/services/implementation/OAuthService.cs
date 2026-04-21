@@ -94,6 +94,9 @@ namespace backend.main.services.implementation
                 await GoogleJsonWebSignature.ValidateAsync(googleToken, settings)
             );
 
+            if (!payload.EmailVerified)
+                throw new UnauthorizedException("Google email is not verified");
+
             return new OAuthUser(
                 payload.Subject,
                 payload.Email,

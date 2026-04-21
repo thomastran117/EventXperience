@@ -7,10 +7,11 @@ namespace backend.main.services.interfaces
     public interface ITokenService
     {
         public string GenerateAccessToken(User user);
-        public Task<string> GenerateRefreshToken(
+        public Task<RefreshTokenIssue> GenerateRefreshToken(
             int userId,
             ClientRequestInfo requestInfo,
-            string? sessionId = null
+            string? sessionId = null,
+            bool? rememberMe = null
         );
         public Task<string> GenerateVerificationToken(User user, VerificationPurpose purpose);
         public Task<User> VerifyVerificationToken(string verifyToken, VerificationPurpose expectedPurpose);

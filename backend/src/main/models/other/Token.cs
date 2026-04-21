@@ -12,11 +12,34 @@ namespace backend.main.models.other
         {
             get; set;
         }
+        public TimeSpan RefreshTokenLifetime
+        {
+            get; set;
+        }
 
-        public Token(string accessToken, string refreshToken)
+        public Token(string accessToken, string refreshToken, TimeSpan refreshTokenLifetime)
         {
             AccessToken = accessToken;
             RefreshToken = refreshToken;
+            RefreshTokenLifetime = refreshTokenLifetime;
+        }
+    }
+
+    public class RefreshTokenIssue
+    {
+        public string Value
+        {
+            get; set;
+        }
+        public TimeSpan Lifetime
+        {
+            get; set;
+        }
+
+        public RefreshTokenIssue(string value, TimeSpan lifetime)
+        {
+            Value = value;
+            Lifetime = lifetime;
         }
     }
 

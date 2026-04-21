@@ -123,8 +123,16 @@ namespace backend.main.services.implementation
                     ?? throw new ResourceNotFoundException($"User with ID {pending.UserId} not found.");
 
                 var accessToken = _tokenService.GenerateAccessToken(user);
-                var refreshToken = await _tokenService.GenerateRefreshToken(user.Id, _requestInfo);
-                var authToken = new Token(accessToken, refreshToken);
+                var refreshToken = await _tokenService.GenerateRefreshToken(
+                    user.Id,
+                    _requestInfo,
+                    rememberMe: false
+                );
+                var authToken = new Token(
+                    accessToken,
+                    refreshToken.Value,
+                    refreshToken.Lifetime
+                );
 
                 return new UserToken(authToken, user);
             }

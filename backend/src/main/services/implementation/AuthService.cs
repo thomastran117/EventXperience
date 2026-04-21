@@ -30,7 +30,7 @@ namespace backend.main.services.implementation
             _requestInfo = requestInfo;
         }
 
-        public async Task<UserToken> LoginAsync(string email, string password)
+        public async Task<UserToken> LoginAsync(string email, string password, bool rememberMe = false)
         {
             try
             {
@@ -45,7 +45,7 @@ namespace backend.main.services.implementation
 
                 await _deviceService.EnsureDeviceKnownAsync(user.Id, user.Email, _requestInfo);
 
-                return await GenerateTokenPair(user);
+                return await GenerateTokenPair(user, rememberMe: rememberMe);
             }
             catch (Exception e)
             {
@@ -244,9 +244,7 @@ namespace backend.main.services.implementation
                 if (oauthUser == null)
                     throw new UnauthorizedException("Invalid Google Token");
 
-                var user =
-                    await _userRepository.GetUserByEmailAsync(oauthUser.Email)
-                    ?? await _userRepository.GetUserByGoogleIdAsync(oauthUser.Id);
+                var user = await ResolveGoogleUserAsync(oauthUser);
 
                 if (user == null)
                 {
@@ -278,9 +276,7 @@ namespace backend.main.services.implementation
                 if (oauthUser == null)
                     throw new UnauthorizedException("Invalid Microsoft Token");
 
-                var user =
-                    await _userRepository.GetUserByEmailAsync(oauthUser.Email)
-                    ?? await _userRepository.GetUserByMicrosoftIdAsync(oauthUser.Id);
+                var user = await ResolveMicrosoftUserAsync(oauthUser);
 
                 if (user == null)
                 {
@@ -391,7 +387,11 @@ namespace backend.main.services.implementation
             }
         }
 
-        private async Task<UserToken> GenerateTokenPair(User user, string? sessionId = null)
+        private async Task<UserToken> GenerateTokenPair(
+            User user,
+            string? sessionId = null,
+            bool? rememberMe = null
+        )
         {
             try
             {
@@ -399,9 +399,14 @@ namespace backend.main.services.implementation
                 var refreshToken = await _tokenService.GenerateRefreshToken(
                     user.Id,
                     _requestInfo,
-                    sessionId
+                    sessionId,
+                    rememberMe
                 );
-                Token authToken = new Token(accessToken, refreshToken);
+                Token authToken = new Token(
+                    accessToken,
+                    refreshToken.Value,
+                    refreshToken.Lifetime
+                );
 
                 UserToken userToken = new(authToken, user);
 
@@ -428,6 +433,58 @@ namespace backend.main.services.implementation
 
             await _userRepository.UpdateUserAsync(existingUser.Id, existingUser);
             await _tokenService.RevokeAllRefreshSessionsAsync(existingUser.Id);
+        }
+
+        private async Task<User?> ResolveGoogleUserAsync(OAuthUser oauthUser)
+        {
+            var providerUser = await _userRepository.GetUserByGoogleIdAsync(oauthUser.Id);
+            var emailUser = await _userRepository.GetUserByEmailAsync(oauthUser.Email);
+
+            if (providerUser != null && emailUser != null && providerUser.Id != emailUser.Id)
+                throw new ConflictException("This Google account is already linked to another user.");
+
+            if (providerUser != null)
+                return providerUser;
+
+            if (emailUser == null)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(emailUser.GoogleID))
+            {
+                emailUser = await _userRepository.UpdateProviderIdsAsync(
+                    emailUser.Id,
+                    oauthUser.Id,
+                    null
+                ) ?? emailUser;
+            }
+
+            return emailUser;
+        }
+
+        private async Task<User?> ResolveMicrosoftUserAsync(OAuthUser oauthUser)
+        {
+            var providerUser = await _userRepository.GetUserByMicrosoftIdAsync(oauthUser.Id);
+            var emailUser = await _userRepository.GetUserByEmailAsync(oauthUser.Email);
+
+            if (providerUser != null && emailUser != null && providerUser.Id != emailUser.Id)
+                throw new ConflictException("This Microsoft account is already linked to another user.");
+
+            if (providerUser != null)
+                return providerUser;
+
+            if (emailUser == null)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(emailUser.MicrosoftID))
+            {
+                emailUser = await _userRepository.UpdateProviderIdsAsync(
+                    emailUser.Id,
+                    null,
+                    oauthUser.Id
+                ) ?? emailUser;
+            }
+
+            return emailUser;
         }
     }
 }

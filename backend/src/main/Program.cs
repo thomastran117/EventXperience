@@ -1,4 +1,5 @@
 using backend.main.configurations.application;
+using backend.main.configurations.environment;
 using backend.main.configurations.resource.database;
 using backend.main.configurations.resource.redis;
 using backend.main.configurations.security;
@@ -26,6 +27,8 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 var port = builder.ConfigureServerUrls();
+
+EnvironmentSetting.Validate();
 
 builder.Host.UseMinimalSerilog();
 

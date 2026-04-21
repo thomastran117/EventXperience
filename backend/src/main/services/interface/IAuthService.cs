@@ -4,7 +4,7 @@ namespace backend.main.services.interfaces
 {
     public interface IAuthService
     {
-        Task<UserToken> LoginAsync(string email, string password);
+        Task<UserToken> LoginAsync(string email, string password, bool rememberMe = false);
         Task<VerificationOtpChallenge> SignUpAsync(string email, string password, string usertype);
         Task<UserToken> VerifyAsync(string token);
         Task<UserToken> VerifyOtpAsync(string code, string challenge);

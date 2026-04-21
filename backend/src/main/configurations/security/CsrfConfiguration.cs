@@ -10,6 +10,7 @@ namespace backend.main.configurations.security
         [
             "/api/auth/login",
             "/api/auth/signup",
+            "/api/auth/verify/otp",
             "/api/auth/google",
             "/api/auth/microsoft",
             "/api/auth/refresh",

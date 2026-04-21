@@ -27,8 +27,10 @@ namespace backend.main.services.implementation
         private const string AUDIENCE = "EventXperienceConsumers";
         private const string VERIFICATION_AUDIENCE = "EventXperienceVerification";
         private readonly ICacheService _cacheService;
-        private readonly TimeSpan REFRESH_TTL = TimeSpan.FromDays(7);
+        private readonly TimeSpan DEFAULT_REFRESH_TTL = TimeSpan.FromDays(1);
+        private readonly TimeSpan REMEMBERED_REFRESH_TTL = TimeSpan.FromDays(30);
         private readonly TimeSpan VERIFY_TTL = TimeSpan.FromMinutes(30);
+        private const int MAX_OTP_ATTEMPTS = 5;
 
         public TokenService(ICacheService cacheService)
         {
@@ -72,16 +74,18 @@ namespace backend.main.services.implementation
             }
         }
 
-        public async Task<string> GenerateRefreshToken(
+        public async Task<RefreshTokenIssue> GenerateRefreshToken(
             int userId,
             ClientRequestInfo requestInfo,
-            string? sessionId = null
+            string? sessionId = null,
+            bool? rememberMe = null
         )
         {
             try
             {
                 string token;
                 string tokenHash;
+                TimeSpan refreshTtl;
 
                 do
                 {
@@ -110,7 +114,9 @@ namespace backend.main.services.implementation
                         CreatedAt = DateTime.UtcNow,
                         LastSeenAt = DateTime.UtcNow,
                         CurrentTokenHash = tokenHash,
+                        RememberMe = rememberMe ?? false,
                     };
+                    refreshTtl = ResolveRefreshTtl(session.RememberMe);
                 }
                 else
                 {
@@ -126,6 +132,10 @@ namespace backend.main.services.implementation
                     session.LastSeenIpAddress = requestInfo.IpAddress;
                     session.LastSeenAt = DateTime.UtcNow;
                     session.CurrentTokenHash = tokenHash;
+                    if (rememberMe.HasValue)
+                        session.RememberMe = rememberMe.Value;
+
+                    refreshTtl = ResolveRefreshTtl(session.RememberMe);
                 }
 
                 var tokenRecord = new RefreshTokenRecord
@@ -138,13 +148,13 @@ namespace backend.main.services.implementation
                 var tokenResult = await _cacheService.SetValueAsync(
                     key: TokenKey(tokenHash),
                     value: JsonConvert.SerializeObject(tokenRecord),
-                    expiry: REFRESH_TTL
+                    expiry: refreshTtl
                 );
 
                 var sessionResult = await _cacheService.SetValueAsync(
                     key: SessionKey(session.SessionId),
                     value: JsonConvert.SerializeObject(session),
-                    expiry: REFRESH_TTL
+                    expiry: refreshTtl
                 );
 
                 await _cacheService.SetAddAsync(UserSessionsKey(userId), session.SessionId);
@@ -152,7 +162,7 @@ namespace backend.main.services.implementation
                 if (!tokenResult || !sessionResult)
                     throw new NotAvailableException();
 
-                return token;
+                return new RefreshTokenIssue(token, refreshTtl);
             }
             catch (Exception e)
             {
@@ -211,7 +221,7 @@ namespace backend.main.services.implementation
                 var sessionUpdated = await _cacheService.SetValueAsync(
                     SessionKey(session.SessionId),
                     JsonConvert.SerializeObject(session),
-                    REFRESH_TTL
+                    ResolveRefreshTtl(session.RememberMe)
                 );
 
                 if (!sessionUpdated)
@@ -400,15 +410,25 @@ namespace backend.main.services.implementation
                     code
                 );
 
-                if (!FixedTimeEquals(payload.OtpProof, expectedProof))
-                    throw new UnauthorizedException("Invalid or expired verification code.");
-
                 var state = await GetVerificationStateAsync(payload.Email, payload.Purpose);
-                if (state != null && state.OtpChallenge == challenge)
+                if (state == null || state.OtpChallenge != challenge)
+                    throw new UnauthorizedException("Invalid or expired verification challenge.");
+
+                if (!FixedTimeEquals(payload.OtpProof, expectedProof))
                 {
-                    _ = await _cacheService.DeleteKeyAsync(VerificationTokenKey(state.LinkToken));
-                    _ = await _cacheService.DeleteKeyAsync(VerificationStateKey(payload.Email, payload.Purpose));
+                    var attempts = await RecordFailedOtpAttemptAsync(payload);
+                    if (attempts >= MAX_OTP_ATTEMPTS)
+                    {
+                        _ = await _cacheService.DeleteKeyAsync(VerificationTokenKey(state.LinkToken));
+                        _ = await _cacheService.DeleteKeyAsync(VerificationStateKey(payload.Email, payload.Purpose));
+                    }
+
+                    throw new UnauthorizedException("Invalid or expired verification code.");
                 }
+
+                _ = await _cacheService.DeleteKeyAsync(VerificationTokenKey(state.LinkToken));
+                _ = await _cacheService.DeleteKeyAsync(VerificationStateKey(payload.Email, payload.Purpose));
+                _ = await _cacheService.DeleteKeyAsync(OtpAttemptKey(payload));
 
                 return CreateUserFromPayload(new VerificationTokenPayload
                 {
@@ -675,10 +695,23 @@ namespace backend.main.services.implementation
             return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(material)));
         }
 
+        private TimeSpan ResolveRefreshTtl(bool rememberMe) =>
+            rememberMe ? REMEMBERED_REFRESH_TTL : DEFAULT_REFRESH_TTL;
+
+        private async Task<long> RecordFailedOtpAttemptAsync(VerificationChallengePayload payload)
+        {
+            var key = OtpAttemptKey(payload);
+            var attempts = await _cacheService.IncrementAsync(key);
+            _ = await _cacheService.SetExpiryAsync(key, VERIFY_TTL);
+            return attempts;
+        }
+
         private static bool FixedTimeEquals(string left, string right)
         {
             var leftBytes = Encoding.UTF8.GetBytes(left);
             var rightBytes = Encoding.UTF8.GetBytes(right);
+            if (leftBytes.Length != rightBytes.Length)
+                return false;
 
             return CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
         }
@@ -693,6 +726,9 @@ namespace backend.main.services.implementation
 
         private static string VerificationStateKey(string email, VerificationPurpose purpose) =>
             $"verify:email:{purpose}:{email}";
+
+        private static string OtpAttemptKey(VerificationChallengePayload payload) =>
+            $"verify:otp-attempt:{payload.Purpose}:{payload.Email}:{payload.Nonce}";
 
         private sealed class RefreshTokenRecord
         {
@@ -709,6 +745,7 @@ namespace backend.main.services.implementation
             public required string ClientName { get; set; }
             public bool IsBrowserClient { get; set; }
             public required string CurrentTokenHash { get; set; }
+            public bool RememberMe { get; set; }
             public string LastSeenIpAddress { get; set; } = "Unknown";
             public DateTime CreatedAt { get; set; }
             public DateTime LastSeenAt { get; set; }

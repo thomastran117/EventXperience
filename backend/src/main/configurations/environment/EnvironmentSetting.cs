@@ -28,6 +28,8 @@ namespace backend.main.configurations.environment
         private static readonly string? _elasticsearchUrl;
         private static readonly string _appEnvironment;
         private static readonly string _logLevel;
+        private const string DefaultJwtSecretAccess = "unit_test_secret_12345678901234567890";
+        private const string DefaultJwtSecretVerification = "unit_test_verification_secret_12345678901234567890";
 
         static EnvironmentSetting()
         {
@@ -50,12 +52,12 @@ namespace backend.main.configurations.environment
 
             _jwtSecretKeyAccess = GetOrDefault(
                 "JWT_SECRET_ACCESS",
-                "unit_test_secret_12345678901234567890"
+                DefaultJwtSecretAccess
             );
 
             _jwtSecretKeyVerification = GetOrDefault(
                 "JWT_SECRET_VERIFICATION",
-                "unit_test_verification_secret_12345678901234567890"
+                DefaultJwtSecretVerification
             );
 
             _googleCaptchaSecret = GetOptional("GOOGLE_CAPTCHA_SECRET");
@@ -74,7 +76,11 @@ namespace backend.main.configurations.environment
 
             _elasticsearchUrl = GetOptional("ELASTICSEARCH_URL");
 
-            _appEnvironment = GetOrDefault("ENVIRONMENT", "development").ToLowerInvariant();
+            _appEnvironment = (
+                GetOptional("ENVIRONMENT")
+                ?? GetOptional("ASPNETCORE_ENVIRONMENT")
+                ?? "development"
+            ).ToLowerInvariant();
             _logLevel = GetOrDefault("LOG_LEVEL", "info").ToLowerInvariant();
         }
 
@@ -151,8 +157,9 @@ namespace backend.main.configurations.environment
             var required = new Dictionary<string, string>
             {
                 { "DB_CONNECTION_STRING", _dbConnectionString },
-                { "REDIS_CONNECTION", _redisConnection },
-                { "JWT_SECRET_KEY", _jwtSecretKeyAccess },
+                { "REDIS_URL", _redisConnection },
+                { "JWT_SECRET_ACCESS", _jwtSecretKeyAccess },
+                { "JWT_SECRET_VERIFICATION", _jwtSecretKeyVerification },
                 { "AZURE_STORAGE_CONNECTION_STRING", _azureStorageConnectionString ?? "" },
                 { "AZURE_STORAGE_CONTAINER_NAME", _azureStorageContainerName ?? "" }
             };
@@ -166,6 +173,14 @@ namespace backend.main.configurations.environment
                 throw new InvalidOperationException(
                     $"Missing required environment variables: {string.Join(", ", missing)}"
                 );
+
+            if (_jwtSecretKeyAccess == DefaultJwtSecretAccess
+                || _jwtSecretKeyVerification == DefaultJwtSecretVerification)
+            {
+                throw new InvalidOperationException(
+                    "Production JWT secrets must be configured and cannot use fallback values."
+                );
+            }
 
             Logger.Info("Environment variables validated successfully.");
         }

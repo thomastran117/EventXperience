@@ -48,7 +48,11 @@ namespace backend.main.implementation.controllers
                 if (!await _captchaService.VerifyCaptchaAsync(request.Captcha))
                     throw new BadRequestException("Invalid captcha.");
 
-                UserToken userToken = await _authService.LoginAsync(request.Email, request.Password);
+                UserToken userToken = await _authService.LoginAsync(
+                    request.Email,
+                    request.Password,
+                    request.RememberMe
+                );
 
                 User user = userToken.user;
                 Token token = userToken.token;
@@ -113,6 +117,7 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("verify/otp")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> LocalVerifyOtp([FromBody] OtpVerificationRequest request)
         {
             try
@@ -145,6 +150,7 @@ namespace backend.main.implementation.controllers
         }
 
         [HttpGet("verify")]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> LocalVerify([FromQuery] string token)
         {
             try
@@ -175,6 +181,7 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("google")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> GoogleAuthenticate([FromBody] GoogleRequest request)
         {
             try
@@ -206,6 +213,7 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("microsoft")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> MicrosoftAuthenticate([FromBody] MicrosoftRequest request)
         {
             try
@@ -311,6 +319,7 @@ namespace backend.main.implementation.controllers
         }
 
         [HttpGet("device/verify")]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> VerifyDevice([FromQuery] string token)
         {
             try
@@ -341,6 +350,7 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("forgot-password")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
             try
@@ -373,6 +383,7 @@ namespace backend.main.implementation.controllers
 
         [HttpPost("change-password")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting(RateLimiterConfiguration.AuthPolicyName)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, [FromQuery] string token)
         {
             try
@@ -412,7 +423,12 @@ namespace backend.main.implementation.controllers
 
         private AuthResponse CreateAuthResponse(User user, Token token)
         {
-            var refreshToken = HttpUtility.ApplyRefreshToken(Response, _requestInfo, token.RefreshToken);
+            var refreshToken = HttpUtility.ApplyRefreshToken(
+                Response,
+                _requestInfo,
+                token.RefreshToken,
+                token.RefreshTokenLifetime
+            );
             return new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken, refreshToken);
         }
     }

@@ -32,7 +32,11 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
+                HttpUtility.SetRefreshTokenCookie(
+                    Response,
+                    token.RefreshToken,
+                    token.RefreshTokenLifetime
+                );
 
                 AuthResponse response = new(
                     user.Id,
@@ -112,7 +116,11 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token authToken = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, authToken.RefreshToken);
+                HttpUtility.SetRefreshTokenCookie(
+                    Response,
+                    authToken.RefreshToken,
+                    authToken.RefreshTokenLifetime
+                );
 
                 AuthResponse response = new(
                     user.Id,
@@ -149,7 +157,11 @@ namespace backend.main.implementation.controllers
                 User user = userToken.user;
                 Token token = userToken.token;
 
-                HttpUtility.SetRefreshTokenCookie(Response, token.RefreshToken);
+                HttpUtility.SetRefreshTokenCookie(
+                    Response,
+                    token.RefreshToken,
+                    token.RefreshTokenLifetime
+                );
 
                 AuthResponse response = new(
                     user.Id,

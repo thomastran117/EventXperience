@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   frontend:
     container_name: event-frontned
@@ -20,9 +18,14 @@ services:
       dockerfile: Dockerfile
     environment:
       - DB_CONNECTION_STRING=Server=mysql;Port=3306;Database=appdb;User=appuser;Password=apppass
+      - REDIS_URL=redis:6379
       - REDIS_CONNECTION=redis:6379
+      - JWT_SECRET_ACCESS=amazing_secret_key_yup_yes_abcdef123
+      - JWT_SECRET_VERIFICATION=amazing_verification_secret_yup_yes_abcdef123
       - JWT_SECRET_KEY=amazing_secret_key_yup_yes_abcdef123
+      - RABBITMQ_URL=amqp://appuser:apppass@rabbitmq:5672
       - RABBIT_CONNECTION=amqp://appuser:apppass@rabbitmq:5672
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
     ports:
       - "8090:8090"
     depends_on:
@@ -31,6 +34,8 @@ services:
       redis:
         condition: service_started
       rabbitmq:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
     networks:
       - event-network
@@ -66,7 +71,7 @@ services:
     ports:
       - "3307:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -103,6 +108,28 @@ services:
     networks:
       - event-network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.16.1
+    container_name: event-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - event-network
+
 networks:
   event-network:
     driver: bridge
@@ -110,3 +137,4 @@ networks:
 volumes:
   mysql_data:
   redis_data:
+  elasticsearch_data:

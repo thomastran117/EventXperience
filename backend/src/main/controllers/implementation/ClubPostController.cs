@@ -119,10 +119,19 @@ namespace backend.main.implementation.controllers
     public class AdminClubPostController : ControllerBase
     {
         private readonly IClubPostService _postService;
+        private readonly IClubPostReindexService _reindexService;
 
-        public AdminClubPostController(IClubPostService postService)
+        public AdminClubPostController(IClubPostService postService, IClubPostReindexService reindexService)
         {
             _postService = postService;
+            _reindexService = reindexService;
+        }
+
+        [HttpPost("posts/reindex")]
+        public async Task<IActionResult> ReindexPosts(CancellationToken cancellationToken)
+        {
+            var count = await _reindexService.ReindexAllAsync(cancellationToken);
+            return Ok(new { indexed = count });
         }
 
         [HttpGet("posts")]

@@ -1,12 +1,16 @@
 using System.Text.Json;
 
 using backend.main.dtos;
+using backend.main.dtos.messages;
+using backend.main.configurations.resource.elasticsearch;
 using backend.main.dtos.requests.events;
 using backend.main.dtos.responses.events;
 using backend.main.exceptions.http;
 using backend.main.Mappers;
 using backend.main.models.core;
 using backend.main.models.enums;
+using backend.main.models.search;
+using backend.main.publishers.interfaces;
 using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
@@ -22,6 +26,8 @@ namespace backend.main.services.implementation
         private readonly IAzureBlobService _blobService;
         private readonly ICacheService _cache;
         private readonly IEventAnalyticsRepository _analyticsRepository;
+        private readonly IPublisher _publisher;
+        private readonly IEventSearchService _searchService;
 
         private static readonly TimeSpan EventTTL = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan EventListTTL = TimeSpan.FromSeconds(60);
@@ -35,7 +41,9 @@ namespace backend.main.services.implementation
             IClubService clubService,
             IAzureBlobService blobService,
             ICacheService cache,
-            IEventAnalyticsRepository analyticsRepository)
+            IEventAnalyticsRepository analyticsRepository,
+            IPublisher publisher,
+            IEventSearchService searchService)
         {
             _eventsRepository = eventsRepository;
             _imageRepository = imageRepository;
@@ -43,6 +51,8 @@ namespace backend.main.services.implementation
             _blobService = blobService;
             _cache = cache;
             _analyticsRepository = analyticsRepository;
+            _publisher = publisher;
+            _searchService = searchService;
         }
 
         public async Task<Events> CreateEvent(
@@ -54,9 +64,15 @@ namespace backend.main.services.implementation
             IEnumerable<string> imageUrls,
             DateTime startTime,
             DateTime? endTime,
-            bool isPrivate = false,
-            int maxParticipants = 100,
-            int registerCost = 0)
+            bool isPrivate,
+            int maxParticipants,
+            int registerCost,
+            EventCategory category,
+            string? venueName,
+            string? city,
+            double? latitude,
+            double? longitude,
+            List<string>? tags)
         {
             try
             {
@@ -72,7 +88,13 @@ namespace backend.main.services.implementation
                     isPrivate = isPrivate,
                     maxParticipants = maxParticipants,
                     registerCost = registerCost,
-                    ClubId = clubId
+                    ClubId = clubId,
+                    Category = category,
+                    VenueName = venueName,
+                    City = city,
+                    Latitude = latitude,
+                    Longitude = longitude,
+                    Tags = NormalizeTags(tags)
                 };
 
                 var created = await _eventsRepository.CreateAsync(ev);
@@ -85,6 +107,7 @@ namespace backend.main.services.implementation
 
                 await CacheEventAsync(withImages);
                 await BumpEventListVersionAsync();
+                await PublishIndexEventAsync(BuildUpsertEvent(withImages));
 
                 return withImages;
             }
@@ -131,43 +154,55 @@ namespace backend.main.services.implementation
             }
         }
 
-        public async Task<List<Events>> GetEvents(
-            string? search = null,
-            bool isPrivate = false,
-            EventStatus? status = null,
-            int page = 1,
-            int pageSize = 20)
+        public async Task<(List<Events> Events, Dictionary<int, double> DistanceKmById)> GetEvents(EventSearchCriteria criteria)
         {
             try
             {
-                var version = await GetEventListVersionAsync();
+                var normalized = string.IsNullOrWhiteSpace(criteria.Query)
+                    ? null
+                    : criteria.Query.Trim().ToLowerInvariant();
 
-                var normalized = search?.Trim().ToLowerInvariant();
-                var statusKey = status.HasValue ? status.Value.ToString() : "all";
+                var effective = criteria with { Query = normalized };
 
-                var key = normalized == null
-                    ? $"events:list:v{version}:st{statusKey}:p{page}:s{pageSize}"
-                    : $"events:list:v{version}:st{statusKey}:q:{normalized}:p{page}:s{pageSize}";
+                // ES is the only path for proximity/tags/category/sort options.
+                // If ES is down, fall back to a best-effort MySQL search that honors category/city/text/status.
+                try
+                {
+                    var result = await _searchService.SearchAsync(effective);
+                    if (result.Hits.Count == 0)
+                        return (new List<Events>(), new Dictionary<int, double>());
 
-                var cached = await _cache.GetValueAsync(key);
-                if (cached != null)
-                    return JsonSerializer.Deserialize<List<Events>>(cached)!;
+                    var ids = result.Hits.Select(h => h.Id).ToList();
+                    var esEvents = await _eventsRepository.GetByIdsAsync(ids);
 
-                var events = await _eventsRepository.SearchAsync(
-                    normalized,
-                    isPrivate,
-                    status,
-                    page,
-                    pageSize
-                );
+                    var ordered = ids
+                        .Select(id => esEvents.FirstOrDefault(e => e.Id == id))
+                        .Where(e => e != null)
+                        .Cast<Events>()
+                        .ToList();
 
-                await _cache.SetValueAsync(
-                    key,
-                    JsonSerializer.Serialize(events),
-                    WithJitter(EventListTTL)
-                );
+                    var distanceMap = result.Hits
+                        .Where(h => h.DistanceKm.HasValue)
+                        .ToDictionary(h => h.Id, h => h.DistanceKm!.Value);
 
-                return events;
+                    return (ordered, distanceMap);
+                }
+                catch (ElasticsearchDisabledException ex)
+                {
+                    Logger.Info($"[EventsService] Elasticsearch disabled. Falling back to MySQL search. {ex.Message}");
+                }
+                catch (ElasticsearchUnavailableException ex)
+                {
+                    Logger.Warn(ex, "[EventsService] Elasticsearch temporarily unavailable. Falling back to MySQL search.");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"[EventsService] Elasticsearch search failed with a non-fallback error: {ex}");
+                    throw;
+                }
+
+                var events = await _eventsRepository.SearchAsync(effective);
+                return (events, new Dictionary<int, double>());
             }
             catch (Exception e)
             {
@@ -189,13 +224,14 @@ namespace backend.main.services.implementation
             {
                 await _clubService.GetClub(clubId);
 
-                return await _eventsRepository.SearchAsync(
-                    null,
-                    false,
-                    status,
-                    page,
-                    pageSize
-                );
+                return await _eventsRepository.SearchAsync(new EventSearchCriteria
+                {
+                    Query = null,
+                    IsPrivate = false,
+                    Status = status,
+                    Page = page,
+                    PageSize = pageSize
+                });
             }
             catch (Exception e)
             {
@@ -218,7 +254,13 @@ namespace backend.main.services.implementation
             DateTime? endTime,
             bool isPrivate,
             int maxParticipants,
-            int registerCost)
+            int registerCost,
+            EventCategory category,
+            string? venueName,
+            string? city,
+            double? latitude,
+            double? longitude,
+            List<string>? tags)
         {
             try
             {
@@ -243,7 +285,13 @@ namespace backend.main.services.implementation
                     isPrivate = isPrivate,
                     maxParticipants = maxParticipants,
                     registerCost = registerCost,
-                    ClubId = club.Id
+                    ClubId = club.Id,
+                    Category = category,
+                    VenueName = venueName,
+                    City = city,
+                    Latitude = latitude,
+                    Longitude = longitude,
+                    Tags = NormalizeTags(tags)
                 }) ?? throw new InternalServerErrorException("Update failed");
 
                 if (imageUrls != null)
@@ -264,6 +312,7 @@ namespace backend.main.services.implementation
 
                 await CacheEventAsync(withImages);
                 await BumpEventListVersionAsync();
+                await PublishIndexEventAsync(BuildUpsertEvent(withImages));
 
                 return withImages;
             }
@@ -301,6 +350,7 @@ namespace backend.main.services.implementation
 
                 await _cache.DeleteKeyAsync($"event:{eventId}");
                 await BumpEventListVersionAsync();
+                await PublishIndexEventAsync(new EventIndexEvent { Operation = "delete", EventId = eventId });
             }
             catch (Exception e)
             {
@@ -351,7 +401,13 @@ namespace backend.main.services.implementation
                     isPrivate = item.IsPrivate,
                     maxParticipants = item.MaxParticipants,
                     registerCost = item.RegisterCost,
-                    ClubId = clubId
+                    ClubId = clubId,
+                    Category = item.Category,
+                    VenueName = item.VenueName,
+                    City = item.City,
+                    Latitude = item.Latitude,
+                    Longitude = item.Longitude,
+                    Tags = NormalizeTags(item.Tags)
                 }).ToList();
 
                 var created = await _eventsRepository.CreateManyAsync(entities);
@@ -361,9 +417,12 @@ namespace backend.main.services.implementation
 
                 await BumpEventListVersionAsync();
 
+                foreach (var ev in created)
+                    await PublishIndexEventAsync(BuildUpsertEvent(ev));
+
                 return new BatchCreateResultResponse
                 {
-                    Created = created.Select(EventMapper.MapToResponse).ToList()
+                    Created = created.Select(e => EventMapper.MapToResponse(e)).ToList()
                 };
             }
             catch (Exception e)
@@ -401,6 +460,12 @@ namespace backend.main.services.implementation
                         if (item.RegisterCost.HasValue) ev.registerCost = item.RegisterCost.Value;
                         if (item.StartTime.HasValue) ev.StartTime = item.StartTime.Value;
                         if (item.EndTime.HasValue) ev.EndTime = item.EndTime.Value;
+                        if (item.Category.HasValue) ev.Category = item.Category.Value;
+                        if (item.VenueName != null) ev.VenueName = item.VenueName;
+                        if (item.City != null) ev.City = item.City;
+                        if (item.Latitude.HasValue) ev.Latitude = item.Latitude;
+                        if (item.Longitude.HasValue) ev.Longitude = item.Longitude;
+                        if (item.Tags != null) ev.Tags = NormalizeTags(item.Tags);
                     })
                 ));
 
@@ -408,6 +473,10 @@ namespace backend.main.services.implementation
 
                 await Task.WhenAll(ids.Select(id => _cache.DeleteKeyAsync($"event:{id}")));
                 await BumpEventListVersionAsync();
+
+                var updated = await _eventsRepository.GetByIdsAsync(ids);
+                foreach (var ev in updated)
+                    await PublishIndexEventAsync(BuildUpsertEvent(ev));
 
                 return count;
             }
@@ -442,6 +511,9 @@ namespace backend.main.services.implementation
                 _ = Task.WhenAll(imageUrls.Select(url => _blobService.DeleteBlobAsync(url)));
                 await Task.WhenAll(idList.Select(id => _cache.DeleteKeyAsync($"event:{id}")));
                 await BumpEventListVersionAsync();
+
+                foreach (var id in idList)
+                    await PublishIndexEventAsync(new EventIndexEvent { Operation = "delete", EventId = id });
 
                 return deleted;
             }
@@ -676,6 +748,67 @@ namespace backend.main.services.implementation
 
                 Logger.Error($"[EventsService] GetClubAnalytics failed: {e}");
                 throw new InternalServerErrorException();
+            }
+        }
+
+        private static EventIndexEvent BuildUpsertEvent(Events ev) => new()
+        {
+            Operation = "upsert",
+            EventId = ev.Id,
+            ClubId = ev.ClubId,
+            Name = ev.Name,
+            Description = ev.Description,
+            Location = ev.Location,
+            IsPrivate = ev.isPrivate,
+            StartTime = ev.StartTime,
+            EndTime = ev.EndTime,
+            CreatedAt = ev.CreatedAt,
+            UpdatedAt = ev.UpdatedAt,
+            Category = ev.Category,
+            VenueName = ev.VenueName,
+            City = ev.City,
+            Latitude = ev.Latitude,
+            Longitude = ev.Longitude,
+            Tags = ev.Tags ?? new List<string>(),
+            RegistrationCount = ev.RegistrationCount
+        };
+
+        private static List<string> NormalizeTags(IEnumerable<string>? tags)
+        {
+            if (tags == null) return new List<string>();
+            return tags
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim().ToLowerInvariant())
+                .Distinct()
+                .Take(10)
+                .ToList();
+        }
+
+        public async Task NotifyRegistrationChangedAsync(int eventId)
+        {
+            try
+            {
+                var ev = await _eventsRepository.GetByIdAsync(eventId);
+                if (ev == null) return;
+
+                await _cache.DeleteKeyAsync($"event:{eventId}");
+                await PublishIndexEventAsync(BuildUpsertEvent(ev));
+            }
+            catch (Exception e)
+            {
+                Logger.Warn(e, $"[EventsService] NotifyRegistrationChangedAsync failed for event {eventId}");
+            }
+        }
+
+        private async Task PublishIndexEventAsync(EventIndexEvent evt)
+        {
+            try
+            {
+                await _publisher.PublishAsync("event-es-index", evt);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, $"Failed to publish ES index event for event {evt.EventId}. Index may be stale.");
             }
         }
 

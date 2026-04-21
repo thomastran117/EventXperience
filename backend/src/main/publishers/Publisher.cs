@@ -19,45 +19,138 @@ namespace backend.main.publishers.implementation
 
     public sealed class Publisher : IPublisher, IAsyncDisposable
     {
-        private readonly IConnection _connection;
-        private readonly IChannel _channel;
+        private readonly ConnectionFactory _factory;
+        private readonly SemaphoreSlim _initializationLock = new(1, 1);
+        private IConnection? _connection;
+        private IChannel? _channel;
+        private bool _disposed;
 
         public Publisher()
         {
-            var factory = new ConnectionFactory
+            _factory = new ConnectionFactory
             {
                 Uri = new Uri(EnvironmentSetting.RabbitConnection),
                 AutomaticRecoveryEnabled = true
             };
-
-            _connection = factory.CreateConnectionAsync().Result;
-            _channel = _connection.CreateChannelAsync().Result;
-
-            _channel.QueueDeclareAsync(
-                queue: "eventxperience-email",
-                durable: true,
-                exclusive: false,
-                autoDelete: false
-            ).GetAwaiter().GetResult();
         }
 
         public async Task PublishAsync<T>(string queue, T message)
         {
+            var channel = await GetChannelAsync();
             var body = Encoding.UTF8.GetBytes(
                 JsonSerializer.Serialize(message, JsonOptions.Default)
             );
 
-            await _channel.BasicPublishAsync(
+            await channel.BasicPublishAsync(
                 exchange: "",
                 routingKey: queue,
                 body: body
             );
         }
 
+        private async Task<IChannel> GetChannelAsync()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(Publisher));
+
+            if (_channel != null)
+                return _channel;
+
+            await _initializationLock.WaitAsync();
+            try
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException(nameof(Publisher));
+
+                if (_channel != null)
+                    return _channel;
+
+                var connection = await _factory.CreateConnectionAsync();
+                var channel = await connection.CreateChannelAsync();
+
+                try
+                {
+                    await DeclareQueuesAsync(channel);
+                }
+                catch
+                {
+                    await channel.CloseAsync();
+                    await connection.CloseAsync();
+                    throw;
+                }
+
+                _connection = connection;
+                _channel = channel;
+                return channel;
+            }
+            finally
+            {
+                _initializationLock.Release();
+            }
+        }
+
+        private static async Task DeclareQueuesAsync(IChannel channel)
+        {
+            await channel.QueueDeclareAsync(
+                queue: "eventxperience-email",
+                durable: true,
+                exclusive: false,
+                autoDelete: false
+            );
+
+            await channel.QueueDeclareAsync(
+                queue: "clubpost-es-index-dlq",
+                durable: true,
+                exclusive: false,
+                autoDelete: false
+            );
+
+            await channel.QueueDeclareAsync(
+                queue: "clubpost-es-index",
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: new Dictionary<string, object?>
+                {
+                    ["x-dead-letter-exchange"] = "",
+                    ["x-dead-letter-routing-key"] = "clubpost-es-index-dlq"
+                }
+            );
+
+            await channel.QueueDeclareAsync(
+                queue: "event-es-index-dlq",
+                durable: true,
+                exclusive: false,
+                autoDelete: false
+            );
+
+            await channel.QueueDeclareAsync(
+                queue: "event-es-index",
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: new Dictionary<string, object?>
+                {
+                    ["x-dead-letter-exchange"] = "",
+                    ["x-dead-letter-routing-key"] = "event-es-index-dlq"
+                }
+            );
+        }
+
         public async ValueTask DisposeAsync()
         {
-            await _channel.CloseAsync();
-            await _connection.CloseAsync();
+            if (_disposed)
+                return;
+
+            _disposed = true;
+
+            if (_channel != null)
+                await _channel.CloseAsync();
+
+            if (_connection != null)
+                await _connection.CloseAsync();
+
+            _initializationLock.Dispose();
         }
     }
 }

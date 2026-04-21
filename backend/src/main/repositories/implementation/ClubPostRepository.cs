@@ -140,5 +140,26 @@ namespace backend.main.repositories.implementation
                 .Where(p => ids.Contains(p.Id))
                 .ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, p => p.ViewCount + 1));
         }
+
+        public async Task<List<ClubPost>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            var idList = ids.ToList();
+            var posts = await _context.ClubPosts
+                .AsNoTracking()
+                .Where(p => idList.Contains(p.Id))
+                .ToListAsync();
+            return idList
+                .Select(id => posts.FirstOrDefault(p => p.Id == id))
+                .OfType<ClubPost>()
+                .ToList();
+        }
+
+        public async Task<List<ClubPost>> GetAllForReindexAsync(int page, int pageSize, CancellationToken cancellationToken = default) =>
+            await _context.ClubPosts
+                .AsNoTracking()
+                .OrderBy(p => p.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
     }
 }

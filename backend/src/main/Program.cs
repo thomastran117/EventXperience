@@ -34,7 +34,7 @@ builder.Services.AddControllersWithViews(options =>
     options.Conventions.Insert(0, new RoutePrefixConvention("api"));
 });
 
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddClientRequestInspection();
 

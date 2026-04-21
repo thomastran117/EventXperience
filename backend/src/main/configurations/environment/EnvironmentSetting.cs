@@ -25,6 +25,7 @@ namespace backend.main.configurations.environment
         private static readonly string? _paypalApi;
         private static readonly string? _azureStorageConnectionString;
         private static readonly string? _azureStorageContainerName;
+        private static readonly string? _elasticsearchUrl;
         private static readonly string _appEnvironment;
         private static readonly string _logLevel;
 
@@ -70,6 +71,8 @@ namespace backend.main.configurations.environment
 
             _azureStorageConnectionString = GetOptional("AZURE_STORAGE_CONNECTION_STRING");
             _azureStorageContainerName = GetOptional("AZURE_STORAGE_CONTAINER_NAME");
+
+            _elasticsearchUrl = GetOptional("ELASTICSEARCH_URL");
 
             _appEnvironment = GetOrDefault("ENVIRONMENT", "development").ToLowerInvariant();
             _logLevel = GetOrDefault("LOG_LEVEL", "info").ToLowerInvariant();
@@ -133,6 +136,7 @@ namespace backend.main.configurations.environment
         public static string? MicrosoftTenantId => _microsoftTenantId;
         public static string? AzureStorageConnectionString => _azureStorageConnectionString;
         public static string? AzureStorageContainerName => _azureStorageContainerName;
+        public static string? ElasticsearchUrl => _elasticsearchUrl;
         public static string AppEnvironment => _appEnvironment;
         public static string LogLevel => _logLevel;
 

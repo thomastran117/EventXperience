@@ -398,15 +398,13 @@ namespace backend.main.implementation.controllers
 
                 return StatusCode(
                     200,
-                    new ApiResponse<VerificationChallengeResponse?>(
+                    new ApiResponse<VerificationChallengeResponse>(
                         "If the account exist, we send a reset email",
-                        challenge == null
-                            ? null
-                            : new VerificationChallengeResponse
-                            {
-                                Challenge = challenge.Challenge,
-                                ExpiresAtUtc = challenge.ExpiresAtUtc,
-                            }
+                        new VerificationChallengeResponse
+                        {
+                            Challenge = challenge.Challenge,
+                            ExpiresAtUtc = challenge.ExpiresAtUtc,
+                        }
                     )
                 );
             }

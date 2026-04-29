@@ -37,4 +37,24 @@ public class HttpUtilityTests
         setCookieHeader.Should().Contain($"{HttpUtility.RefreshCookieName}=;");
         setCookieHeader.Should().Contain($"path={RoutePaths.ApiAuthPath}");
     }
+
+    [Fact]
+    public void SetTrustedDeviceToken_UsesTheApiAuthPathAndHeader()
+    {
+        var httpContext = new DefaultHttpContext();
+
+        HttpUtility.SetTrustedDeviceToken(
+            httpContext.Response,
+            new backend.main.dtos.general.ClientRequestInfo { IsBrowserClient = true },
+            "trusted-device-token",
+            TimeSpan.FromDays(30)
+        );
+
+        var setCookieHeader = httpContext.Response.Headers.SetCookie.ToString();
+
+        httpContext.Response.Headers[HttpUtility.TrustedDeviceHeaderName]
+            .ToString().Should().Be("trusted-device-token");
+        setCookieHeader.Should().Contain($"{HttpUtility.TrustedDeviceCookieName}=trusted-device-token");
+        setCookieHeader.Should().Contain($"path={RoutePaths.ApiAuthPath}");
+    }
 }

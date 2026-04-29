@@ -7,6 +7,7 @@ using backend.main.publishers.interfaces;
 using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
+using System.Security.Cryptography;
 
 namespace backend.main.services.implementation
 {
@@ -152,13 +153,13 @@ namespace backend.main.services.implementation
             }
         }
 
-        public async Task<VerificationOtpChallenge?> ForgotPasswordAsync(string email)
+        public async Task<VerificationOtpChallenge> ForgotPasswordAsync(string email)
         {
             try
             {
                 var existingEmail = await _userRepository.EmailExistsAsync(email);
                 if (!existingEmail)
-                    return null;
+                    return BuildPlaceholderForgotPasswordChallenge();
 
                 User user = new User
                 {
@@ -485,6 +486,16 @@ namespace backend.main.services.implementation
             }
 
             return emailUser;
+        }
+
+        private static VerificationOtpChallenge BuildPlaceholderForgotPasswordChallenge()
+        {
+            return new VerificationOtpChallenge
+            {
+                Code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6"),
+                Challenge = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(30),
+            };
         }
     }
 }

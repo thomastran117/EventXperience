@@ -1,8 +1,13 @@
 using backend.main.dtos.general;
+using backend.main.dtos.requests.auth;
+using backend.main.dtos.responses.auth;
 using backend.main.implementation.controllers;
+using backend.main.models.core;
+using backend.main.models.other;
 using backend.main.services.interfaces;
 using FluentAssertions;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Moq;
@@ -54,6 +59,36 @@ public class AuthControllerTests
         authService.Verify(service => service.VerifyAsync(It.IsAny<string>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Refresh_ReturnsAccessTokenAliasForFrontendCompatibility()
+    {
+        var authService = new Mock<IAuthService>();
+        authService.Setup(service => service.HandleTokensAsync("refresh-token"))
+            .ReturnsAsync(new UserToken(
+                new Token("access-token", "refresh-token-2", TimeSpan.FromDays(1)),
+                new User
+                {
+                    Id = 9,
+                    Email = "organizer@example.com",
+                    Usertype = "Organizer"
+                }
+            ));
+
+        var controller = CreateController(authService);
+
+        var result = await controller.Refresh(new RefreshTokenRequest
+        {
+            RefreshToken = "refresh-token"
+        });
+
+        var payload = result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().BeOfType<AuthResponse>()
+            .Subject;
+
+        payload.Token.Should().Be("access-token");
+        payload.AccessToken.Should().Be("access-token");
+    }
+
     private static AuthController CreateController(
         Mock<IAuthService> authService,
         Dictionary<string, string?>? configValues = null
@@ -63,12 +98,19 @@ public class AuthControllerTests
             .AddInMemoryCollection(configValues ?? new Dictionary<string, string?>())
             .Build();
 
-        return new AuthController(
+        var controller = new AuthController(
             authService.Object,
             Mock.Of<IAntiforgery>(),
             Mock.Of<ICaptchaService>(),
             new ClientRequestInfo(),
             config
         );
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+
+        return controller;
     }
 }

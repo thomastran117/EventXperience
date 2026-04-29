@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Remove="src\test\**\*.cs" />
+    <Content Remove="src\test\**\*" />
     <EmbeddedResource Remove="src\test\**\*" />
     <None Remove="src\test\**\*" />
   </ItemGroup>

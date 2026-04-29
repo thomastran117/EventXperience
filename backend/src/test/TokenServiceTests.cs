@@ -1,5 +1,8 @@
 using System.Text;
 using System.Text.Json;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using backend.main.configurations.security;
 using backend.main.models.core;
 using backend.main.models.other;
 using backend.main.services.implementation;
@@ -13,6 +16,25 @@ namespace backend.test;
 public class TokenServiceTests
 {
     [Fact]
+    public void GenerateAccessToken_NormalizesOrganizerRoleClaim()
+    {
+        var service = new TokenService(Mock.Of<ICacheService>());
+        var user = new User
+        {
+            Id = 17,
+            Email = "organizer@example.com",
+            Usertype = "organizer"
+        };
+
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(service.GenerateAccessToken(user));
+        var roleClaim = jwt.Claims.First(claim =>
+            claim.Type == ClaimTypes.Role || claim.Type == "role"
+        ).Value;
+
+        roleClaim.Should().Be(AuthRoles.Organizer);
+    }
+
+    [Fact]
     public async Task GenerateVerificationArtifactsAsync_SignUpChallenge_IsOpaqueAndDoesNotExposePasswordData()
     {
         var cache = CreateCacheMock();
@@ -21,7 +43,7 @@ public class TokenServiceTests
         {
             Email = "user@example.com",
             Password = "$2b$12$abcdefghijklmnopqrstuvABCDEFGHijklmnopqrstuvABCD",
-            Usertype = "attendee"
+            Usertype = "Participant"
         };
 
         var artifacts = await service.GenerateVerificationArtifactsAsync(
@@ -50,7 +72,7 @@ public class TokenServiceTests
         {
             Email = "user@example.com",
             Password = "$2b$12$abcdefghijklmnopqrstuvABCDEFGHijklmnopqrstuvABCD",
-            Usertype = "attendee"
+            Usertype = "Participant"
         };
 
         var artifacts = await service.GenerateVerificationArtifactsAsync(

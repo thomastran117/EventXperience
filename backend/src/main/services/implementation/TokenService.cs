@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using backend.main.configurations.environment;
+using backend.main.configurations.security;
 using backend.main.dtos.general;
 using backend.main.exceptions.http;
 using backend.main.models.core;
@@ -49,7 +50,7 @@ namespace backend.main.services.implementation
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Name, user.Email),
-                    new Claim(ClaimTypes.Role, user.Usertype),
+                    new Claim(ClaimTypes.Role, AuthRoles.NormalizeStored(user.Usertype)),
                 };
 
                 var tokenDescriptor = new SecurityTokenDescriptor
@@ -563,7 +564,9 @@ namespace backend.main.services.implementation
             {
                 Email = user.Email,
                 Password = purpose == VerificationPurpose.SignUp ? user.Password : null,
-                Usertype = purpose == VerificationPurpose.SignUp ? user.Usertype : "placeholder",
+                Usertype = purpose == VerificationPurpose.SignUp
+                    ? AuthRoles.NormalizeStored(user.Usertype)
+                    : "placeholder",
                 Purpose = purpose,
             };
         }
@@ -604,7 +607,7 @@ namespace backend.main.services.implementation
             {
                 Email = payload.Email,
                 Password = payload.Password,
-                Usertype = payload.Usertype,
+                Usertype = AuthRoles.NormalizeStored(payload.Usertype),
             };
         }
 

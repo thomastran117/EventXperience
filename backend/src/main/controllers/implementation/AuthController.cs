@@ -466,7 +466,13 @@ namespace backend.main.implementation.controllers
                 token.RefreshToken,
                 token.RefreshTokenLifetime
             );
-            return new AuthResponse(user.Id, user.Email, user.Usertype, token.AccessToken, refreshToken);
+            return new AuthResponse(
+                user.Id,
+                user.Email,
+                AuthRoles.NormalizeStored(user.Usertype),
+                token.AccessToken,
+                refreshToken
+            );
         }
 
         private string? BuildFrontendAuthUrl(string path, string token)

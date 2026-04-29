@@ -1,4 +1,5 @@
 using backend.main.dtos;
+using backend.main.configurations.security;
 using backend.main.dtos.general;
 using backend.main.exceptions.http;
 using backend.main.models.core;
@@ -65,6 +66,7 @@ namespace backend.main.services.implementation
                 if (await _userRepository.EmailExistsAsync(email))
                     throw new ConflictException($"An account is already registered with the email: {email}");
 
+                userType = AuthRoles.NormalizeOrThrow(userType);
                 string hashedPassword = HashPassword(password);
 
                 User user = new User
@@ -252,9 +254,13 @@ namespace backend.main.services.implementation
                     user = await _userRepository.CreateUserAsync(new User
                     {
                         Email = oauthUser.Email,
-                        Usertype = "undefined",
+                        Usertype = AuthRoles.DefaultOAuthRole,
                         GoogleID = oauthUser.Id,
                     });
+                }
+                else
+                {
+                    user = await EnsureOAuthRoleAsync(user);
                 }
 
                 return await GenerateTokenPair(user);
@@ -284,9 +290,13 @@ namespace backend.main.services.implementation
                     user = await _userRepository.CreateUserAsync(new User
                     {
                         Email = oauthUser.Email,
-                        Usertype = "undefined",
+                        Usertype = AuthRoles.DefaultOAuthRole,
                         MicrosoftID = oauthUser.Id,
                     });
+                }
+                else
+                {
+                    user = await EnsureOAuthRoleAsync(user);
                 }
 
                 return await GenerateTokenPair(user);
@@ -396,6 +406,7 @@ namespace backend.main.services.implementation
         {
             try
             {
+                user.Usertype = AuthRoles.NormalizeStored(user.Usertype);
                 var accessToken = _tokenService.GenerateAccessToken(user);
                 var refreshToken = await _tokenService.GenerateRefreshToken(
                     user.Id,
@@ -486,6 +497,26 @@ namespace backend.main.services.implementation
             }
 
             return emailUser;
+        }
+
+        private async Task<User> EnsureOAuthRoleAsync(User user)
+        {
+            user.Usertype = AuthRoles.NormalizeStored(user.Usertype);
+
+            if (AuthRoles.IsKnownRole(user.Usertype))
+                return user;
+
+            var updatedUser = await _userRepository.UpdateUserAsync(user.Id, new User
+            {
+                Email = user.Email,
+                Usertype = AuthRoles.DefaultOAuthRole,
+            });
+
+            if (updatedUser != null)
+                return updatedUser;
+
+            user.Usertype = AuthRoles.DefaultOAuthRole;
+            return user;
         }
 
         private static VerificationOtpChallenge BuildPlaceholderForgotPasswordChallenge()

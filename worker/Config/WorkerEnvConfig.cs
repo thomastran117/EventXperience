@@ -6,6 +6,7 @@ namespace worker.Config
 {
     public static class EnvManager
     {
+        private static readonly bool _runningInContainer;
         private static readonly string _dbConnectionString;
         private static readonly string _redisConnection;
         private static readonly string _rabbitConnection;
@@ -18,34 +19,46 @@ namespace worker.Config
 
         static EnvManager()
         {
+            _runningInContainer = IsRunningInContainer();
             TryLoadEnvFile();
 
             _dbConnectionString = GetOrDefault(
-                "DB_CONNECTION_STRING",
+                ["DB_CONNECTION_STRING"],
                 "Server=localhost;Port=3306;Database=database;User=root;Password=password123"
             );
 
             _redisConnection = GetOrDefault(
-                "REDIS_CONNECTION",
+                ["REDIS_CONNECTION", "REDIS_URL"],
                 "localhost:6379"
             );
 
             _rabbitConnection = GetOrDefault(
-                "RABBIT_CONNECTION",
+                ["RABBIT_CONNECTION", "RABBITMQ_URL"],
                 "amqp://guest:guest@localhost:5672"
             );
 
-            _email = GetOptional("EMAIL");
-            _password = GetOptional("EMAIL_PASSWORD");
-            _smtpServer = GetOptional("SMTP_SERVER");
-            _frontendUrl = GetOrDefault("FRONTEND_URL", "http://localhost:3090");
+            _email = GetOptional(["EMAIL", "EMAIL_USER"]);
+            _password = GetOptional(["EMAIL_PASSWORD"]);
+            _smtpServer = GetOptional(["SMTP_SERVER"]);
+            _frontendUrl = GetOrDefault(["FRONTEND_URL"], "http://localhost:3090");
 
-            _appEnvironment = GetOrDefault("APP_ENV", "development").ToLowerInvariant();
-            _logLevel = GetOrDefault("LOG_LEVEL", "info").ToLowerInvariant();
+            _appEnvironment = GetOrDefault(
+                ["APP_ENV", "DOTNET_ENVIRONMENT", "ASPNETCORE_ENVIRONMENT"],
+                "development"
+            ).ToLowerInvariant();
+            _logLevel = GetOrDefault(["LOG_LEVEL"], "info").ToLowerInvariant();
         }
 
         private static void TryLoadEnvFile()
         {
+            if (_runningInContainer)
+            {
+                Logger.Info(
+                    "Running in container; skipping .env file discovery and using injected environment variables."
+                );
+                return;
+            }
+
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
             var dir = new DirectoryInfo(baseDir);
 
@@ -70,23 +83,35 @@ namespace worker.Config
                 dir = dir.Parent;
             }
 
-            Logger.Debug("No .env file found in directory hierarchy — using system environment variables.");
+            Logger.Debug("No .env file found in directory hierarchy; using system environment variables.");
         }
-        private static string? GetOptional(string key)
-        {
-            var val = Environment.GetEnvironmentVariable(key);
 
-            if (string.IsNullOrWhiteSpace(val))
+        private static string? GetOptional(params string[] keys)
+        {
+            foreach (var key in keys)
             {
-                Logger.Debug($"Optional environment variable '{key}' not set.");
-                return null;
+                var val = Environment.GetEnvironmentVariable(key);
+
+                if (!string.IsNullOrWhiteSpace(val))
+                    return val;
             }
 
-            return val;
+            Logger.Debug(
+                $"Optional environment variable(s) not set: {string.Join(", ", keys)}."
+            );
+            return null;
         }
 
-        private static string GetOrDefault(string key, string fallback) =>
-            GetOptional(key) ?? fallback;
+        private static string GetOrDefault(string[] keys, string fallback) =>
+            GetOptional(keys) ?? fallback;
+
+        private static bool IsRunningInContainer()
+        {
+            return bool.TryParse(
+                    Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+                    out var running
+                ) && running;
+        }
 
         public static string DbConnectionString => _dbConnectionString;
         public static string RedisConnection => _redisConnection;

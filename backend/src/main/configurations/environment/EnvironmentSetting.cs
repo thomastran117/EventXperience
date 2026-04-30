@@ -6,6 +6,7 @@ namespace backend.main.configurations.environment
 {
     public static class EnvironmentSetting
     {
+        private static readonly bool _runningInContainer;
         private static readonly string _dbConnectionString;
         private static readonly string _redisConnection;
         private static readonly string _rabbitConnection;
@@ -29,63 +30,72 @@ namespace backend.main.configurations.environment
         private static readonly string _appEnvironment;
         private static readonly string _logLevel;
         private const string DefaultJwtSecretAccess = "unit_test_secret_12345678901234567890";
-        private const string DefaultJwtSecretVerification = "unit_test_verification_secret_12345678901234567890";
+        private const string DefaultJwtSecretVerification =
+            "unit_test_verification_secret_12345678901234567890";
 
         static EnvironmentSetting()
         {
+            _runningInContainer = IsRunningInContainer();
             TryLoadEnvFile();
 
             _dbConnectionString = GetOrDefault(
-                "DB_CONNECTION_STRING",
+                ["DB_CONNECTION_STRING"],
                 "Server=localhost;Port=3306;Database=database;User=root;Password=password123"
             );
 
             _redisConnection = GetOrDefault(
-                "REDIS_URL",
+                ["REDIS_URL", "REDIS_CONNECTION"],
                 "localhost:6379"
             );
 
             _rabbitConnection = GetOrDefault(
-                "RABBITMQ_URL",
+                ["RABBITMQ_URL", "RABBIT_CONNECTION"],
                 "amqp://guest:guest@localhost:5672"
             );
 
             _jwtSecretKeyAccess = GetOrDefault(
-                "JWT_SECRET_ACCESS",
+                ["JWT_SECRET_ACCESS", "JWT_SECRET_KEY"],
                 DefaultJwtSecretAccess
             );
 
             _jwtSecretKeyVerification = GetOrDefault(
-                "JWT_SECRET_VERIFICATION",
+                ["JWT_SECRET_VERIFICATION"],
                 DefaultJwtSecretVerification
             );
 
-            _googleCaptchaSecret = GetOptional("GOOGLE_CAPTCHA_SECRET");
+            _googleCaptchaSecret = GetOptional(["GOOGLE_CAPTCHA_SECRET"]);
 
-            _email = GetOptional("EMAIL_USER");
-            _password = GetOptional("EMAIL_PASSWORD");
-            _smtpServer = GetOptional("SMTP_SERVER");
+            _email = GetOptional(["EMAIL_USER"]);
+            _password = GetOptional(["EMAIL_PASSWORD"]);
+            _smtpServer = GetOptional(["SMTP_SERVER"]);
 
-            _microsoftClientId = GetOptional("MS_CLIENT_ID");
-            _microsoftTenantId = GetOptional("MS_TENANT_ID");
-            _googleClientId = GetOptional("GOOGLE_CLIENT_ID");
-            _appleClientId = GetOptional("APPLE_CLIENT_ID");
+            _microsoftClientId = GetOptional(["MS_CLIENT_ID"]);
+            _microsoftTenantId = GetOptional(["MS_TENANT_ID"]);
+            _googleClientId = GetOptional(["GOOGLE_CLIENT_ID"]);
+            _appleClientId = GetOptional(["APPLE_CLIENT_ID"]);
 
-            _azureStorageConnectionString = GetOptional("AZURE_STORAGE_CONNECTION_STRING");
-            _azureStorageContainerName = GetOptional("AZURE_STORAGE_CONTAINER_NAME");
+            _azureStorageConnectionString = GetOptional(["AZURE_STORAGE_CONNECTION_STRING"]);
+            _azureStorageContainerName = GetOptional(["AZURE_STORAGE_CONTAINER_NAME"]);
 
-            _elasticsearchUrl = GetOptional("ELASTICSEARCH_URL");
+            _elasticsearchUrl = GetOptional(["ELASTICSEARCH_URL"]);
 
             _appEnvironment = (
-                GetOptional("ENVIRONMENT")
-                ?? GetOptional("ASPNETCORE_ENVIRONMENT")
+                GetOptional(["ENVIRONMENT", "ASPNETCORE_ENVIRONMENT", "DOTNET_ENVIRONMENT"])
                 ?? "development"
             ).ToLowerInvariant();
-            _logLevel = GetOrDefault("LOG_LEVEL", "info").ToLowerInvariant();
+            _logLevel = GetOrDefault(["LOG_LEVEL"], "info").ToLowerInvariant();
         }
 
         private static void TryLoadEnvFile()
         {
+            if (_runningInContainer)
+            {
+                Logger.Info(
+                    "Running in container; skipping .env file discovery and using injected environment variables."
+                );
+                return;
+            }
+
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
             var dir = new DirectoryInfo(baseDir);
 
@@ -110,23 +120,35 @@ namespace backend.main.configurations.environment
                 dir = dir.Parent;
             }
 
-            Logger.Debug("No .env file found in directory hierarchy — using system environment variables.");
+            Logger.Debug("No .env file found in directory hierarchy; using system environment variables.");
         }
-        private static string? GetOptional(string key)
-        {
-            var val = Environment.GetEnvironmentVariable(key);
 
-            if (string.IsNullOrWhiteSpace(val))
+        private static string? GetOptional(params string[] keys)
+        {
+            foreach (var key in keys)
             {
-                Logger.Debug($"Optional environment variable '{key}' not set.");
-                return null;
+                var val = Environment.GetEnvironmentVariable(key);
+
+                if (!string.IsNullOrWhiteSpace(val))
+                    return val;
             }
 
-            return val;
+            Logger.Debug(
+                $"Optional environment variable(s) not set: {string.Join(", ", keys)}."
+            );
+            return null;
         }
 
-        private static string GetOrDefault(string key, string fallback) =>
-            GetOptional(key) ?? fallback;
+        private static string GetOrDefault(string[] keys, string fallback) =>
+            GetOptional(keys) ?? fallback;
+
+        private static bool IsRunningInContainer()
+        {
+            return bool.TryParse(
+                    Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+                    out var running
+                ) && running;
+        }
 
         public static string DbConnectionString => _dbConnectionString;
         public static string RedisConnection => _redisConnection;
@@ -174,8 +196,10 @@ namespace backend.main.configurations.environment
                     $"Missing required environment variables: {string.Join(", ", missing)}"
                 );
 
-            if (_jwtSecretKeyAccess == DefaultJwtSecretAccess
-                || _jwtSecretKeyVerification == DefaultJwtSecretVerification)
+            if (
+                _jwtSecretKeyAccess == DefaultJwtSecretAccess
+                || _jwtSecretKeyVerification == DefaultJwtSecretVerification
+            )
             {
                 throw new InvalidOperationException(
                     "Production JWT secrets must be configured and cannot use fallback values."

@@ -11,6 +11,7 @@ FROM mcr.microsoft.com/dotnet/runtime:9.0 AS runtime
 WORKDIR /app
 
 ENV DOTNET_EnableDiagnostics=0
+ENV DOTNET_RUNNING_IN_CONTAINER=true
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 COPY --from=build /app/publish .

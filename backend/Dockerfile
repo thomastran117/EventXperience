@@ -8,6 +8,8 @@ RUN dotnet publish -c Release -o /out
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV PORT=8090
 
 COPY --from=build /out .
 

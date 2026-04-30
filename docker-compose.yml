@@ -4,6 +4,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    env_file:
+      - path: ./.env
+        required: false
+    environment:
+      NODE_ENV: "${NODE_ENV:-development}"
+      BACKEND_URL: "${BACKEND_URL:-http://localhost:8090}"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3090}"
     ports:
       - "3090:3090"
     depends_on:
@@ -16,16 +23,18 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    env_file:
+      - path: ./.env
+        required: false
     environment:
-      - DB_CONNECTION_STRING=Server=mysql;Port=3306;Database=appdb;User=appuser;Password=apppass
-      - REDIS_URL=redis:6379
-      - REDIS_CONNECTION=redis:6379
-      - JWT_SECRET_ACCESS=amazing_secret_key_yup_yes_abcdef123
-      - JWT_SECRET_VERIFICATION=amazing_verification_secret_yup_yes_abcdef123
-      - JWT_SECRET_KEY=amazing_secret_key_yup_yes_abcdef123
-      - RABBITMQ_URL=amqp://appuser:apppass@rabbitmq:5672
-      - RABBIT_CONNECTION=amqp://appuser:apppass@rabbitmq:5672
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      PORT: "${BACKEND_PORT:-8090}"
+      DB_CONNECTION_STRING: "${DB_CONNECTION_STRING:-Server=mysql;Port=3306;Database=appdb;User=appuser;Password=apppass}"
+      REDIS_URL: "${REDIS_URL:-redis:6379}"
+      JWT_SECRET_ACCESS: "${JWT_SECRET_ACCESS:-amazing_secret_key_yup_yes_abcdef123}"
+      JWT_SECRET_VERIFICATION: "${JWT_SECRET_VERIFICATION:-amazing_verification_secret_yup_yes_abcdef123}"
+      RABBITMQ_URL: "${RABBITMQ_URL:-amqp://appuser:apppass@rabbitmq:5672}"
+      ELASTICSEARCH_URL: "${ELASTICSEARCH_URL:-http://elasticsearch:9200}"
     ports:
       - "8090:8090"
     depends_on:
@@ -45,9 +54,15 @@ services:
     build:
       context: ./worker
       dockerfile: Dockerfile
+    env_file:
+      - path: ./.env
+        required: false
     environment:
-      - RABBIT_CONNECTION=amqp://appuser:apppass@rabbitmq:5672
-      - REDIS_CONNECTION=redis:6379
+      APP_ENV: "${APP_ENV:-development}"
+      DB_CONNECTION_STRING: "${DB_CONNECTION_STRING:-Server=mysql;Port=3306;Database=appdb;User=appuser;Password=apppass}"
+      RABBIT_CONNECTION: "${RABBIT_CONNECTION:-amqp://appuser:apppass@rabbitmq:5672}"
+      REDIS_CONNECTION: "${REDIS_CONNECTION:-redis:6379}"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3090}"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -62,10 +77,10 @@ services:
     image: mysql:8.4
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: appdb
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: apppass
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-appdb}"
+      MYSQL_USER: "${MYSQL_USER:-appuser}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-apppass}"
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -97,9 +112,9 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: appuser
-      RABBITMQ_DEFAULT_PASS: apppass
-      RABBITMQ_DEFAULT_VHOST: /
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER:-appuser}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:-apppass}"
+      RABBITMQ_DEFAULT_VHOST: "${RABBITMQ_DEFAULT_VHOST:-/}"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s

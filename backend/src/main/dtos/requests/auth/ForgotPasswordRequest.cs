@@ -10,5 +10,11 @@ namespace backend.main.dtos.requests.auth
         {
             get; set;
         }
+
+        [Required]
+        public required string Captcha
+        {
+            get; set;
+        }
     }
 }

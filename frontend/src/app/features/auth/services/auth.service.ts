@@ -1,30 +1,67 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { from, switchMap } from 'rxjs';
+import { from, map, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthTokenService } from '../../../core/api/services/auth-token.service';
 
 export interface LoginRequest {
   email: string;
   password: string;
-  remember: boolean;
+  rememberMe: boolean;
+  captcha: string;
+  transport?: 'browser';
 }
 
 export interface SignupRequest {
   email: string;
   password: string;
-  role: 'participant' | 'organizer';
+  usertype: SignupRole;
+  captcha: string;
 }
+
+export interface ForgotPasswordRequest {
+  email: string;
+  captcha: string;
+}
+
+export interface VerificationChallengeResponse {
+  Challenge: string;
+  ExpiresAtUtc: string;
+}
+
+export type SignupRole = 'participant' | 'organizer' | 'volunteer';
 
 export interface AuthResponse {
   Username: string;
   Token: string;
   AccessToken?: string;
+  RefreshToken?: string;
+  SessionBindingToken?: string;
   Avatar: string;
   Usertype: string;
   Id: number;
 }
+
+export interface OAuthRoleSelectionResponse {
+  RequiresRoleSelection: true;
+  SignupToken: string;
+  Email: string;
+  Name: string;
+  Provider: string;
+  Auth?: undefined;
+}
+
+export interface OAuthAuthenticatedResponse {
+  RequiresRoleSelection: false;
+  Auth: AuthResponse;
+  SignupToken?: undefined;
+  Email?: undefined;
+  Name?: undefined;
+  Provider?: undefined;
+}
+
+export type OAuthAuthResponse = OAuthRoleSelectionResponse | OAuthAuthenticatedResponse;
 
 export interface ApiEnvelope<T> {
   message?: string;
@@ -32,6 +69,8 @@ export interface ApiEnvelope<T> {
   data?: T;
   Data?: T;
 }
+
+export const PendingOAuthSignupStorageKey = 'pending_oauth_signup';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -43,31 +82,75 @@ export class AuthService {
   ) {}
 
   login(payload: LoginRequest): Observable<AuthResponse> {
-    return this.postWithCsrf<AuthResponse>(`${this.baseUrl}/login`, payload);
+    return this.postWithCsrf<ApiEnvelope<AuthResponse>>(`${this.baseUrl}/login`, {
+      ...payload,
+      transport: 'browser' as const,
+    }).pipe(
+      map((res) => this.requireData(res, 'Login response was incomplete.')),
+    );
   }
 
-  signup(payload: SignupRequest): Observable<{ message: string }> {
-    return this.postWithCsrf<{ message: string }>(`${this.baseUrl}/signup`, payload);
+  signup(payload: SignupRequest): Observable<ApiEnvelope<VerificationChallengeResponse>> {
+    return this.postWithCsrf<ApiEnvelope<VerificationChallengeResponse>>(
+      `${this.baseUrl}/signup`,
+      payload,
+    );
   }
 
   verifyEmail(token: string): Observable<ApiEnvelope<AuthResponse>> {
-    return this.postWithCsrf<ApiEnvelope<AuthResponse>>(`${this.baseUrl}/verify`, { token });
+    return this.postWithCsrf<ApiEnvelope<AuthResponse>>(`${this.baseUrl}/verify`, {
+      token,
+      transport: 'browser' as const,
+    });
   }
 
   verifyDevice(token: string): Observable<ApiEnvelope<AuthResponse>> {
-    return this.postWithCsrf<ApiEnvelope<AuthResponse>>(`${this.baseUrl}/device/verify`, { token });
+    return this.postWithCsrf<ApiEnvelope<AuthResponse>>(`${this.baseUrl}/device/verify`, {
+      token,
+      transport: 'browser' as const,
+    });
   }
 
-  googleVerify(idToken: string): Observable<AuthResponse> {
-    return this.postWithCsrf<AuthResponse>(`${this.baseUrl}/google`, { Token: idToken });
+  googleVerify(idToken: string, nonce: string): Observable<OAuthAuthResponse> {
+    return this.postWithCsrf<ApiEnvelope<OAuthAuthResponse>>(`${this.baseUrl}/google`, {
+      token: idToken,
+      nonce,
+      transport: 'browser' as const,
+    }).pipe(map((res) => this.requireData(res, 'Google login response was incomplete.')));
   }
 
-  microsoftVerify(idToken: string): Observable<AuthResponse> {
-    return this.postWithCsrf<AuthResponse>(`${this.baseUrl}/microsoft`, { Token: idToken });
+  microsoftVerify(idToken: string, nonce: string): Observable<OAuthAuthResponse> {
+    return this.postWithCsrf<ApiEnvelope<OAuthAuthResponse>>(`${this.baseUrl}/microsoft`, {
+      token: idToken,
+      nonce,
+      transport: 'browser' as const,
+    }).pipe(map((res) => this.requireData(res, 'Microsoft login response was incomplete.')));
+  }
+
+  completeOAuthSignup(signupToken: string, usertype: SignupRole): Observable<AuthResponse> {
+    return this.postWithCsrf<ApiEnvelope<AuthResponse>>(`${this.baseUrl}/oauth/complete`, {
+      signupToken,
+      usertype,
+      transport: 'browser' as const,
+    }).pipe(map((res) => this.requireData(res, 'OAuth signup completion response was incomplete.')));
   }
 
   logout(): Observable<void> {
     return this.postWithCsrf<void>(`${this.baseUrl}/logout`, {});
+  }
+
+  forgotPassword(payload: ForgotPasswordRequest): Observable<ApiEnvelope<VerificationChallengeResponse>> {
+    return this.postWithCsrf<ApiEnvelope<VerificationChallengeResponse>>(
+      `${this.baseUrl}/forgot-password`,
+      payload,
+    );
+  }
+
+  changePassword(password: string, token?: string): Observable<void> {
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return this.postWithCsrf<void>(`${this.baseUrl}/change-password${query}`, {
+      password,
+    });
   }
 
   get googleOAuthUrl(): string {
@@ -86,5 +169,14 @@ export class AuthService {
         });
       }),
     );
+  }
+
+  private requireData<T>(response: ApiEnvelope<T>, fallbackMessage: string): T {
+    const data = response.data ?? response.Data;
+    if (!data) {
+      throw new Error(fallbackMessage);
+    }
+
+    return data;
   }
 }

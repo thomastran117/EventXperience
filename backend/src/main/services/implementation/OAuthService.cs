@@ -80,7 +80,10 @@ namespace backend.main.services.implementation
             return new OAuthUser(sub, email, email, "apple");
         }
 
-        public async Task<OAuthUser> VerifyGoogleTokenAsync(string googleToken)
+        public async Task<OAuthUser> VerifyGoogleTokenAsync(
+            string googleToken,
+            string? expectedNonce = null
+        )
         {
             if (_googleClientId == null)
                 throw new NotAvailableException("Google OAuth is not available");
@@ -97,6 +100,12 @@ namespace backend.main.services.implementation
             if (!payload.EmailVerified)
                 throw new UnauthorizedException("Google email is not verified");
 
+            if (!string.IsNullOrWhiteSpace(expectedNonce)
+                && !string.Equals(payload.Nonce, expectedNonce, StringComparison.Ordinal))
+            {
+                throw new UnauthorizedException("Google nonce validation failed");
+            }
+
             return new OAuthUser(
                 payload.Subject,
                 payload.Email,
@@ -105,7 +114,10 @@ namespace backend.main.services.implementation
             );
         }
 
-        public async Task<OAuthUser> VerifyMicrosoftTokenAsync(string microsoftToken)
+        public async Task<OAuthUser> VerifyMicrosoftTokenAsync(
+            string microsoftToken,
+            string? expectedNonce = null
+        )
         {
             if (_microsoftClientId == null || _microsoftConfigManager == null)
                 throw new NotAvailableException("Microsoft OAuth is not available");
@@ -136,6 +148,13 @@ namespace backend.main.services.implementation
             };
 
             var principal = _jwtHandler.ValidateToken(microsoftToken, validationParams, out _);
+
+            var nonce = principal.Claims.FirstOrDefault(c => c.Type == "nonce")?.Value;
+            if (!string.IsNullOrWhiteSpace(expectedNonce)
+                && !string.Equals(nonce, expectedNonce, StringComparison.Ordinal))
+            {
+                throw new UnauthorizedException("Microsoft nonce validation failed");
+            }
 
             var email =
                 principal.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value ??

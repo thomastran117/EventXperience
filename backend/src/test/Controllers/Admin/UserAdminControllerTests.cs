@@ -1,9 +1,8 @@
-using backend.main.configurations.security;
 using backend.main.dtos.requests.auth;
 using backend.main.dtos.responses.auth;
 using backend.main.dtos.responses.general;
 using backend.main.implementation.controllers;
-using backend.main.models.core;
+using backend.main.repositories.contracts.users;
 using backend.main.services.interfaces;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
@@ -20,11 +19,9 @@ public class UserAdminControllerTests
     {
         var userService = new Mock<IUserService>();
         userService.Setup(service => service.UpdateUserStatusAsync(42, true, "Terms violation"))
-            .ReturnsAsync(new User
+            .ReturnsAsync(new UserStatusRecord
             {
                 Id = 42,
-                Email = "user@example.com",
-                Usertype = AuthRoles.Participant,
                 IsDisabled = true,
                 DisabledReason = "Terms violation",
                 DisabledAtUtc = DateTime.UtcNow,

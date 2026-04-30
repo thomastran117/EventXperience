@@ -5,6 +5,7 @@ using backend.main.exceptions.http;
 using backend.main.models.core;
 using backend.main.models.other;
 using backend.main.publishers.interfaces;
+using backend.main.repositories.contracts.users;
 using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
@@ -53,7 +54,7 @@ namespace backend.main.services.implementation
         {
             try
             {
-                User? user = await _userRepository.GetUserByEmailAsync(email);
+                UserAuthRecord? user = await _userRepository.GetAuthByEmailAsync(email);
 
                 var hashToCheck = user?.Password ?? DummyHash;
 
@@ -62,10 +63,10 @@ namespace backend.main.services.implementation
                 if (user == null || user.Password == null || !isValidPassword)
                     throw new UnauthorizedException("Invalid email or password");
 
-                await EnsureUserEnabledAsync(user);
+                await EnsureUserEnabledAsync(ToUser(user));
                 await _deviceService.EnsureDeviceKnownAsync(user.Id, user.Email, _requestInfo);
 
-                return await GenerateTokenPair(user, transport, rememberMe: rememberMe);
+                return await GenerateTokenPair(ToUser(user), transport, rememberMe: rememberMe);
             }
             catch (Exception e)
             {
@@ -181,7 +182,7 @@ namespace backend.main.services.implementation
         {
             try
             {
-                var existingUser = await _userRepository.GetUserByEmailAsync(email);
+                var existingUser = await _userRepository.GetAuthByEmailAsync(email);
                 if (existingUser == null || existingUser.IsDisabled)
                     return BuildPlaceholderForgotPasswordChallenge();
 
@@ -581,27 +582,30 @@ namespace backend.main.services.implementation
         {
             var hashedPassword = HashPassword(password);
 
-            var existingUser = await _userRepository.GetUserByEmailAsync(email)
+            var existingUser = await _userRepository.GetAuthByEmailAsync(email)
                 ?? throw new UnauthorizedException("Invalid token");
-            await EnsureUserEnabledAsync(existingUser);
+            await EnsureUserEnabledAsync(ToUser(existingUser));
 
-            existingUser.Password = hashedPassword;
-
-            await _userRepository.UpdateUserAsync(existingUser.Id, existingUser);
+            await _userRepository.UpdateUserAsync(existingUser.Id, new User
+            {
+                Email = existingUser.Email,
+                Password = hashedPassword,
+                Usertype = existingUser.Usertype,
+            });
             await _userRepository.IncrementAuthVersionAsync(existingUser.Id);
             await _tokenService.RevokeAllRefreshSessionsAsync(existingUser.Id);
         }
 
         private async Task<User?> ResolveGoogleUserAsync(OAuthUser oauthUser)
         {
-            var providerUser = await _userRepository.GetUserByGoogleIdAsync(oauthUser.Id);
-            var emailUser = await _userRepository.GetUserByEmailAsync(oauthUser.Email);
+            var providerUser = await _userRepository.GetOAuthByGoogleIdAsync(oauthUser.Id);
+            var emailUser = await _userRepository.GetOAuthByEmailAsync(oauthUser.Email);
 
             if (providerUser != null && emailUser != null && providerUser.Id != emailUser.Id)
                 throw new ConflictException("This Google account is already linked to another user.");
 
             if (providerUser != null)
-                return providerUser;
+                return ToUser(providerUser);
 
             if (emailUser == null)
                 return null;
@@ -615,19 +619,19 @@ namespace backend.main.services.implementation
                 ) ?? emailUser;
             }
 
-            return emailUser;
+            return ToUser(emailUser);
         }
 
         private async Task<User?> ResolveMicrosoftUserAsync(OAuthUser oauthUser)
         {
-            var providerUser = await _userRepository.GetUserByMicrosoftIdAsync(oauthUser.Id);
-            var emailUser = await _userRepository.GetUserByEmailAsync(oauthUser.Email);
+            var providerUser = await _userRepository.GetOAuthByMicrosoftIdAsync(oauthUser.Id);
+            var emailUser = await _userRepository.GetOAuthByEmailAsync(oauthUser.Email);
 
             if (providerUser != null && emailUser != null && providerUser.Id != emailUser.Id)
                 throw new ConflictException("This Microsoft account is already linked to another user.");
 
             if (providerUser != null)
-                return providerUser;
+                return ToUser(providerUser);
 
             if (emailUser == null)
                 return null;
@@ -641,7 +645,7 @@ namespace backend.main.services.implementation
                 ) ?? emailUser;
             }
 
-            return emailUser;
+            return ToUser(emailUser);
         }
 
         private async Task<User> EnsureOAuthRoleAsync(User user)
@@ -718,6 +722,33 @@ namespace backend.main.services.implementation
                 await _tokenService.RevokeAllRefreshSessionsAsync(user.Id);
 
             throw new ForbiddenException("This account is disabled.");
+        }
+
+        private static User ToUser(UserAuthRecord record)
+        {
+            return new User
+            {
+                Id = record.Id,
+                Email = record.Email,
+                Password = record.Password,
+                Usertype = AuthRoles.NormalizeStored(record.Usertype),
+                IsDisabled = record.IsDisabled,
+                AuthVersion = record.AuthVersion,
+            };
+        }
+
+        private static User ToUser(UserOAuthRecord record)
+        {
+            return new User
+            {
+                Id = record.Id,
+                Email = record.Email,
+                Usertype = AuthRoles.NormalizeStored(record.Usertype),
+                GoogleID = record.GoogleID,
+                MicrosoftID = record.MicrosoftID,
+                IsDisabled = record.IsDisabled,
+                AuthVersion = record.AuthVersion,
+            };
         }
 
         private static VerificationOtpChallenge BuildPlaceholderForgotPasswordChallenge()

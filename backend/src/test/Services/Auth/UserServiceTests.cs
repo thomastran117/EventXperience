@@ -1,5 +1,6 @@
 using backend.main.configurations.security;
 using backend.main.models.core;
+using backend.main.repositories.contracts.users;
 using backend.main.repositories.interfaces;
 using backend.main.services.implementation;
 using backend.main.services.interfaces;
@@ -20,11 +21,9 @@ public class UserServiceTests
         var tokenService = new Mock<ITokenService>();
 
         userRepository.Setup(repository => repository.UpdateUserStatusAsync(42, true, "Abuse"))
-            .ReturnsAsync(new User
+            .ReturnsAsync(new UserStatusRecord
             {
                 Id = 42,
-                Email = "user@example.com",
-                Usertype = AuthRoles.Participant,
                 IsDisabled = true,
                 DisabledReason = "Abuse",
                 AuthVersion = 2,

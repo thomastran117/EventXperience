@@ -1,5 +1,6 @@
 using backend.main.exceptions.http;
 using backend.main.models.core;
+using backend.main.repositories.contracts.users;
 using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 
@@ -25,9 +26,12 @@ namespace backend.main.services.implementation
             _tokenService = tokenService;
         }
 
-        public async Task<List<User>> GetAllUsersAsync()
+        public async Task<IReadOnlyList<UserListRecord>> GetAllUsersAsync(
+            string? role = null,
+            UserReadDetailLevel detail = UserReadDetailLevel.Slim
+        )
         {
-            return (List<User>)await _userRepository.GetUsersAsync();
+            return await _userRepository.GetUsersAsync(role, detail);
         }
 
         public async Task<User> GetUserByIdAsync(int id)
@@ -57,7 +61,7 @@ namespace backend.main.services.implementation
             return true;
         }
 
-        public async Task<User> UpdateUserStatusAsync(int id, bool isDisabled, string? reason)
+        public async Task<UserStatusRecord> UpdateUserStatusAsync(int id, bool isDisabled, string? reason)
         {
             var user = await _userRepository.UpdateUserStatusAsync(id, isDisabled, reason);
             if (user == null)

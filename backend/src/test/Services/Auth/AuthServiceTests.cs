@@ -4,6 +4,7 @@ using backend.main.dtos.general;
 using backend.main.models.core;
 using backend.main.models.other;
 using backend.main.publishers.interfaces;
+using backend.main.repositories.contracts.users;
 using backend.main.repositories.interfaces;
 using backend.main.services.implementation;
 using backend.main.services.interfaces;
@@ -61,13 +62,15 @@ public class AuthServiceTests
         var userRepository = new Mock<IUserRepository>();
         var publisher = new Mock<IPublisher>(MockBehavior.Strict);
 
-        userRepository.Setup(repository => repository.GetUserByEmailAsync("user@example.com"))
-            .ReturnsAsync(new User
+        userRepository.Setup(repository => repository.GetAuthByEmailAsync("user@example.com"))
+            .ReturnsAsync(new UserAuthRecord
             {
                 Id = 17,
                 Email = "user@example.com",
                 Password = BCrypt.Net.BCrypt.HashPassword("correct-password"),
                 Usertype = AuthRoles.Participant,
+                IsDisabled = false,
+                AuthVersion = 1,
             });
 
         var service = CreateService(userRepository, publisher);
@@ -87,8 +90,8 @@ public class AuthServiceTests
         var userRepository = new Mock<IUserRepository>();
         var publisher = new Mock<IPublisher>(MockBehavior.Strict);
 
-        userRepository.Setup(repository => repository.GetUserByEmailAsync("missing@example.com"))
-            .ReturnsAsync((User?)null);
+        userRepository.Setup(repository => repository.GetAuthByEmailAsync("missing@example.com"))
+            .ReturnsAsync((UserAuthRecord?)null);
 
         var service = CreateService(userRepository, publisher);
 
@@ -115,12 +118,14 @@ public class AuthServiceTests
             ExpiresAtUtc = DateTime.UtcNow.AddMinutes(30),
         };
 
-        userRepository.Setup(repository => repository.GetUserByEmailAsync("user@example.com"))
-            .ReturnsAsync(new User
+        userRepository.Setup(repository => repository.GetAuthByEmailAsync("user@example.com"))
+            .ReturnsAsync(new UserAuthRecord
             {
                 Id = 18,
                 Email = "user@example.com",
                 Usertype = AuthRoles.Participant,
+                IsDisabled = false,
+                AuthVersion = 1,
             });
         tokenService.Setup(service => service.GenerateVerificationArtifactsAsync(
                 It.IsAny<backend.main.models.core.User>(),
@@ -148,13 +153,14 @@ public class AuthServiceTests
         var userRepository = new Mock<IUserRepository>();
         var publisher = new Mock<IPublisher>(MockBehavior.Strict);
 
-        userRepository.Setup(repository => repository.GetUserByEmailAsync("disabled@example.com"))
-            .ReturnsAsync(new User
+        userRepository.Setup(repository => repository.GetAuthByEmailAsync("disabled@example.com"))
+            .ReturnsAsync(new UserAuthRecord
             {
                 Id = 88,
                 Email = "disabled@example.com",
                 Usertype = AuthRoles.Participant,
                 IsDisabled = true,
+                AuthVersion = 1,
             });
 
         var service = CreateService(userRepository, publisher);
@@ -179,10 +185,10 @@ public class AuthServiceTests
 
         oauthService.Setup(service => service.VerifyGoogleTokenAsync("google-token", "expected-nonce"))
             .ReturnsAsync(oauthUser);
-        userRepository.Setup(repository => repository.GetUserByGoogleIdAsync(oauthUser.Id))
-            .ReturnsAsync((User?)null);
-        userRepository.Setup(repository => repository.GetUserByEmailAsync(oauthUser.Email))
-            .ReturnsAsync((User?)null);
+        userRepository.Setup(repository => repository.GetOAuthByGoogleIdAsync(oauthUser.Id))
+            .ReturnsAsync((UserOAuthRecord?)null);
+        userRepository.Setup(repository => repository.GetOAuthByEmailAsync(oauthUser.Email))
+            .ReturnsAsync((UserOAuthRecord?)null);
         cacheService.Setup(cache => cache.SetValueAsync(
                 It.Is<string>(key => key.StartsWith("oauth:pending:", StringComparison.Ordinal)),
                 It.IsAny<string>(),
@@ -222,21 +228,25 @@ public class AuthServiceTests
 
         oauthService.Setup(service => service.VerifyMicrosoftTokenAsync("ms-token", null))
             .ReturnsAsync(oauthUser);
-        userRepository.Setup(repository => repository.GetUserByMicrosoftIdAsync(oauthUser.Id))
-            .ReturnsAsync(new User
+        userRepository.Setup(repository => repository.GetOAuthByMicrosoftIdAsync(oauthUser.Id))
+            .ReturnsAsync(new UserOAuthRecord
             {
                 Id = 21,
                 Email = oauthUser.Email,
                 Usertype = AuthRoles.Organizer,
                 MicrosoftID = oauthUser.Id,
+                IsDisabled = false,
+                AuthVersion = 1,
             });
-        userRepository.Setup(repository => repository.GetUserByEmailAsync(oauthUser.Email))
-            .ReturnsAsync(new User
+        userRepository.Setup(repository => repository.GetOAuthByEmailAsync(oauthUser.Email))
+            .ReturnsAsync(new UserOAuthRecord
             {
                 Id = 21,
                 Email = oauthUser.Email,
                 Usertype = AuthRoles.Organizer,
                 MicrosoftID = oauthUser.Id,
+                IsDisabled = false,
+                AuthVersion = 1,
             });
         tokenService.Setup(service => service.GenerateAccessToken(It.IsAny<User>()))
             .Returns(new AccessTokenIssue("access-token", DateTime.UtcNow.AddMinutes(15)));
@@ -325,10 +335,10 @@ public class AuthServiceTests
             .ReturnsAsync(pendingState);
         cacheService.Setup(cache => cache.DeleteKeyAsync($"oauth:pending:{signupToken}"))
             .ReturnsAsync(true);
-        userRepository.Setup(repository => repository.GetUserByGoogleIdAsync("google-1"))
-            .ReturnsAsync((User?)null);
-        userRepository.Setup(repository => repository.GetUserByEmailAsync("oauth@example.com"))
-            .ReturnsAsync((User?)null);
+        userRepository.Setup(repository => repository.GetOAuthByGoogleIdAsync("google-1"))
+            .ReturnsAsync((UserOAuthRecord?)null);
+        userRepository.Setup(repository => repository.GetOAuthByEmailAsync("oauth@example.com"))
+            .ReturnsAsync((UserOAuthRecord?)null);
         userRepository.Setup(repository => repository.CreateUserAsync(It.IsAny<User>()))
             .Callback<User>(user => createdUser = user)
             .ReturnsAsync((User user) =>
@@ -384,14 +394,15 @@ public class AuthServiceTests
         var userRepository = new Mock<IUserRepository>();
         var publisher = new Mock<IPublisher>(MockBehavior.Strict);
 
-        userRepository.Setup(repository => repository.GetUserByEmailAsync("disabled@example.com"))
-            .ReturnsAsync(new User
+        userRepository.Setup(repository => repository.GetAuthByEmailAsync("disabled@example.com"))
+            .ReturnsAsync(new UserAuthRecord
             {
                 Id = 19,
                 Email = "disabled@example.com",
                 Password = BCrypt.Net.BCrypt.HashPassword("Password123!"),
                 Usertype = AuthRoles.Participant,
                 IsDisabled = true,
+                AuthVersion = 1,
             });
 
         var service = CreateService(userRepository, publisher);

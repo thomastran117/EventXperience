@@ -71,14 +71,14 @@ type Testimonial = { quote: string; name: string; role: string };
 
             <div class="flex items-center gap-3">
               <a
-                routerLink="/login"
+                routerLink="/auth/login"
                 class="hidden sm:inline-flex items-center rounded-xl px-3 py-2 text-sm
                        text-white/80 hover:text-white transition"
               >
                 Sign in
               </a>
               <a
-                routerLink="/signup"
+                routerLink="/auth/signup"
                 class="inline-flex items-center rounded-xl px-4 py-2 text-sm font-semibold
                        bg-white text-slate-950 hover:bg-white/90 transition
                        shadow-lg shadow-white/10"
@@ -522,7 +522,7 @@ type Testimonial = { quote: string; name: string; role: string };
 
               <div class="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3">
                 <a
-                  routerLink="/signup"
+                  routerLink="/auth/signup"
                   class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2
                          bg-white text-slate-950 font-semibold text-sm hover:bg-white/90 transition"
                 >

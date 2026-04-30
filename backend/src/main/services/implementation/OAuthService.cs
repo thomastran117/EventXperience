@@ -114,7 +114,10 @@ namespace backend.main.services.implementation
             );
         }
 
-        public async Task<OAuthUser> VerifyMicrosoftTokenAsync(string microsoftToken)
+        public async Task<OAuthUser> VerifyMicrosoftTokenAsync(
+            string microsoftToken,
+            string? expectedNonce = null
+        )
         {
             if (_microsoftClientId == null || _microsoftConfigManager == null)
                 throw new NotAvailableException("Microsoft OAuth is not available");
@@ -145,6 +148,13 @@ namespace backend.main.services.implementation
             };
 
             var principal = _jwtHandler.ValidateToken(microsoftToken, validationParams, out _);
+
+            var nonce = principal.Claims.FirstOrDefault(c => c.Type == "nonce")?.Value;
+            if (!string.IsNullOrWhiteSpace(expectedNonce)
+                && !string.Equals(nonce, expectedNonce, StringComparison.Ordinal))
+            {
+                throw new UnauthorizedException("Microsoft nonce validation failed");
+            }
 
             var email =
                 principal.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value ??

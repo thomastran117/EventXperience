@@ -4,34 +4,25 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { environment } from '@environments/environment';
-import { AuthService, SignupRole } from '../../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 import { RecaptchaV3Service } from '../../services/recaptcha.service';
 
 @Component({
-  selector: 'app-signup',
+  selector: 'app-forgot-password',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  templateUrl: './signup.component.html',
-  styleUrls: ['./signup.component.css'],
+  templateUrl: './forgot-password.component.html',
+  styleUrls: ['./forgot-password.component.css'],
 })
-export class SignupComponent {
+export class ForgotPasswordComponent {
   private readonly fb = new FormBuilder();
 
   readonly siteKey = environment.googleSiteKey;
-  readonly roleOptions: Array<{ value: SignupRole; label: string }> = [
-    { value: 'participant', label: 'Participant' },
-    { value: 'organizer', label: 'Organizer' },
-    { value: 'volunteer', label: 'Volunteer' },
-  ];
-
   readonly form = this.fb.nonNullable.group({
     email: this.fb.nonNullable.control('', [Validators.required, Validators.email]),
-    password: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(8)]),
-    usertype: this.fb.nonNullable.control<SignupRole>('participant', [Validators.required]),
   });
 
   loading = false;
-  submitted = false;
   error = '';
   success = '';
 
@@ -41,7 +32,6 @@ export class SignupComponent {
   ) {}
 
   async submit(): Promise<void> {
-    this.submitted = true;
     this.error = '';
     this.success = '';
 
@@ -52,19 +42,19 @@ export class SignupComponent {
     this.loading = true;
 
     try {
-      const captcha = await this.recaptcha.execute(this.siteKey, 'signup');
+      const captcha = await this.recaptcha.execute(this.siteKey, 'forgot_password');
       this.auth
-        .signup({
-          ...this.form.getRawValue(),
+        .forgotPassword({
+          email: this.form.getRawValue().email,
           captcha,
         })
         .pipe(finalize(() => (this.loading = false)))
         .subscribe({
           next: () => {
-            this.success = 'Verification email sent. Check your inbox to finish creating your account.';
+            this.success = 'If that account exists, a reset email has been sent.';
           },
           error: (err) => {
-            this.error = err?.error?.message || 'Signup failed.';
+            this.error = err?.error?.message || 'Unable to start password reset.';
           },
         });
     } catch (err: any) {

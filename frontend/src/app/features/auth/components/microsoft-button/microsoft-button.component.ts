@@ -10,10 +10,18 @@ import { environment } from '../../../../../environments/environment';
   styleUrls: ['./microsoft-button.component.css'],
 })
 export class MicrosoftButtonComponent {
+  private static readonly CodeVerifierStorageKey = 'ms_code_verifier';
+  private static readonly StateStorageKey = 'ms_oauth_state';
+  private static readonly NonceStorageKey = 'ms_oauth_nonce';
+
   async loginWithMicrosoft() {
     const codeVerifier = crypto.randomUUID() + crypto.randomUUID();
+    const state = crypto.randomUUID();
+    const nonce = crypto.randomUUID();
     const codeChallenge = await this.generateCodeChallenge(codeVerifier);
-    sessionStorage.setItem('ms_code_verifier', codeVerifier);
+    sessionStorage.setItem(MicrosoftButtonComponent.CodeVerifierStorageKey, codeVerifier);
+    sessionStorage.setItem(MicrosoftButtonComponent.StateStorageKey, state);
+    sessionStorage.setItem(MicrosoftButtonComponent.NonceStorageKey, nonce);
 
     const authUrl =
       'https://login.microsoftonline.com/common/oauth2/v2.0/authorize' +
@@ -22,6 +30,8 @@ export class MicrosoftButtonComponent {
       `&redirect_uri=${encodeURIComponent(`${environment.frontendUrl}/auth/microsoft`)}` +
       `&response_mode=query` +
       `&scope=openid profile email offline_access` +
+      `&state=${encodeURIComponent(state)}` +
+      `&nonce=${encodeURIComponent(nonce)}` +
       `&code_challenge=${codeChallenge}` +
       `&code_challenge_method=S256`;
 

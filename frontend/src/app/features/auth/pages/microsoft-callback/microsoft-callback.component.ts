@@ -19,6 +19,9 @@ import { environment } from '../../../../../environments/environment';
   styleUrls: ['./microsoft-callback.component.css'],
 })
 export class MicrosoftCallbackComponent implements OnInit {
+  private static readonly CodeVerifierStorageKey = 'ms_code_verifier';
+  private static readonly StateStorageKey = 'ms_oauth_state';
+  private static readonly NonceStorageKey = 'ms_oauth_nonce';
   private platformId = inject(PLATFORM_ID);
 
   status = signal<'loading' | 'success' | 'error'>('loading');
@@ -42,9 +45,14 @@ export class MicrosoftCallbackComponent implements OnInit {
     try {
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
-      const verifier = sessionStorage.getItem('ms_code_verifier');
+      const state = params.get('state');
+      const expectedState = sessionStorage.getItem(MicrosoftCallbackComponent.StateStorageKey);
+      const verifier = sessionStorage.getItem(MicrosoftCallbackComponent.CodeVerifierStorageKey);
+      const nonce = sessionStorage.getItem(MicrosoftCallbackComponent.NonceStorageKey);
 
-      if (!code || !verifier) throw new Error('Missing code or verifier');
+      if (!code || !state || !expectedState || state !== expectedState || !verifier || !nonce) {
+        throw new Error('Microsoft sign-in could not be validated. Please try again.');
+      }
 
       const tokenUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
       const data = new URLSearchParams({
@@ -63,9 +71,15 @@ export class MicrosoftCallbackComponent implements OnInit {
       });
 
       const tokenData = await tokenResp.json();
-      if (!tokenData.id_token) throw new Error('No id_token returned from Microsoft.');
+      if (!tokenResp.ok || !tokenData.id_token) {
+        throw new Error('No id_token returned from Microsoft.');
+      }
 
-      this.auth.microsoftVerify(tokenData.id_token).subscribe({
+      sessionStorage.removeItem(MicrosoftCallbackComponent.CodeVerifierStorageKey);
+      sessionStorage.removeItem(MicrosoftCallbackComponent.StateStorageKey);
+      sessionStorage.removeItem(MicrosoftCallbackComponent.NonceStorageKey);
+
+      this.auth.microsoftVerify(tokenData.id_token, nonce).subscribe({
         next: (res: OAuthAuthResponse) => {
           if (res.RequiresRoleSelection) {
             sessionStorage.setItem(PendingOAuthSignupStorageKey, JSON.stringify(res));

@@ -17,7 +17,11 @@ export interface SignupRequest {
   email: string;
   password: string;
   usertype: SignupRole;
-  rememberMe?: boolean;
+  captcha: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
   captcha: string;
 }
 
@@ -115,9 +119,10 @@ export class AuthService {
     }).pipe(map((res) => this.requireData(res, 'Google login response was incomplete.')));
   }
 
-  microsoftVerify(idToken: string): Observable<OAuthAuthResponse> {
+  microsoftVerify(idToken: string, nonce: string): Observable<OAuthAuthResponse> {
     return this.postWithCsrf<ApiEnvelope<OAuthAuthResponse>>(`${this.baseUrl}/microsoft`, {
       token: idToken,
+      nonce,
       transport: 'browser' as const,
     }).pipe(map((res) => this.requireData(res, 'Microsoft login response was incomplete.')));
   }
@@ -132,6 +137,20 @@ export class AuthService {
 
   logout(): Observable<void> {
     return this.postWithCsrf<void>(`${this.baseUrl}/logout`, {});
+  }
+
+  forgotPassword(payload: ForgotPasswordRequest): Observable<ApiEnvelope<VerificationChallengeResponse>> {
+    return this.postWithCsrf<ApiEnvelope<VerificationChallengeResponse>>(
+      `${this.baseUrl}/forgot-password`,
+      payload,
+    );
+  }
+
+  changePassword(password: string, token?: string): Observable<void> {
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return this.postWithCsrf<void>(`${this.baseUrl}/change-password${query}`, {
+      password,
+    });
   }
 
   get googleOAuthUrl(): string {

@@ -249,7 +249,8 @@ namespace backend.main.implementation.controllers
             {
                 OAuthAuthenticationResult result = await _authService.MicrosoftAsync(
                     request.Token,
-                    SessionTransportResolver.ResolveOrDefault(request.Transport)
+                    SessionTransportResolver.ResolveOrDefault(request.Transport),
+                    request.Nonce
                 );
                 OAuthAuthenticationResponse response = CreateOAuthAuthenticationResponse(result);
 
@@ -517,6 +518,9 @@ namespace backend.main.implementation.controllers
         {
             try
             {
+                if (!await _captchaService.VerifyCaptchaAsync(request.Captcha))
+                    throw new BadRequestException("Invalid captcha.");
+
                 var challenge = await _authService.ForgotPasswordAsync(request.Email);
 
                 return StatusCode(

@@ -301,12 +301,16 @@ namespace backend.main.services.implementation
 
         public async Task<OAuthAuthenticationResult> MicrosoftAsync(
             string token,
-            SessionTransport transport
+            SessionTransport transport,
+            string? expectedNonce = null
         )
         {
             try
             {
-                OAuthUser oauthUser = await _oauthService.VerifyMicrosoftTokenAsync(token);
+                OAuthUser oauthUser = await _oauthService.VerifyMicrosoftTokenAsync(
+                    token,
+                    expectedNonce
+                );
                 if (oauthUser == null)
                     throw new UnauthorizedException("Invalid Microsoft Token");
 

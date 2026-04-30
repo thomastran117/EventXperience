@@ -19,7 +19,11 @@ namespace backend.main.services.interfaces
             SessionTransport transport,
             string? expectedNonce = null
         );
-        Task<OAuthAuthenticationResult> MicrosoftAsync(string token, SessionTransport transport);
+        Task<OAuthAuthenticationResult> MicrosoftAsync(
+            string token,
+            SessionTransport transport,
+            string? expectedNonce = null
+        );
         Task<UserToken> CompleteOAuthSignupAsync(
             string signupToken,
             string usertype,

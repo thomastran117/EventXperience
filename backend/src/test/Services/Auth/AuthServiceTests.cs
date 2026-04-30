@@ -189,7 +189,7 @@ public class AuthServiceTests
         var publisher = new Mock<IPublisher>(MockBehavior.Strict);
         var oauthUser = new OAuthUser("ms-1", "oauth@example.com", "OAuth User", "microsoft");
 
-        oauthService.Setup(service => service.VerifyMicrosoftTokenAsync("ms-token"))
+        oauthService.Setup(service => service.VerifyMicrosoftTokenAsync("ms-token", null))
             .ReturnsAsync(oauthUser);
         userRepository.Setup(repository => repository.GetUserByMicrosoftIdAsync(oauthUser.Id))
             .ReturnsAsync(new User

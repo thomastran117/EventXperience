@@ -9,6 +9,9 @@ import { MicrosoftCallbackComponent } from './pages/microsoft-callback/microsoft
 import { OAuthRoleComponent } from './pages/oauth-role/oauth-role.component';
 import { VerifyComponent } from './pages/verify/verify.component';
 import { DeviceVerifyComponent } from './pages/device-verify/device-verify.component';
+import { SignupComponent } from './pages/signup/signup.component';
+import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password.component';
+import { ChangePasswordComponent } from './pages/change-password/change-password.component';
 
 @NgModule({
   imports: [
@@ -17,6 +20,10 @@ import { DeviceVerifyComponent } from './pages/device-verify/device-verify.compo
     RouterModule.forChild([
       { path: '', redirectTo: 'login', pathMatch: 'full' },
       { path: 'login', component: LoginComponent },
+      { path: 'signup', component: SignupComponent },
+      { path: 'register', redirectTo: 'signup', pathMatch: 'full' },
+      { path: 'forgot-password', component: ForgotPasswordComponent },
+      { path: 'change-password', component: ChangePasswordComponent },
       { path: 'verify', component: VerifyComponent },
       { path: 'device/verify', component: DeviceVerifyComponent },
       { path: 'oauth/role', component: OAuthRoleComponent },

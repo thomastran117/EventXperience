@@ -1,6 +1,7 @@
 using backend.main.configurations.resource.database;
 using backend.main.configurations.security;
 using backend.main.models.core;
+using backend.main.repositories.contracts.users;
 using backend.main.repositories.interfaces;
 
 using Microsoft.EntityFrameworkCore;
@@ -68,7 +69,7 @@ namespace backend.main.repositories.implementation
             return existing;
         }
 
-        public async Task<User?> UpdateProviderIdsAsync(int id, string? googleId, string? microsoftId)
+        public async Task<UserOAuthRecord?> UpdateProviderIdsAsync(int id, string? googleId, string? microsoftId)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null)
@@ -80,7 +81,43 @@ namespace backend.main.repositories.implementation
                 user.MicrosoftID = microsoftId;
 
             await _context.SaveChangesAsync();
-            return user;
+            return ToOAuthRecord(user);
+        }
+
+        public async Task<UserStatusRecord?> UpdateUserStatusAsync(int id, bool isDisabled, string? disabledReason)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+                return null;
+
+            user.IsDisabled = isDisabled;
+            user.DisabledAtUtc = isDisabled ? DateTime.UtcNow : null;
+            user.DisabledReason = isDisabled ? disabledReason : null;
+            user.AuthVersion += 1;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return new UserStatusRecord
+            {
+                Id = user.Id,
+                IsDisabled = user.IsDisabled,
+                DisabledAtUtc = user.DisabledAtUtc,
+                DisabledReason = user.DisabledReason,
+                AuthVersion = user.AuthVersion,
+            };
+        }
+
+        public async Task<bool> IncrementAuthVersionAsync(int id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+                return false;
+
+            user.AuthVersion += 1;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> DeleteUserAsync(int id)
@@ -98,38 +135,122 @@ namespace backend.main.repositories.implementation
         {
             return await _context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == id);
+                .Where(u => u.Id == id)
+                .Select(u => new User
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Password = null,
+                    Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                    Name = u.Name,
+                    Username = u.Username,
+                    Avatar = u.Avatar,
+                    Address = u.Address,
+                    Phone = u.Phone,
+                    MicrosoftID = u.MicrosoftID,
+                    GoogleID = u.GoogleID,
+                    IsDisabled = u.IsDisabled,
+                    DisabledAtUtc = u.DisabledAtUtc,
+                    DisabledReason = u.DisabledReason,
+                    AuthVersion = u.AuthVersion,
+                    CreatedAt = u.CreatedAt,
+                    UpdatedAt = u.UpdatedAt,
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<User?> GetUserByEmailAsync(string email)
+        public async Task<UserAuthRecord?> GetAuthByEmailAsync(string email)
         {
             return await _context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Email == email);
+                .Where(u => u.Email == email)
+                .Select(u => new UserAuthRecord
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Password = u.Password,
+                    Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                    IsDisabled = u.IsDisabled,
+                    AuthVersion = u.AuthVersion,
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<User?> GetUserByMicrosoftIdAsync(string microsoftId)
+        public async Task<UserOAuthRecord?> GetOAuthByEmailAsync(string email)
         {
             return await _context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.MicrosoftID == microsoftId);
+                .Where(u => u.Email == email)
+                .Select(u => new UserOAuthRecord
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                    GoogleID = u.GoogleID,
+                    MicrosoftID = u.MicrosoftID,
+                    IsDisabled = u.IsDisabled,
+                    AuthVersion = u.AuthVersion,
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<User?> GetUserByGoogleIdAsync(string googleId)
+        public async Task<UserOAuthRecord?> GetOAuthByMicrosoftIdAsync(string microsoftId)
         {
             return await _context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.GoogleID == googleId);
+                .Where(u => u.MicrosoftID == microsoftId)
+                .Select(u => new UserOAuthRecord
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                    GoogleID = u.GoogleID,
+                    MicrosoftID = u.MicrosoftID,
+                    IsDisabled = u.IsDisabled,
+                    AuthVersion = u.AuthVersion,
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<User?> GetUserByUsernameAsync(string username)
+        public async Task<UserOAuthRecord?> GetOAuthByGoogleIdAsync(string googleId)
         {
             return await _context.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Username == username);
+                .Where(u => u.GoogleID == googleId)
+                .Select(u => new UserOAuthRecord
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                    GoogleID = u.GoogleID,
+                    MicrosoftID = u.MicrosoftID,
+                    IsDisabled = u.IsDisabled,
+                    AuthVersion = u.AuthVersion,
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<User>> GetUsersAsync(string? role = null)
+        public async Task<UserProfileRecord?> GetProfileByUsernameAsync(string username)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Username == username)
+                .Select(u => new UserProfileRecord
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Username = string.IsNullOrWhiteSpace(u.Username) ? u.Email : u.Username,
+                    Name = u.Name,
+                    Avatar = u.Avatar,
+                    Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                })
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<IReadOnlyList<UserListRecord>> GetUsersAsync(
+            string? role = null,
+            UserReadDetailLevel detail = UserReadDetailLevel.Slim
+        )
         {
             var query = _context.Users
                 .AsNoTracking()
@@ -141,7 +262,7 @@ namespace backend.main.repositories.implementation
                 query = query.Where(u => u.Usertype == normalizedRole);
             }
 
-            return await query.ToListAsync();
+            return await ProjectUserListQuery(query, detail).ToListAsync();
         }
 
         public async Task<bool> EmailExistsAsync(string email)
@@ -151,17 +272,82 @@ namespace backend.main.repositories.implementation
                 .AnyAsync(u => u.Email == email);
         }
 
-        public async Task<List<User>> GetByIdsAsync(IEnumerable<int> ids)
+        public async Task<IReadOnlyList<UserListRecord>> GetByIdsAsync(
+            IEnumerable<int> ids,
+            UserReadDetailLevel detail = UserReadDetailLevel.Slim
+        )
         {
             var idList = ids.Distinct().ToList();
 
             if (idList.Count == 0)
-                return new List<User>();
+                return [];
 
-            return await _context.Users
-                .AsNoTracking()
-                .Where(u => idList.Contains(u.Id))
+            var users = await ProjectUserListQuery(
+                    _context.Users
+                        .AsNoTracking()
+                        .Where(u => idList.Contains(u.Id)),
+                    detail
+                )
                 .ToListAsync();
+
+            return idList
+                .Select(id => users.FirstOrDefault(u => u.Id == id))
+                .Where(user => user != null)
+                .Cast<UserListRecord>()
+                .ToList();
+        }
+
+        private static IQueryable<UserListRecord> ProjectUserListQuery(
+            IQueryable<User> query,
+            UserReadDetailLevel detail
+        )
+        {
+            if (detail == UserReadDetailLevel.Admin)
+            {
+                return query.Select(u => new UserListRecord
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Username = string.IsNullOrWhiteSpace(u.Username) ? u.Email : u.Username,
+                    Name = u.Name,
+                    Avatar = u.Avatar,
+                    Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                    IsDisabled = u.IsDisabled,
+                    DisabledAtUtc = u.DisabledAtUtc,
+                    DisabledReason = u.DisabledReason,
+                    CreatedAt = u.CreatedAt,
+                    UpdatedAt = u.UpdatedAt,
+                });
+            }
+
+            return query.Select(u => new UserListRecord
+            {
+                Id = u.Id,
+                Email = u.Email,
+                Username = string.IsNullOrWhiteSpace(u.Username) ? u.Email : u.Username,
+                Name = u.Name,
+                Avatar = u.Avatar,
+                Usertype = AuthRoles.NormalizeStored(u.Usertype),
+                IsDisabled = null,
+                DisabledAtUtc = null,
+                DisabledReason = null,
+                CreatedAt = null,
+                UpdatedAt = null,
+            });
+        }
+
+        private static UserOAuthRecord ToOAuthRecord(User user)
+        {
+            return new UserOAuthRecord
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Usertype = AuthRoles.NormalizeStored(user.Usertype),
+                GoogleID = user.GoogleID,
+                MicrosoftID = user.MicrosoftID,
+                IsDisabled = user.IsDisabled,
+                AuthVersion = user.AuthVersion,
+            };
         }
     }
 }

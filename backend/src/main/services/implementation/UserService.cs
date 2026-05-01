@@ -1,5 +1,6 @@
 using backend.main.exceptions.http;
 using backend.main.models.core;
+using backend.main.repositories.contracts.users;
 using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 
@@ -11,16 +12,26 @@ namespace backend.main.services.implementation
         private readonly IUserRepository _userRepository;
         private readonly IFileUploadService _fileService;
         private readonly IFollowService _followService;
-        public UserService(IUserRepository userRepository, IFileUploadService fileService, IFollowService followService)
+        private readonly ITokenService _tokenService;
+        public UserService(
+            IUserRepository userRepository,
+            IFileUploadService fileService,
+            IFollowService followService,
+            ITokenService tokenService
+        )
         {
             _userRepository = userRepository;
             _fileService = fileService;
             _followService = followService;
+            _tokenService = tokenService;
         }
 
-        public async Task<List<User>> GetAllUsersAsync()
+        public async Task<IReadOnlyList<UserListRecord>> GetAllUsersAsync(
+            string? role = null,
+            UserReadDetailLevel detail = UserReadDetailLevel.Slim
+        )
         {
-            return (List<User>)await _userRepository.GetUsersAsync();
+            return await _userRepository.GetUsersAsync(role, detail);
         }
 
         public async Task<User> GetUserByIdAsync(int id)
@@ -48,6 +59,16 @@ namespace backend.main.services.implementation
         {
             _ = await _userRepository.DeleteUserAsync(id);
             return true;
+        }
+
+        public async Task<UserStatusRecord> UpdateUserStatusAsync(int id, bool isDisabled, string? reason)
+        {
+            var user = await _userRepository.UpdateUserStatusAsync(id, isDisabled, reason);
+            if (user == null)
+                throw new ResourceNotFoundException($"User with the id {id} is not found");
+
+            await _tokenService.RevokeAllRefreshSessionsAsync(id);
+            return user;
         }
 
         public async Task<User?> UpdateAvatarAsync(int id, IFormFile image)

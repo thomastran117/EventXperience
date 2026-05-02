@@ -1,7 +1,7 @@
 using System.Text.Json;
 
 using backend.main.dtos;
-using backend.main.dtos.messages;
+using backend.main.configurations.resource.database;
 using backend.main.configurations.resource.elasticsearch;
 using backend.main.dtos.requests.events;
 using backend.main.dtos.responses.events;
@@ -15,19 +15,22 @@ using backend.main.repositories.interfaces;
 using backend.main.services.interfaces;
 using backend.main.utilities.implementation;
 
+using Microsoft.EntityFrameworkCore;
+
 
 namespace backend.main.services.implementation
 {
     public class EventsService : IEventsService
     {
+        private readonly AppDatabaseContext _db;
         private readonly IEventsRepository _eventsRepository;
         private readonly IEventImageRepository _imageRepository;
         private readonly IClubService _clubService;
         private readonly IAzureBlobService _blobService;
         private readonly ICacheService _cache;
         private readonly IEventAnalyticsRepository _analyticsRepository;
-        private readonly IPublisher _publisher;
         private readonly IEventSearchService _searchService;
+        private readonly IEventSearchOutboxWriter _outboxWriter;
 
         private static readonly TimeSpan EventTTL = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan EventListTTL = TimeSpan.FromSeconds(60);
@@ -36,23 +39,25 @@ namespace backend.main.services.implementation
         private const string NullSentinel = "__null__";
 
         public EventsService(
+            AppDatabaseContext db,
             IEventsRepository eventsRepository,
             IEventImageRepository imageRepository,
             IClubService clubService,
             IAzureBlobService blobService,
             ICacheService cache,
             IEventAnalyticsRepository analyticsRepository,
-            IPublisher publisher,
-            IEventSearchService searchService)
+            IEventSearchService searchService,
+            IEventSearchOutboxWriter outboxWriter)
         {
+            _db = db;
             _eventsRepository = eventsRepository;
             _imageRepository = imageRepository;
             _clubService = clubService;
             _blobService = blobService;
             _cache = cache;
             _analyticsRepository = analyticsRepository;
-            _publisher = publisher;
             _searchService = searchService;
+            _outboxWriter = outboxWriter;
         }
 
         public async Task<Events> CreateEvent(
@@ -97,17 +102,22 @@ namespace backend.main.services.implementation
                     Tags = NormalizeTags(tags)
                 };
 
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+
                 var created = await _eventsRepository.CreateAsync(ev);
+                await _db.SaveChangesAsync();
 
                 await _imageRepository.AddImagesAsync(created.Id, imageUrls.Take(5));
+                _outboxWriter.StageUpsert(created);
 
-                // Re-fetch with images included so cache is warm with full data
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
                 var withImages = await _eventsRepository.GetByIdAsync(created.Id)
                     ?? throw new InternalServerErrorException("Failed to reload created event");
 
                 await CacheEventAsync(withImages);
                 await BumpEventListVersionAsync();
-                await PublishIndexEventAsync(BuildUpsertEvent(withImages));
 
                 return withImages;
             }
@@ -275,6 +285,10 @@ namespace backend.main.services.implementation
                 if (existing.ClubId != club.Id)
                     throw new ForbiddenException("Not allowed");
 
+                List<string>? oldUrls = null;
+
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+
                 var updated = await _eventsRepository.UpdateAsync(eventId, new Events
                 {
                     Name = name,
@@ -297,22 +311,24 @@ namespace backend.main.services.implementation
                 if (imageUrls != null)
                 {
                     var urlList = imageUrls.Take(5).ToList();
-                    var oldUrls = existing.Images.Select(i => i.ImageUrl).ToList();
-
-                    // Best-effort Azure blob deletion
-                    _ = Task.WhenAll(oldUrls.Select(u => _blobService.DeleteBlobAsync(u)));
+                    oldUrls = existing.Images.Select(i => i.ImageUrl).ToList();
 
                     await _imageRepository.DeleteAllByEventIdAsync(eventId);
                     await _imageRepository.AddImagesAsync(eventId, urlList);
                 }
 
-                // Re-fetch with fresh images for cache
+                _outboxWriter.StageUpsert(updated);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
                 var withImages = await _eventsRepository.GetByIdAsync(eventId)
                     ?? throw new InternalServerErrorException("Failed to reload updated event");
 
+                if (oldUrls != null && oldUrls.Count > 0)
+                    _ = Task.WhenAll(oldUrls.Select(u => _blobService.DeleteBlobAsync(u)));
+
                 await CacheEventAsync(withImages);
                 await BumpEventListVersionAsync();
-                await PublishIndexEventAsync(BuildUpsertEvent(withImages));
 
                 return withImages;
             }
@@ -341,16 +357,21 @@ namespace backend.main.services.implementation
                 if (ev.ClubId != club.Id)
                     throw new ForbiddenException("Not allowed");
 
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+
                 if (!await _eventsRepository.DeleteAsync(eventId))
                     throw new InternalServerErrorException("Delete failed");
 
-                // EventImages cascade-deletes via FK; clean up blobs best-effort
+                _outboxWriter.StageDelete(eventId);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
                 var urls = ev.Images.Select(i => i.ImageUrl).ToList();
-                _ = Task.WhenAll(urls.Select(u => _blobService.DeleteBlobAsync(u)));
+                if (urls.Count > 0)
+                    _ = Task.WhenAll(urls.Select(u => _blobService.DeleteBlobAsync(u)));
 
                 await _cache.DeleteKeyAsync($"event:{eventId}");
                 await BumpEventListVersionAsync();
-                await PublishIndexEventAsync(new EventIndexEvent { Operation = "delete", EventId = eventId });
             }
             catch (Exception e)
             {
@@ -410,19 +431,29 @@ namespace backend.main.services.implementation
                     Tags = NormalizeTags(item.Tags)
                 }).ToList();
 
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+
                 var created = await _eventsRepository.CreateManyAsync(entities);
+                await _db.SaveChangesAsync();
 
                 foreach (var (ev, item) in created.Zip(itemList))
+                {
                     await _imageRepository.AddImagesAsync(ev.Id, item.ImageUrls.Take(5));
+                    _outboxWriter.StageUpsert(ev);
+                }
+
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var reloaded = await _eventsRepository.GetByIdsAsync(created.Select(e => e.Id));
+                var byId = reloaded.ToDictionary(e => e.Id);
+                var ordered = created.Select(e => byId[e.Id]).ToList();
 
                 await BumpEventListVersionAsync();
 
-                foreach (var ev in created)
-                    await PublishIndexEventAsync(BuildUpsertEvent(ev));
-
                 return new BatchCreateResultResponse
                 {
-                    Created = created.Select(e => EventMapper.MapToResponse(e)).ToList()
+                    Created = ordered.Select(e => EventMapper.MapToResponse(e)).ToList()
                 };
             }
             catch (Exception e)
@@ -448,6 +479,8 @@ namespace backend.main.services.implementation
                 if (existing.Any(ev => ev.ClubId != club.Id))
                     throw new ForbiddenException("One or more events do not belong to your club");
 
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+
                 var patches = itemList.Select(item => (
                     id: item.EventId,
                     patch: (Action<Events>)(ev =>
@@ -470,13 +503,18 @@ namespace backend.main.services.implementation
                 ));
 
                 var count = await _eventsRepository.UpdateManyAsync(patches);
+                var updatedEvents = await _db.Events
+                    .Where(ev => ids.Contains(ev.Id))
+                    .ToListAsync();
+
+                foreach (var ev in updatedEvents)
+                    _outboxWriter.StageUpsert(ev);
+
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 await Task.WhenAll(ids.Select(id => _cache.DeleteKeyAsync($"event:{id}")));
                 await BumpEventListVersionAsync();
-
-                var updated = await _eventsRepository.GetByIdsAsync(ids);
-                foreach (var ev in updated)
-                    await PublishIndexEventAsync(BuildUpsertEvent(ev));
 
                 return count;
             }
@@ -506,14 +544,19 @@ namespace backend.main.services.implementation
                     .SelectMany(ev => ev.Images.Select(i => i.ImageUrl))
                     .ToList();
 
-                var deleted = await _eventsRepository.DeleteManyAsync(idList);
-
-                _ = Task.WhenAll(imageUrls.Select(url => _blobService.DeleteBlobAsync(url)));
-                await Task.WhenAll(idList.Select(id => _cache.DeleteKeyAsync($"event:{id}")));
-                await BumpEventListVersionAsync();
+                await using var transaction = await _db.Database.BeginTransactionAsync();
 
                 foreach (var id in idList)
-                    await PublishIndexEventAsync(new EventIndexEvent { Operation = "delete", EventId = id });
+                    _outboxWriter.StageDelete(id);
+
+                var deleted = await _eventsRepository.DeleteManyAsync(idList);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                if (imageUrls.Count > 0)
+                    _ = Task.WhenAll(imageUrls.Select(url => _blobService.DeleteBlobAsync(url)));
+                await Task.WhenAll(idList.Select(id => _cache.DeleteKeyAsync($"event:{id}")));
+                await BumpEventListVersionAsync();
 
                 return deleted;
             }
@@ -564,6 +607,7 @@ namespace backend.main.services.implementation
                     throw new BadRequestException("An event cannot have more than 5 images.");
 
                 var images = await _imageRepository.AddImagesAsync(eventId, new[] { imageUrl });
+                await _db.SaveChangesAsync();
 
                 await _cache.DeleteKeyAsync($"event:{eventId}");
                 await BumpEventListVersionAsync();
@@ -600,6 +644,7 @@ namespace backend.main.services.implementation
                         $"Image {imageId} not found on event {eventId}");
 
                 await _imageRepository.DeleteImageAsync(imageId, eventId);
+                await _db.SaveChangesAsync();
 
                 _ = _blobService.DeleteBlobAsync(image.ImageUrl);
 
@@ -751,28 +796,6 @@ namespace backend.main.services.implementation
             }
         }
 
-        private static EventIndexEvent BuildUpsertEvent(Events ev) => new()
-        {
-            Operation = "upsert",
-            EventId = ev.Id,
-            ClubId = ev.ClubId,
-            Name = ev.Name,
-            Description = ev.Description,
-            Location = ev.Location,
-            IsPrivate = ev.isPrivate,
-            StartTime = ev.StartTime,
-            EndTime = ev.EndTime,
-            CreatedAt = ev.CreatedAt,
-            UpdatedAt = ev.UpdatedAt,
-            Category = ev.Category,
-            VenueName = ev.VenueName,
-            City = ev.City,
-            Latitude = ev.Latitude,
-            Longitude = ev.Longitude,
-            Tags = ev.Tags ?? new List<string>(),
-            RegistrationCount = ev.RegistrationCount
-        };
-
         private static List<string> NormalizeTags(IEnumerable<string>? tags)
         {
             if (tags == null) return new List<string>();
@@ -788,27 +811,20 @@ namespace backend.main.services.implementation
         {
             try
             {
-                var ev = await _eventsRepository.GetByIdAsync(eventId);
-                if (ev == null) return;
+                await using var transaction = await _db.Database.BeginTransactionAsync();
 
+                var ev = await _db.Events.FirstOrDefaultAsync(e => e.Id == eventId);
+                if (ev == null)
+                    return;
+
+                _outboxWriter.StageUpsert(ev);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
                 await _cache.DeleteKeyAsync($"event:{eventId}");
-                await PublishIndexEventAsync(BuildUpsertEvent(ev));
             }
             catch (Exception e)
             {
                 Logger.Warn(e, $"[EventsService] NotifyRegistrationChangedAsync failed for event {eventId}");
-            }
-        }
-
-        private async Task PublishIndexEventAsync(EventIndexEvent evt)
-        {
-            try
-            {
-                await _publisher.PublishAsync("event-es-index", evt);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex, $"Failed to publish ES index event for event {evt.EventId}. Index may be stale.");
             }
         }
 

@@ -59,7 +59,7 @@ namespace backend.main.configurations.application
             services.AddHostedService<ClubPostIndexConsumer>();
             services.AddScoped<IEventSearchService, EventSearchService>();
             services.AddScoped<IEventReindexService, EventReindexService>();
-            services.AddHostedService<EventIndexConsumer>();
+            services.AddScoped<IEventSearchOutboxWriter, EventSearchOutboxWriter>();
             services.AddScoped<IPostCommentService, PostCommentService>();
             services.AddScoped<IEventRegistrationService, EventRegistrationService>();
             services.AddScoped<IFileUploadService, FileUploadService>();

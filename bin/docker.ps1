@@ -29,7 +29,7 @@ docker-compose build
 
 Write-Host ""
 Write-Host "Starting full application stack..."
-docker compose up -d backend frontend redis mysql rabbitmq elasticsearch worker
+docker compose up -d
 
 Start-Sleep -Seconds 3
 

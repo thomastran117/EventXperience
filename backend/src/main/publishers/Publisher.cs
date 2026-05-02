@@ -117,24 +117,6 @@ namespace backend.main.publishers.implementation
                 }
             );
 
-            await channel.QueueDeclareAsync(
-                queue: "event-es-index-dlq",
-                durable: true,
-                exclusive: false,
-                autoDelete: false
-            );
-
-            await channel.QueueDeclareAsync(
-                queue: "event-es-index",
-                durable: true,
-                exclusive: false,
-                autoDelete: false,
-                arguments: new Dictionary<string, object?>
-                {
-                    ["x-dead-letter-exchange"] = "",
-                    ["x-dead-letter-routing-key"] = "event-es-index-dlq"
-                }
-            );
         }
 
         public async ValueTask DisposeAsync()

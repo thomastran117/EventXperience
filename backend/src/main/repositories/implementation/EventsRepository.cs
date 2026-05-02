@@ -17,7 +17,6 @@ namespace backend.main.repositories.implementation
         public async Task<Events> CreateAsync(Events events)
         {
             _context.Events.Add(events);
-            await _context.SaveChangesAsync();
             return events;
         }
 
@@ -73,7 +72,6 @@ namespace backend.main.repositories.implementation
             existing.Tags = updated.Tags ?? new List<string>();
             existing.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
             await _context.Entry(existing).Collection(e => e.Images).LoadAsync();
             return existing;
         }
@@ -87,7 +85,6 @@ namespace backend.main.repositories.implementation
             patch(events);
             events.UpdatedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -98,7 +95,6 @@ namespace backend.main.repositories.implementation
                 return false;
 
             _context.Events.Remove(events);
-            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -195,7 +191,6 @@ namespace backend.main.repositories.implementation
         {
             var list = events.ToList();
             await _context.Events.AddRangeAsync(list);
-            await _context.SaveChangesAsync();
             return list;
         }
 
@@ -210,8 +205,6 @@ namespace backend.main.repositories.implementation
                 ev.UpdatedAt = DateTime.UtcNow;
                 count++;
             }
-            if (count > 0)
-                await _context.SaveChangesAsync();
             return count;
         }
 
@@ -219,9 +212,13 @@ namespace backend.main.repositories.implementation
         {
             var idList = ids.Distinct().ToList();
             if (idList.Count == 0) return 0;
-            return await _context.Events
+
+            var entities = await _context.Events
                 .Where(e => idList.Contains(e.Id))
-                .ExecuteDeleteAsync();
+                .ToListAsync();
+
+            _context.Events.RemoveRange(entities);
+            return entities.Count;
         }
     }
 }

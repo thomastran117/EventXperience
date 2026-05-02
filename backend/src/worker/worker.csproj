@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="event-indexer\**\*.cs" />
+    <Content Remove="event-indexer\**\*" />
+    <EmbeddedResource Remove="event-indexer\**\*" />
+    <None Remove="event-indexer\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="MailKit" Version="4.14.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.5" />

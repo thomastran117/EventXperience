@@ -5,9 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend", "backend\backend.csproj", "{631CA4C6-AD5D-4E3E-8DA9-FE44D73FD194}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "worker", "worker\worker.csproj", "{69C79C25-F84F-479E-3E79-EC68C71F7F70}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "worker", "backend\src\worker\worker.csproj", "{69C79C25-F84F-479E-3E79-EC68C71F7F70}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "event-indexer", "event-indexer\event-indexer.csproj", "{82C559A0-34A7-4DCD-AAD6-F97D8977AF47}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "event-indexer", "backend\src\worker\event-indexer\event-indexer.csproj", "{82C559A0-34A7-4DCD-AAD6-F97D8977AF47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

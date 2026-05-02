@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-COPY . .
+COPY . ./backend
 
-RUN dotnet restore
+RUN dotnet restore backend/src/worker/worker.csproj
 
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet publish backend/src/worker/worker.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/runtime:9.0 AS runtime
 WORKDIR /app

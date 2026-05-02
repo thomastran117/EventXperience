@@ -52,8 +52,8 @@ services:
   worker:
     container_name: event-worker
     build:
-      context: ./worker
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: src/worker/Dockerfile
     env_file:
       - path: ./.env
         required: false
@@ -75,8 +75,8 @@ services:
   event-indexer:
     container_name: event-indexer
     build:
-      context: .
-      dockerfile: event-indexer/Dockerfile
+      context: ./backend
+      dockerfile: src/worker/event-indexer/Dockerfile
     environment:
       ELASTICSEARCH_URL: "${ELASTICSEARCH_URL:-http://elasticsearch:9200}"
       KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}"

@@ -243,8 +243,8 @@ namespace backend.main.implementation.controllers
                     "The events have been fetched successfully.",
                     events.Select(e => EventMapper.MapToResponse(
                         e,
-                        distances.TryGetValue(e.Id, out var d) ? d : (double?)null,
-                        source))
+                        distances.TryGetValue(e.Id, out var d) ? d : (double?)null)),
+                    source
                 ));
             }
             catch (Exception e)

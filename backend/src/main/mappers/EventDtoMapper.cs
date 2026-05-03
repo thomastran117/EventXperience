@@ -9,8 +9,7 @@ namespace backend.main.Mappers
     {
         public static EventResponse MapToResponse(
             Events ev,
-            double? distanceKm = null,
-            string source = ResponseSource.Database) => new()
+            double? distanceKm = null) => new()
         {
             Id = ev.Id,
             Name = ev.Name,
@@ -32,8 +31,7 @@ namespace backend.main.Mappers
             Longitude = ev.Longitude,
             Tags = ev.Tags ?? new List<string>(),
             RegistrationCount = ev.RegistrationCount,
-            DistanceKm = distanceKm,
-            Source = source
+            DistanceKm = distanceKm
         };
 
         public static EventStatus ResolveStatus(Events ev)

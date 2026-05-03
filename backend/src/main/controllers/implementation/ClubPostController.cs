@@ -57,7 +57,7 @@ namespace backend.main.implementation.controllers
                 clubId, userId, search, sortBy, page, pageSize);
 
             var paged = new PagedResponse<ClubPostResponse>(
-                items.Select(post => MapToResponse(post, source)),
+                items.Select(MapToResponse),
                 totalCount,
                 page,
                 pageSize
@@ -67,7 +67,8 @@ namespace backend.main.implementation.controllers
                 200,
                 new ApiResponse<PagedResponse<ClubPostResponse>>(
                     $"Posts for club with ID {clubId} have been fetched successfully.",
-                    paged
+                    paged,
+                    source
                 )
             );
         }
@@ -109,10 +110,8 @@ namespace backend.main.implementation.controllers
             );
         }
 
-        private static ClubPostResponse MapToResponse(
-            ClubPost p,
-            string source = ResponseSource.Database) =>
-            new(p.Id, p.ClubId, p.UserId, p.Title, p.Content, p.PostType, p.LikesCount, p.ViewCount, p.IsPinned, p.CreatedAt, p.UpdatedAt, source);
+        private static ClubPostResponse MapToResponse(ClubPost p) =>
+            new(p.Id, p.ClubId, p.UserId, p.Title, p.Content, p.PostType, p.LikesCount, p.ViewCount, p.IsPinned, p.CreatedAt, p.UpdatedAt);
     }
 
     [ApiController]
@@ -146,7 +145,7 @@ namespace backend.main.implementation.controllers
             var (items, totalCount, source) = await _postService.GetAllAdminAsync(search, sortBy, page, pageSize);
 
             var paged = new PagedResponse<ClubPostResponse>(
-                items.Select(post => MapToResponse(post, source)),
+                items.Select(MapToResponse),
                 totalCount,
                 page,
                 pageSize
@@ -156,14 +155,13 @@ namespace backend.main.implementation.controllers
                 200,
                 new ApiResponse<PagedResponse<ClubPostResponse>>(
                     "All posts have been fetched successfully.",
-                    paged
+                    paged,
+                    source
                 )
             );
         }
 
-        private static ClubPostResponse MapToResponse(
-            ClubPost p,
-            string source = ResponseSource.Database) =>
-            new(p.Id, p.ClubId, p.UserId, p.Title, p.Content, p.PostType, p.LikesCount, p.ViewCount, p.IsPinned, p.CreatedAt, p.UpdatedAt, source);
+        private static ClubPostResponse MapToResponse(ClubPost p) =>
+            new(p.Id, p.ClubId, p.UserId, p.Title, p.Content, p.PostType, p.LikesCount, p.ViewCount, p.IsPinned, p.CreatedAt, p.UpdatedAt);
     }
 }

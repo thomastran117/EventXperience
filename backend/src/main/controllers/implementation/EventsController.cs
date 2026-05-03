@@ -284,6 +284,60 @@ namespace backend.main.implementation.controllers
             }
         }
 
+        [HttpPost("search")]
+        public async Task<IActionResult> SearchEvents([FromBody] EventSearchRequest request)
+        {
+            try
+            {
+                var tagList = request.Filters?.Tags?
+                    .Select(t => t.Trim().ToLowerInvariant())
+                    .Where(t => t.Length > 0)
+                    .Distinct()
+                    .ToList();
+
+                var criteria = new EventSearchCriteria
+                {
+                    Query = request.Query,
+                    IsPrivate = request.Filters?.IsPrivate ?? false,
+                    Status = request.Filters?.Status,
+                    Category = request.Filters?.Category,
+                    Tags = tagList,
+                    City = request.Filters?.City,
+                    Lat = request.Geo?.Lat,
+                    Lng = request.Geo?.Lng,
+                    RadiusKm = request.Geo?.RadiusKm,
+                    SortBy = request.SortBy,
+                    Page = request.Page,
+                    PageSize = request.PageSize
+                };
+
+                var (events, totalCount, distances, source) = await _eventService.GetEvents(criteria);
+
+                var paged = new PagedResponse<EventResponse>(
+                    events.Select(e => EventMapper.MapToResponse(
+                        e,
+                        distances.TryGetValue(e.Id, out var d) ? d : (double?)null)),
+                    totalCount,
+                    request.Page,
+                    request.PageSize
+                );
+
+                return Ok(new ApiResponse<PagedResponse<EventResponse>>(
+                    "The events have been fetched successfully.",
+                    paged,
+                    source
+                ));
+            }
+            catch (Exception e)
+            {
+                if (e is AppException)
+                    return HandleError.Resolve(e);
+
+                Logger.Error($"[EventsController] SearchEvents failed: {e}");
+                return HandleError.Resolve(e);
+            }
+        }
+
         [HttpGet("batch")]
         public async Task<IActionResult> GetEventsBatch([FromQuery] string ids)
         {

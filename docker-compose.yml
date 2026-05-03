@@ -67,6 +67,8 @@ services:
     depends_on:
       kafka-init:
         condition: service_completed_successfully
+      kafka-connect-init:
+        condition: service_completed_successfully
       kafka-connect:
         condition: service_healthy
       elasticsearch:
@@ -265,7 +267,8 @@ services:
       - ./docker/kafka-connect:/scripts:ro
     entrypoint:
       - sh
-      - /scripts/register-event-outbox-connector.sh
+      - -c
+      - tr -d '\r' < /scripts/register-event-outbox-connector.sh | sh
     networks:
       - event-network
 
